@@ -1,0 +1,633 @@
+
+// v22 â breakeven sempre individuati + greche di posizione scalate + fix mobile.
+  // BE: la vecchia scansione (griglia uniforme a 180 punti su spotÂ±45% esteso
+  // alla strutturaÂ±30%) perdeva gli attraversamenti quando la struttura occupava
+  // una fetta minima del range (es. opzioni AZIONI con strike ~100 e spot ~7700:
+  // step di scansione ~60 punti) oppure quando il BE cadeva fuori range (premi
+  // pesanti). Ora la ricerca usa un campionamento DENSO con punti esatti sugli
+  // strike/ingressi (buildPayoffPointsDense) e un'estensione ADATTIVA del range
+  // (findBreakevensRobust): se le code del payoff puntano a uno zero fuori range
+  // il range si estende finchÃ© non Ã¨ intercettato. Il range include anche la
+  // porzione di grafico visibile: un BE mostrato a video non puÃ² piÃ¹ sfuggire.
+  // Gestiti anche tangenze (curva che tocca lo zero senza attraversarlo) e tratti
+  // piatti a zero (ratio spread a credito pari: si segnala il bordo del tratto).
+  // GRECHE: i totali Î/Î/Vega/Î in header e le colonne per riga sommavano greche
+  // PER UNITÃ mescolando strumenti con moltiplicatori diversi (MES Ã5, ES Ã50,
+  // AZIONI Ã100): un numero privo di unitÃ , arbitrariamente grande o piccolo.
+  // Ora sono greche di POSIZIONE in $ (q.tÃ  Ã greca Ã moltiplicatore): Î $/pt,
+  // Î $/ptÂ², Vega $/1% IV, Î $/gg â omogenee e sommabili tra strumenti.
+  // MOBILE: font 16px sui campi input/select sotto gli 800px (iOS zooma la
+  // pagina intera al focus dei campi < 16px: la causa dei dati "fuori schermo"),
+  // nessuno scroll orizzontale a livello pagina, prime 3 colonne della tabella
+  // opzioni sticky durante lo scorrimento, .table-scroll irrobustito.
+  // Nessun cambiamento di storage: STORAGE_KEY resta mastering_v20.
+  // v21 â riga opzioni portata in paritÃ  con la gamba opzioni del Calcolatore
+  // Payoff: aggiunte le colonne V. Intr (valore intrinseco), V. Temp (valore
+  // temporale = teorico â intrinseco), P. Tocco (probabilitÃ  che il
+  // sottostante tocchi lo strike prima della scadenza della gamba, stessa
+  // formula del Calcolatore), P&L Scad. (P&L della singola riga alla prima
+  // scadenza della scheda, metodo calendar: gambe piÃ¹ lunghe al teorico col
+  // tempo residuo) e Deb/Cred (premio Ã q.tÃ  Ã moltiplicatore). Tutte le
+  // colonne e i valori esistenti restano invariati; lo storage non cambia.
+  // v20 â metodo "calendar" per le scadenze miste: la curva A SCADENZA (e i
+  // totali/POP/BE collegati) Ã¨ calcolata alla scadenza della gamba opzioni
+  // piÃ¹ corta; le gambe con scadenza piÃ¹ lunga sono valutate al teorico
+  // Black-76 col tempo residuo a quella data (picco tipico delle calendar
+  // senza cambiare la data di analisi). POP e bande sigma usano lo stesso
+  // orizzonte della prima scadenza. Moltiplicatore AZIONI corretto a Ã100
+  // (un'opzione eq. muove 100 azioni), in linea con MES Ã5 ed ES Ã50.
+  // Vol ATM spostata dalla testata superiore all'header Opzioni (affianco al
+  // selettore strumento), con stile dedicato coerente al pannello. Aggiunto
+  // il modello Black-Scholes con tasso r e dividendo continuo q per le
+  // opzioni su AZIONI (nuovo input "Div %" nell'header): teorico, greche,
+  // curve Now e valutazione calendar usano BS per AZIONI e Black-76 per
+  // MES/ES. Storage v20 con persistenza anche del dividendo.
+  // v19 â schede multi-scenario: la scheda "Matrice" (non rimovibile) e le
+  // comparazioni clonabili col pulsante "Crea comparazione"; i valori a video
+  // (futures, opzioni, riepilogo, greche) sono della scheda attiva, il grafico
+  // disegna e confronta le curve di TUTTE le schede. Etichetta "Escludi cash",
+  // sfondo casella cash verde/rosso, spinner numerici rimossi, badge q.tÃ 
+  // rimosso (il totale aperti Ã¨ giÃ  nella riga di intestazione), voce
+  // "Realizzato" eliminata.
+  // v18 â deviazioni standard verdi (prima azzurre come lo spot), box "Dev. std"
+  // con logica invertita come il resto del file (spunta = nasconde), header
+  // Opzioni selezionabile da menu a tendina (MES / ES / AZIONI) con
+  // moltiplicatore dedicato (5 / 50 / 100), scheda opzioni non eliminabile
+  // (dormiente se vuota), ROI e voci legate al margine rimosse.
+  // v17 â strumenti ES (Ã50) e X (Ã100), logica box invertita (spunta = esclusa),
+  // colonna M/S (ATM/OTM/ITM + distanza in Ï), bande Â±1Ï/Â±2Ï sul grafico,
+  // totali AT NOW / A SCADENZA, POP a 4 decimali, colonna RLZD rimossa
+  // (il realizzato va nel box Cash), cash compreso nei totali e nel grafico
+  // con box di esclusione per simulazione, toggle BE e linee dev. standard
+  // verticali (menu 1Â°â10Â° SD vicino al POP).
+  // v16 â fix: persistenza riskFree/volAtm, chiusura opzioni da UI, P&L opzioni MTM,
+  // scansione BE/POP adattiva al di fuori di spotÂ±45%, perf (niente calcoli morti,
+  // redraw throttled), touch pan/pinch, intrinseco a scadenza, autosave, robustezza margini.
+
+  const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 100 };
+  const FEE_LATO = 1.205; // per ora usiamo lo stesso valore anche per MES
+  const FEE_ROUND_TRIP = FEE_LATO * 2;
+  const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
+  function moltOpz(opz) { return MOLTIPLICATORI_OPZ[(opz && opz.strumento) || 'MES']; }
+  const STORAGE_KEY = 'mastering_v20';
+  const STORAGE_KEYS_LEGACY = ['mastering_v19', 'mastering_v18', 'mastering_v17', 'mastering_v16', 'mastering_v15', 'mastering_v14', 'mastering_v13', 'mastering_v12', 'mastering_v11'];
+
+  // Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette
+  const PALETTE_COMP = ['#f97316', '#22d3ee', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
+  function coloreScheda(i) { return i === 0 ? '#ffffff' : PALETTE_COMP[(i - 1) % PALETTE_COMP.length]; }
+
+  // Una scheda = uno scenario completo (futures NES/MES + opzioni).
+  // La scheda 0 Ã¨ la "Matrice": non puÃ² essere rimossa.
+  function nuovaScheda(nome) {
+    return {
+      nome: nome || 'Matrice',
+      tipoNES: 'NES', tipoMES: 'MES',
+      NES: [], MES: [], opzioni: [],
+      strumentoOpzioni: 'MES'
+    };
+  }
+
+  const stato = {
+    schede: [nuovaScheda('Matrice')],
+    attiva: 0,
+    prezzoSpot: 7700,
+    cash: 0,
+    cashEscluso: false
+  };
+
+  function schedaAttiva() { return stato.schede[stato.attiva] || stato.schede[0]; }
+
+  const el = id => document.getElementById(id);
+
+  // ============================================================
+  // MATEMATICA BLACK-76 (per opzioni su futures)
+  // ============================================================
+  function erf(x) {
+    const sign = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+    const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+    const t = 1 / (1 + p * x);
+    const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+    return sign * y;
+  }
+  function normCDF(x) { return 0.5 * (1 + erf(x / Math.SQRT2)); }
+  function normPDF(x) { return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI); }
+
+  // ProbabilitÃ  che il sottostante (GBM, drift nullo) tocchi il livello H
+  // prima della scadenza T (in anni), con volatilitÃ  vol (frazione).
+  // Identica alla funzione del Calcolatore Payoff (formula della riflessione).
+  function touchProbability(S0, H, vol, T) {
+    if (!(S0 > 0) || !(H > 0) || !(vol > 0) || !(T > 0)) return null;
+    const b = Math.log(H / S0);
+    if (Math.abs(b) < 1e-12) return 1;
+    const nu = -0.5 * vol * vol;
+    const sqrtT = Math.sqrt(T);
+    const denom = vol * sqrtT;
+    let p;
+    if (b > 0) {
+      const m = b;
+      p = normCDF((nu * T - m) / denom) + Math.exp((2 * nu * m) / (vol * vol)) * normCDF((-nu * T - m) / denom);
+    } else {
+      const m = -b;
+      p = normCDF((-nu * T - m) / denom) + Math.exp((-2 * nu * m) / (vol * vol)) * normCDF((nu * T - m) / denom);
+    }
+    return Math.min(1, Math.max(0, p));
+  }
+
+  // CDF lognormale del sottostante a scadenza T (anni), vol ATM in frazione
+  function lognormalCDF(S, S0, vol, T) {
+    if (!(S > 0) || !(S0 > 0)) return S >= S0 ? 1 : 0;
+    const sigT = vol * Math.sqrt(T);
+    if (!(sigT > 0)) return S >= S0 ? 1 : 0;
+    // P(S_T <= S) con drift 0 (futures / Black-76)
+    const d = (Math.log(S / S0) + 0.5 * vol * vol * T) / sigT;
+    return normCDF(d);
+  }
+
+  // Giorni / anni alla scadenza opzione piÃ¹ vicina tra quelle attive e aperte
+  // (della scheda indicata; default = scheda attiva). Ã la "prima scadenza"
+  // usata come orizzonte da POP e bande sigma: coerente col metodo calendar.
+  function nearestOptionYears(scheda) {
+    const today = dataAnalisiDate();
+    let minT = null;
+    const ops = (scheda && scheda.opzioni) || (schedaAttiva().opzioni || []);
+    ops.forEach(o => {
+      if (o.attivo === false || o.stato === 'CHIUSA') return;
+      if (!o.scadenza) return;
+      const T = yearsBetween(today, o.scadenza);
+      if (T == null || T < 0) return;
+      if (minT === null || T < minT) minT = T;
+    });
+    return minT;
+  }
+
+  // POP: probabilitÃ  che a scadenza il P&L combinato sia > 0.
+  // Nota: tra due BE consecutivi il payoff a scadenza non puÃ² cambiare segno
+  // (zero-crossing contigui), quindi il test a punto medio Ã¨ corretto.
+  // Se NON vengono trovati BE (struttura sempre in profitto/perdita nel range
+  // scansionato, o BE fuori range), il dominio viene segmentato in tratti.
+  function calcolaPOP(scheda, spot, breakevens, resNES, resMES, scanMin, scanMax) {
+    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
+    const vol = volPct / 100;
+    // POP alla scadenza piÃ¹ corta (coerente con la curva A SCADENZA calendar)
+    let T = nearestOptionYears(scheda);
+    // Se non ci sono opzioni ma ci sono futures, usa orizzonte 30 giorni come riferimento
+    if (T === null) {
+      const hasFut = (resNES && resNES.qtaNetta !== 0) || (resMES && resMES.qtaNetta !== 0);
+      if (!hasFut) return null;
+      T = 30 / 365.25;
+    }
+    if (!(spot > 0) || !(vol > 0) || !(T > 0)) return null;
+
+    const bes = (breakevens || []).filter(b => isFinite(b) && b > 0).sort((a, b) => a - b);
+
+    let bounds;
+    if (bes.length > 0) {
+      bounds = [0, ...bes, Infinity];
+    } else {
+      // Nessun BE trovato: segmenta il range scansionato e valuta ogni tratto
+      const lo = (isFinite(scanMin) && scanMin > 0) ? scanMin : Math.max(1, spot * 0.55);
+      const hi = (isFinite(scanMax) && scanMax > lo) ? scanMax : spot * 1.45;
+      const n = 10;
+      const step = (hi - lo) / n;
+      bounds = [];
+      for (let i = 0; i <= n; i++) bounds.push(lo + i * step);
+    }
+
+    let prob = 0;
+    for (let i = 0; i < bounds.length - 1; i++) {
+      const lo = bounds[i];
+      const hi = bounds[i + 1];
+      const mid = hi === Infinity
+        ? (bes.length ? Math.max(...bes) : spot) + Math.max(spot * 0.05, 50)
+        : (lo + hi) / 2;
+      const midS = mid <= 0 ? 0.01 : mid;
+      const pnl = pnlCombinatoAt(scheda, midS, 'expiry', resNES, resMES);
+      if (pnl > 0) {
+        const cdfHi = hi === Infinity ? 1 : lognormalCDF(hi, spot, vol, T);
+        const cdfLo = lognormalCDF(lo <= 0 ? 0.0001 : lo, spot, vol, T);
+        prob += Math.max(0, cdfHi - cdfLo);
+      }
+    }
+    return Math.min(1, Math.max(0, prob));
+  }
+
+  function updatePOPLabel(pop) {
+    const e = el('popValue');
+    if (!e) return;
+    if (pop === null || !isFinite(pop)) {
+      e.textContent = 'â';
+      e.style.color = 'var(--muted)';
+      return;
+    }
+    e.textContent = (pop * 100).toLocaleString('it-IT', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '%';
+    e.style.color = pop >= 0.5 ? 'var(--green)' : 'var(--red)';
+  }
+
+  // Bande Â±1Ï/Â±2Ï attorno allo spot: Vol ATM e orizzonte T del POP
+  function sigmaBandsAt(spot, resNES, resMES) {
+    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
+    const vol = volPct / 100;
+    let T = nearestOptionYears();
+    if (T === null) {
+      const hasFut = (resNES && resNES.qtaNetta !== 0) || (resMES && resMES.qtaNetta !== 0);
+      if (!hasFut) return null;
+      T = 30 / 365.25;
+    }
+    if (!(spot > 0) || !(vol > 0) || !(T > 0)) return null;
+    const s1 = spot * vol * Math.sqrt(T);
+    return { s1, lo1: spot - s1, hi1: spot + s1, lo2: spot - 2 * s1, hi2: spot + 2 * s1 };
+  }
+
+  function yearsBetween(d1, d2) {
+    const start = typeof d1 === 'string' ? parseDataLocal(d1) : d1;
+    const end = typeof d2 === 'string' ? parseDataLocal(d2) : d2;
+    if (!(start instanceof Date) || !(end instanceof Date) || isNaN(start) || isNaN(end)) return null;
+    return (end - start) / (365.25 * 86400000);
+  }
+
+  // Parse 'YYYY-MM-DD' come mezzanotte locale (coerente con il today locale:
+  // evita lo sfasamento UTC che alterava T di alcune ore)
+  function parseDataLocal(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+    if (!m) {
+      const d = new Date(s);
+      return isNaN(d) ? null : d;
+    }
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+
+  // Data di analisi: default oggi, modificabile dal calendario.
+  // Le opzioni fanno riferimento a questa data per il time decay
+  // (consente simulazioni su date passate o future).
+  function dataAnalisiDate() {
+    const v = el('dataAnalisi') && el('dataAnalisi').value;
+    if (v) {
+      const d = parseDataLocal(v);
+      if (d) return d;
+    }
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  }
+
+  function dataOggiIso() {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  }
+
+  // Giorni residui tra la data analisi e la scadenza dell'opzione
+  function giorniResiduiOpzione(opz) {
+    if (!opz.scadenza) return null;
+    const scad = parseDataLocal(opz.scadenza);
+    if (!scad) return null;
+    return Math.round((scad - dataAnalisiDate()) / 86400000);
+  }
+
+  // Moneyness: ATM se |KâS| â¤ 25 punti, altrimenti ITM/OTM in base al tipo
+  function moneynessOpzione(opz) {
+    const S = parseFloat(el('prezzoSpot').value) || 0;
+    const K = parseFloat(opz.strike) || 0;
+    if (!(S > 0) || !(K > 0)) return null;
+    const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
+    const diff = K - S;
+    // ATM: Â±25 punti sui futures; sulle azioni Â±1% del prezzo (min Â±0,5)
+    const sogliaAtm = (opz.strumento || 'MES') === 'AZIONI' ? Math.max(0.5, S * 0.01) : 25;
+    let label;
+    if (Math.abs(diff) <= sogliaAtm) label = 'ATM';
+    else if (tipo === 'put') label = diff < 0 ? 'OTM' : 'ITM';
+    else label = diff > 0 ? 'OTM' : 'ITM';
+    return { label, diff, S };
+  }
+
+  // Distanza strike-spot in deviazioni standard: (KâS) / (S Â· VolATM Â· â(DTE/365.25))
+  function sigmaDistanceOpzione(opz) {
+    const m = moneynessOpzione(opz);
+    if (!m) return null;
+    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
+    const vol = volPct / 100;
+    if (!(vol > 0)) return null;
+    const gg = giorniResiduiOpzione(opz);
+    if (gg === null || gg <= 0) return null;
+    const sigma = m.S * vol * Math.sqrt(gg / 365.25);
+    if (!(sigma > 0)) return null;
+    return m.diff / sigma;
+  }
+
+  function aggiornaMoneyness(tr, opz) {
+    const mCell = tr.querySelector('[data-field="ms"]');
+    const sCell = tr.querySelector('[data-field="msSigma"]');
+    if (!mCell || !sCell) return;
+    if (opz.attivo === false) { mCell.textContent = 'â'; mCell.style.color = ''; sCell.textContent = ''; return; }
+    const m = moneynessOpzione(opz);
+    if (!m) { mCell.textContent = 'â'; mCell.style.color = ''; sCell.textContent = ''; return; }
+    mCell.textContent = m.label;
+    mCell.style.color = m.label === 'ATM' ? 'var(--yellow)' : (m.label === 'ITM' ? 'var(--green)' : 'var(--muted)');
+    const sig = sigmaDistanceOpzione(opz);
+    if (sig === null) { sCell.textContent = ''; return; }
+    const sign = sig >= 0 ? '+' : 'â';
+    sCell.textContent = sign + Math.abs(sig).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'Ï';
+  }
+
+  function black76(F, K, T, sigma, type, r) {
+    F = Number(F); K = Number(K); T = Number(T); sigma = Number(sigma); r = Number(r) || 0;
+    if (!isFinite(F) || !isFinite(K) || F <= 0 || K <= 0) {
+      return { price: 0, delta: 0, gamma: 0, vega: 0, theta: 0, intrinsic: 0 };
+    }
+    if (!isFinite(T) || T < 0) T = 0;
+    if (!isFinite(sigma) || sigma < 0) sigma = 0;
+
+    const intrinsic = type === 'call' ? Math.max(F - K, 0) : Math.max(K - F, 0);
+
+    if (T <= 0 || sigma <= 0) {
+      let delta = 0;
+      if (type === 'call') delta = F > K ? 1 : 0;
+      else delta = F < K ? -1 : 0;
+      return { price: intrinsic, delta, gamma: 0, vega: 0, theta: 0, intrinsic };
+    }
+
+    const sqrtT = Math.sqrt(T);
+    const d1 = (Math.log(F / K) + 0.5 * sigma * sigma * T) / (sigma * sqrtT);
+    const d2 = d1 - sigma * sqrtT;
+    const pdf1 = normPDF(d1);
+    const disc = Math.exp(-r * T);
+
+    let price, delta;
+    if (type === 'call') {
+      price = disc * (F * normCDF(d1) - K * normCDF(d2));
+      delta = disc * normCDF(d1);
+    } else {
+      price = disc * (K * normCDF(-d2) - F * normCDF(-d1));
+      delta = -disc * normCDF(-d1);
+    }
+    const gamma = disc * pdf1 / (F * sigma * sqrtT);
+    const vega = F * disc * pdf1 * sqrtT / 100; // per 1% IV
+    const thetaAnnual = r * price - (F * disc * pdf1 * sigma) / (2 * sqrtT);
+    const thetaPerDay = thetaAnnual / 365;
+
+    return { price, delta, gamma, vega, theta: thetaPerDay, intrinsic };
+  }
+
+  // Black-Scholes con tasso r e dividendo continuo q (il modello "bs" con
+  // r/q del calcolatore di riferimento): usato per le opzioni su AZIONI,
+  // dove il sottostante Ã¨ lo spot azionario e non il future.
+  function blackScholes(S, K, T, sigma, type, r, q) {
+    S = Number(S); K = Number(K); T = Number(T); sigma = Number(sigma);
+    r = Number(r) || 0; q = Number(q) || 0;
+    if (!isFinite(S) || !isFinite(K) || S <= 0 || K <= 0) {
+      return { price: 0, delta: 0, gamma: 0, vega: 0, theta: 0, intrinsic: 0 };
+    }
+    if (!isFinite(T) || T < 0) T = 0;
+    if (!isFinite(sigma) || sigma < 0) sigma = 0;
+
+    const intrinsic = type === 'call' ? Math.max(S - K, 0) : Math.max(K - S, 0);
+
+    if (T <= 0 || sigma <= 0) {
+      let delta = 0;
+      if (type === 'call') delta = S > K ? 1 : 0;
+      else delta = S < K ? -1 : 0;
+      return { price: intrinsic, delta, gamma: 0, vega: 0, theta: 0, intrinsic };
+    }
+
+    const sqrtT = Math.sqrt(T);
+    const d1 = (Math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
+    const d2 = d1 - sigma * sqrtT;
+    const pdf1 = normPDF(d1);
+    const eqT = Math.exp(-q * T);
+    const erT = Math.exp(-r * T);
+
+    let price, delta, thetaAnnual;
+    if (type === 'call') {
+      price = S * eqT * normCDF(d1) - K * erT * normCDF(d2);
+      delta = eqT * normCDF(d1);
+      thetaAnnual = -S * eqT * pdf1 * sigma / (2 * sqrtT)
+                  + q * S * eqT * normCDF(d1)
+                  - r * K * erT * normCDF(d2);
+    } else {
+      price = K * erT * normCDF(-d2) - S * eqT * normCDF(-d1);
+      delta = -eqT * normCDF(-d1);
+      thetaAnnual = -S * eqT * pdf1 * sigma / (2 * sqrtT)
+                  - q * S * eqT * normCDF(-d1)
+                  + r * K * erT * normCDF(-d2);
+    }
+    const gamma = eqT * pdf1 / (S * sigma * sqrtT);
+    const vega = S * eqT * pdf1 * sqrtT / 100; // per 1% IV
+
+    return { price, delta, gamma, vega, theta: thetaAnnual / 365, intrinsic };
+  }
+
+  // Prezzo teorico di un'opzione a T anni dalla valutazione, col modello
+  // corretto per strumento: AZIONI â Black-Scholes (r e q);
+  // MES / ES â Black-76 (opzioni su futures, q non si applica).
+  // Ritorna null se gli input non bastano (chiamante: fallback intrinseco).
+  function modelPrice(S, opz, T, tipo) {
+    const r = (parseFloat(el('riskFree').value) || 0) / 100;
+    const vol = (parseFloat(opz.vol) || 0) / 100;
+    const K = opz.strike || 0;
+    if (!(T > 0) || !(vol > 0) || !(K > 0) || !(S > 0)) return null;
+    if ((opz.strumento || 'MES') === 'AZIONI') {
+      const q = (parseFloat(el('divYield') && el('divYield').value) || 0) / 100;
+      return blackScholes(S, K, T, vol, tipo, r, q).price;
+    }
+    return black76(S, K, T, vol, tipo, r).price;
+  }
+
+  function calcolaGrecheOpzione(opz) {
+    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const r = (parseFloat(el('riskFree').value) || 0) / 100;
+    const vol = (parseFloat(opz.vol) || 0) / 100;
+    const K = parseFloat(opz.strike) || 0;
+    const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
+    const today = dataAnalisiDate();
+    const T = opz.scadenza ? yearsBetween(today, opz.scadenza) : 0;
+    if (!(K > 0) || !(spot > 0) || T == null) {
+      // input incompleti: 'â' a video (NaN) invece di falsi 0,00
+      return { price: NaN, delta: NaN, gamma: NaN, vega: NaN, theta: NaN, intrinsic: NaN, T: T || 0 };
+    }
+    // T<=0 (scaduta) â intrinseco; vol=0 â intrinseco.
+    // Modello per strumento: AZIONI â Black-Scholes (r, q); MES/ES â Black-76
+    const q = (parseFloat(el('divYield') && el('divYield').value) || 0) / 100;
+    const g = (opz.strumento || 'MES') === 'AZIONI'
+      ? blackScholes(spot, K, Math.max(0, T), vol, tipo, r, q)
+      : black76(spot, K, Math.max(0, T), vol, tipo, r);
+    return { ...g, T };
+  }
+
+  function formatEuro(v) {
+    if (!isFinite(v)) return 'â';
+    return v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function formatPrezzo(v) {
+    if (!isFinite(v)) return 'â';
+    return v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ============================================================
+  // CALCOLO COLONNA
+  // ============================================================
+  function calcolaColonna(scheda, col) {
+    const movimenti = scheda[col];
+    const tipo = scheda['tipo' + col];
+
+    if (tipo === '-' || movimenti.length === 0) {
+      return { righe: [], mediaPulita: NaN, pnlAperto: 0, pnlRealizzato: 0,
+        pnlTotale: 0, qtaNetta: 0, qtaAssolutaCorrente: 0, tipo };
+    }
+
+    const molt = MOLTIPLICATORI[tipo];
+    const spot = parseFloat(el('prezzoSpot').value) || 0;
+
+    let qtaNetta = 0, sommaPulitaPesata = 0, qtaAssolutaCorrente = 0, pnlRealizzatoTot = 0;
+
+    const righe = movimenti.map(m => ({
+      tipo: 'vuota', qOriginale: m.quantita || 0, prezzo: m.prezzoPulito || 0,
+      direzione: m.direzione, qAperta: 0, qChiusa: 0, mediaIngresso: 0,
+      pnlRealizzato: 0, pnlAperto: 0, pnlTotale: 0
+    }));
+
+    const fifo = [];
+
+    movimenti.forEach((m, idx) => {
+      // Riga disattivata: esclusa da FIFO, P&L, media e payoff
+      if (m.attivo === false) {
+        righe[idx].tipo = 'off';
+        return;
+      }
+      const q = m.quantita || 0;
+      const prezzo = m.prezzoPulito || 0;
+      const segno = m.direzione === 'LONG' ? 1 : -1;
+      const qtaConSegno = segno * q;
+      if (q === 0) return;
+
+      const segnoPos = Math.sign(qtaNetta);
+
+      if (segnoPos === 0 || segnoPos === segno) {
+        // APERTURA
+        righe[idx].tipo = 'apertura';
+        righe[idx].qAperta = q;
+        fifo.push({ rowIdx: idx, qta: q, prezzo, segno });
+
+        qtaNetta += qtaConSegno;
+        sommaPulitaPesata += prezzo * q;
+        qtaAssolutaCorrente += q;
+      } else {
+        // CHIUSURA
+        righe[idx].tipo = 'chiusura';
+        const mediaIngresso = qtaAssolutaCorrente > 0
+          ? sommaPulitaPesata / qtaAssolutaCorrente : 0;
+        const qtaChiusa = Math.min(Math.abs(qtaConSegno), Math.abs(qtaNetta));
+        const qtaApre = q - qtaChiusa;
+
+        const pnlRea = (prezzo - mediaIngresso) * qtaChiusa * segnoPos * molt
+                     - FEE_ROUND_TRIP * qtaChiusa;
+        righe[idx].pnlRealizzato = pnlRea;
+        righe[idx].qChiusa = qtaChiusa;
+        righe[idx].mediaIngresso = mediaIngresso;
+
+        pnlRealizzatoTot += pnlRea;
+
+        let daChiudere = qtaChiusa;
+        while (daChiudere > 0 && fifo.length > 0) {
+          const f = fifo[0];
+          const qc = Math.min(daChiudere, f.qta);
+          f.qta -= qc;
+          righe[f.rowIdx].qAperta -= qc;
+          righe[f.rowIdx].qChiusa += qc;
+          daChiudere -= qc;
+          if (f.qta === 0) fifo.shift();
+        }
+
+        if (qtaApre > 0) {
+          righe[idx].qAperta = qtaApre;
+          righe[idx].tipo = 'mista';
+          fifo.push({ rowIdx: idx, qta: qtaApre, prezzo, segno });
+        }
+
+        const vecchioSegno = segnoPos;
+        qtaNetta += qtaConSegno;
+        if (qtaNetta === 0) { sommaPulitaPesata = 0; qtaAssolutaCorrente = 0; }
+        else if (Math.sign(qtaNetta) !== vecchioSegno) {
+          sommaPulitaPesata = prezzo * Math.abs(qtaNetta);
+          qtaAssolutaCorrente = Math.abs(qtaNetta);
+        } else {
+          const frazione = Math.abs(qtaNetta) / qtaAssolutaCorrente;
+          sommaPulitaPesata *= frazione;
+          qtaAssolutaCorrente = Math.abs(qtaNetta);
+        }
+      }
+    });
+
+    let pnlApertoTot = 0;
+    righe.forEach(r => {
+      if (r.qAperta > 0) {
+        const segno = r.direzione === 'LONG' ? 1 : -1;
+        const pnlLive = (spot - r.prezzo) * r.qAperta * segno * molt
+                      - FEE_ROUND_TRIP * r.qAperta;
+        r.pnlAperto = pnlLive;
+        pnlApertoTot += pnlLive;
+      }
+      r.pnlTotale = r.pnlAperto + r.pnlRealizzato;
+    });
+
+    const mediaPulita = qtaAssolutaCorrente > 0
+      ? sommaPulitaPesata / qtaAssolutaCorrente : NaN;
+
+    const pnlTotale = pnlApertoTot + pnlRealizzatoTot;
+
+    return {
+      righe, mediaPulita, pnlAperto: pnlApertoTot, pnlRealizzato: pnlRealizzatoTot,
+      pnlTotale, qtaNetta, qtaAssolutaCorrente, tipo
+    };
+  }
+
+  // ============================================================
+  // OPZIONI
+  // ============================================================
+  function valoreNominaleOpzione(opz) {
+    return (opz.premio || 0) * moltOpz(opz) * (opz.qta || 0);
+  }
+  // P&L di una singola opzione:
+  // - disattivata â 0
+  // - CHIUSA â 0 (il realizzato va annotato nel box Cash in alto)
+  // - APERTA â mark-to-market: (teorico â premio) Ã side Ã qta Ã 5
+  //   Coerente con la curva "Now" del grafico e con il balance IBKR.
+  function calcolaPnlOpzione(opz) {
+    if (opz.attivo === false) return 0;
+    if (opz.stato === 'CHIUSA') return 0;
+    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    return pnlOpzioneAt(spot, opz, 'now');
+  }
+  // Totale P&L opzioni: con filtro = solo dello strumento indicato,
+  // senza filtro = tutti gli strumenti (riepilogo, TWS, payoff)
+  function calcolaPnlOpzioniTotale(filtro) {
+    return schedaAttiva().opzioni.reduce((sum, o) => {
+      if (filtro && (o.strumento || 'MES') !== filtro) return sum;
+      return sum + calcolaPnlOpzione(o);
+    }, 0);
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  function renderRigaTotale(col, res) {
+    const rt = el('rt' + col);
+    const qtaEl = rt.querySelector('.rt-qta');
+    const prezzoEl = rt.querySelector('.rt-prezzo strong');
+
+    if (res.qtaNetta === 0) {
+      qtaEl.innerHTML = '<span class="dir-flat">â</span>';
+      prezzoEl.textContent = 'â';
+    } else {
+      const dir = res.qtaNetta > 0 ? 'LONG' : 'SHORT';
+      const dirClsName = res.qtaNetta > 0 ? 'dir-long' : 'dir-short';
+      qtaEl.innerHTML = `${Math.abs(res.qtaNetta)} <span class="${dirClsName}">${dir}</span>`;
+      prezzoEl.textContent = isNaN(res.mediaPulita) ? 'â' : formatPrezzo(res.mediaPulita);
+    }
+
+    const setVal = (id, val) => {
+      const e = el(id);
+      e.textContent = formatEuro(val);
+      e.classList.remove('green', 'red', 'muted');
+      if (!isFinite(val) || val === 0) e.classList.add('muted');
+      else e.classList.add(va

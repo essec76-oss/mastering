@@ -1,0 +1,6 @@
+, attivo: true });
+    stato.schede[0].MES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true });
+  }
+
+  renderTabs();
+  renderScheda();
