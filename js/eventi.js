@@ -23,7 +23,10 @@
     calcolaTutto();
   });
   if (el('cashEscludi')) el('cashEscludi').addEventListener('change', () => {
-    stato.cashEscludi = el('cashEscludi').checked;
+    stato.cashEscluso = el('cashEscludi').checked;
+    calcolaTutto();
+  });
+  if (el('commissioniOn')) el('commissioniOn').addEventListener('change', () => {
     calcolaTutto();
   });
   if (el('dataAnalisi')) el('dataAnalisi').addEventListener('change', () => {
