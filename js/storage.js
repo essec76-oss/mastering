@@ -25,6 +25,7 @@
       divYield: parseFloat(el('divYield') && el('divYield').value) || 0,
       cash: parseFloat(el('cash').value) || 0,
       cashEscluso: !!stato.cashEscluso,
+      commissioniOn: commissioniAttive(),
       dataAnalisi: el('dataAnalisi') ? (el('dataAnalisi').value || '') : '',
       tipoNES: el('tipoNES').value,
       tipoMES: el('tipoMES').value,
@@ -53,6 +54,7 @@
       if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
       stato.cashEscluso = dati.cashEscluso === true;
       if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
+      if (el('commissioniOn')) el('commissioniOn').checked = dati.commissioniOn !== false;
       if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
       if (dati.tipoNES) el('tipoNES').value = dati.tipoNES;
       if (dati.tipoMES) el('tipoMES').value = dati.tipoMES;
@@ -112,26 +114,38 @@
   }
 
   function reset() {
-    if (!confirm('Vuoi davvero azzerare tutti i dati?')) return;
+    if (!confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.')) return;
     localStorage.removeItem(STORAGE_KEY);
     STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
-    stato.schede = [nuovaScheda('Matrice')];
+    stato.schede = [{
+      nome: 'Matrice',
+      tipoNES: '-', tipoMES: '-',
+      NES: [], MES: [], opzioni: [],
+      strumentoOpzioni: 'MES'
+    }];
     stato.attiva = 0;
-    el('prezzoSpot').value = 7700;
-    el('riskFree').value = 4.0;
-    el('volAtm').value = 15;
+    el('prezzoSpot').value = '';
+    el('riskFree').value = 0;
+    el('volAtm').value = 0;
     if (el('divYield')) el('divYield').value = 0;
     el('cash').value = 0;
     stato.cash = 0;
     aggiornaStileCash();
     stato.cashEscluso = false;
     if (el('cashEscludi')) el('cashEscludi').checked = false;
+    if (el('commissioniOn')) el('commissioniOn').checked = true;
     el('dataAnalisi').value = dataOggiIso();
-    const spot = 7700;
-    stato.schede[0].NES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spot, attivo: true });
-    stato.schede[0].MES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spot, attivo: true });
+    el('tipoNES').value = '-';
+    el('tipoMES').value = '-';
+    if (el('strumentoOpzioni')) el('strumentoOpzioni').value = 'MES';
+    if (typeof chartView !== 'undefined') {
+      chartView.xMin = null; chartView.xMax = null;
+      chartView.baseMin = null; chartView.baseMax = null;
+      chartView._sig = null;
+    }
     renderTabs();
     renderScheda();
+    mostraStatus('✓ Foglio azzerato');
   }
 
   let statusTimer = null;
