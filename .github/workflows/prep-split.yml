@@ -1,0 +1,26 @@
+name: Prepara file per modularizzazione
+on:
+  push:
+    paths:
+      - '.github/workflows/prep-split.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dividi app.js in parti
+        run: |
+          mkdir -p .split
+          split -b 28000 -d js/app.js .split/p
+          wc -c .split/*
+      - name: Commit delle parti
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .split
+          git commit -m "chore: aggiunge parti di app.js per analisi"
+          git push
