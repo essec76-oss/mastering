@@ -12,9 +12,8 @@
     const molt = MOLTIPLICATORI[tipo] || 0;
     const segno = res.qtaNetta > 0 ? 1 : -1;
     const q = Math.abs(res.qtaNetta);
-    // P&L aperto senza fee residuali (le fee sono giÃ  nel realizzato)
-    // Per il payoff usiamo solo il mark-to-market lineare
-    return (S - res.mediaPulita) * q * segno * molt;
+    // Mark-to-market lineare + commissione di apertura (se toggle attivo)
+    return (S - res.mediaPulita) * q * segno * molt - feeLatoFuture(tipo) * q;
   }
 
   // Prima scadenza (ISO) tra le opzioni ATTIVE e non CHIUSE della scheda.
@@ -71,7 +70,8 @@
     // Per SELL (side=-1): se l'opzione vale meno del premio â profitto
     // Per BUY  (side=+1): se l'opzione vale piÃ¹ del premio â profitto
     const side = opz.pos === 'SELL' ? -1 : 1;
-    return (valoreOpzione - premio) * side * qta * moltOpz(opz);
+    const fee = feeLatoOpzione() * qta;
+    return (valoreOpzione - premio) * side * qta * moltOpz(opz) - fee;
   }
 
   // Casella Cash: sfondo verde se il valore Ã¨ positivo, rosso se negativo
@@ -300,18 +300,34 @@
   }
 
   function buildPayoffPoints(scheda, minS, maxS, resNES, resMES) {
-    const n = 180;
-    const step = (maxS - minS) / n;
-    const pts = [];
-    for (let i = 0; i <= n; i++) {
-      const S = minS + i * step;
-      pts.push({
-        S,
-        pnlExpiry: pnlCombinatoAt(scheda, S, 'expiry', resNES, resMES),
-        pnlNow:    pnlCombinatoAt(scheda, S, 'now',    resNES, resMES)
+    // Griglia uniforme + punti esatti sugli strike e sugli ingressi futures:
+    // senza i vertici esatti la polilinea SVG taglia le cuspidi del payoff
+    // a scadenza e la curva appare morbida invece dello spigolo vivo.
+    const n = 220;
+    const events = new Set([minS, maxS]);
+    (scheda.opzioni || []).forEach(o => {
+      if (o.attivo === false || o.stato === 'CHIUSA') return;
+      const k = parseFloat(o.strike) || 0;
+      if (k > 0) events.add(k);
+    });
+    [['NES', resNES], ['MES', resMES]].forEach(([col, res]) => {
+      if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) events.add(res.mediaPulita);
+      (scheda[col] || []).forEach(m => {
+        if (m.attivo === false) return;
+        if (m.prezzoPulito > 0) events.add(m.prezzoPulito);
       });
-    }
-    return pts;
+    });
+    const xs = [];
+    for (let i = 0; i <= n; i++) xs.push(minS + i * (maxS - minS) / n);
+    events.forEach(e => {
+      if (isFinite(e) && e >= minS && e <= maxS) xs.push(e);
+    });
+    const sorted = [...new Set(xs.map(x => +x))].filter(x => isFinite(x)).sort((a, b) => a - b);
+    return sorted.map(S => ({
+      S,
+      pnlExpiry: pnlCombinatoAt(scheda, S, 'expiry', resNES, resMES),
+      pnlNow:    pnlCombinatoAt(scheda, S, 'now',    resNES, resMES)
+    }));
   }
 
   // Curve di payoff di TUTTE le schede (Matrice + comparazioni) per il grafico
@@ -435,43 +451,41 @@
     return out;
   }
 
-  function updateBreakevenLabels(bes, spot) {
+    function updateBreakevenLabels(bes, spot) {
     const beInfEl = el('beInf');
     const beSupEl = el('beSup');
     if (!beInfEl || !beSupEl) return;
 
     if (!bes.length || !(spot > 0)) {
-      beInfEl.textContent = 'â';
-      beSupEl.textContent = 'â';
+      beInfEl.textContent = '—';
+      beSupEl.textContent = '—';
       return;
     }
 
     const sorted = [...bes].filter(Number.isFinite).sort((a, b) => a - b);
-    // BE inferiore = il piÃ¹ alto sotto lo spot (o il minimo se tutti sopra)
-    // BE superiore = il piÃ¹ basso sopra lo spot (o il massimo se tutti sotto)
-    const below = sorted.filter(s => s < spot);
-    const above = sorted.filter(s => s > spot);
 
     const fmtBe = (v) => {
-      if (v == null || !isFinite(v)) return 'â';
+      if (v == null || !isFinite(v)) return '—';
       const dist = v - spot;
       const sign = dist >= 0 ? '+' : '';
       return `${v.toFixed(1)} (${sign}${dist.toFixed(1)})`;
     };
 
-    beInfEl.textContent = below.length ? fmtBe(below[below.length - 1]) : (sorted.length ? fmtBe(sorted[0]) : 'â');
-    beSupEl.textContent = above.length ? fmtBe(above[0]) : (sorted.length ? fmtBe(sorted[sorted.length - 1]) : 'â');
-
-    // se c'Ã¨ un solo BE, mettilo nel lato corretto e lascia l'altro â
+    // Caso 1 BE solo
     if (sorted.length === 1) {
       if (sorted[0] < spot) {
         beInfEl.textContent = fmtBe(sorted[0]);
-        beSupEl.textContent = 'â';
+        beSupEl.textContent = '—';
       } else {
-        beInfEl.textContent = 'â';
+        beInfEl.textContent = '—';
         beSupEl.textContent = fmtBe(sorted[0]);
       }
+      return;
     }
+
+    // Caso ≥ 2 BE → sempre estremi assoluti della struttura
+    beInfEl.textContent = fmtBe(sorted[0]);
+    beSupEl.textContent = fmtBe(sorted[sorted.length - 1]);
   }
 
   function redrawChartFromView() {
@@ -502,7 +516,7 @@
     (scheda.opzioni || []).forEach(o => {
       parts.push(`${o.attivo !== false ? 1 : 0}:${o.pos}:${o.tipo}:${o.qta}:${o.strike}:${o.premio}:${o.stato}:${o.vol}:${o.scadenza}:${o.rlzd}:${o.strumento || 'MES'}`);
     });
-    return parts.join('|') + `|cash:${(typeof stato.cash === 'number') ? stato.cash : 0}:${stato.cashEscluso ? 1 : 0}`;
+    return parts.join('|') + `|cash:${(typeof stato.cash === 'number') ? stato.cash : 0}:${stato.cashEscluso ? 1 : 0}|fee:${commissioniAttive() ? 1 : 0}`;
   }
 
   function aggiornaPayoffPreview(scheda, resNES, resMES) {
