@@ -310,7 +310,7 @@
 
       // Delta
       const tdDelta = document.createElement('td');
-      tdDelta.dataset.label = 'Î';
+      tdDelta.dataset.label = 'Delta';
       const spanDelta = document.createElement('span');
       spanDelta.dataset.field = 'delta';
       spanDelta.textContent = 'â';
@@ -319,7 +319,7 @@
 
       // Gamma
       const tdGamma = document.createElement('td');
-      tdGamma.dataset.label = 'Î';
+      tdGamma.dataset.label = 'Gamma';
       const spanGamma = document.createElement('span');
       spanGamma.dataset.field = 'gamma';
       spanGamma.textContent = 'â';
@@ -337,7 +337,7 @@
 
       // Theta
       const tdTheta = document.createElement('td');
-      tdTheta.dataset.label = 'Î';
+      tdTheta.dataset.label = 'Theta';
       const spanTheta = document.createElement('span');
       spanTheta.dataset.field = 'theta';
       spanTheta.textContent = 'â';

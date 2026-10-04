@@ -56,8 +56,10 @@
         const qtaChiusa = Math.min(Math.abs(qtaConSegno), Math.abs(qtaNetta));
         const qtaApre = q - qtaChiusa;
 
+        // Commissione round-trip sulla quantità chiusa (apertura + chiusura)
+        const feeRt = feeLatoFuture(tipo) * 2;
         const pnlRea = (prezzo - mediaIngresso) * qtaChiusa * segnoPos * molt
-                     - FEE_ROUND_TRIP * qtaChiusa;
+                     - feeRt * qtaChiusa;
         righe[idx].pnlRealizzato = pnlRea;
         righe[idx].qChiusa = qtaChiusa;
         righe[idx].mediaIngresso = mediaIngresso;
@@ -95,12 +97,14 @@
       }
     });
 
+    // Posizioni aperte: commissione di apertura già pagata (1 lato)
+    const feeAperto = feeLatoFuture(tipo);
     let pnlApertoTot = 0;
     righe.forEach(r => {
       if (r.qAperta > 0) {
         const segno = r.direzione === 'LONG' ? 1 : -1;
         const pnlLive = (spot - r.prezzo) * r.qAperta * segno * molt
-                      - FEE_ROUND_TRIP * r.qAperta;
+                      - feeAperto * r.qAperta;
         r.pnlAperto = pnlLive;
         pnlApertoTot += pnlLive;
       }
