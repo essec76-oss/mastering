@@ -1,1 +1,287 @@
 
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mastering</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1>Mastering</h1>
+    <div class="subtitle">NES / MES / ES / X â Nano, Micro &amp; E-mini futures ES500 + simulatore azioni â metodo prezzo medio (IBKR)</div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="btnCreaComp" title="Clona la scheda attuale in una nuova scheda di comparazione: modificala e confrontala con la Matrice sul grafico">+ Crea comparazione</button>
+    <button class="btn primary" id="btnSalva">Salva</button>
+    <button class="btn danger" id="btnReset">Reset</button>
+    <span class="save-status" id="saveStatus">â Salvato</span>
+  </div>
+</div>
+
+<div class="schede-bar">
+  <div class="schede-tabs" id="schedeTabs"></div>
+  <button class="btn" id="btnPromuovi" title="Copia la strategia di questa comparazione sulla Matrice, che diventa la strategia primaria (con conferma)" style="display:none;">â Promuovi su Matrice</button>
+</div>
+
+<div class="price-bar">
+  <span class="label">Prezzo Spot</span>
+  <input type="number" id="prezzoSpot" value="7700" step="0.25">
+  <div class="param-group">
+    <span class="label">Risk-free %</span>
+    <input type="number" id="riskFree" class="small" value="4.0" step="0.1">
+  </div>
+  <div class="param-group">
+    <span class="label">Cash â¬</span>
+    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati: premi incassati a scadenza o P&L realizzati di righe opzione cancellate/disattivate. Entra nel TOTALE FUTURES TWS, nei totali AT NOW / A SCADENZA e nel grafico payoff.">
+    <input type="checkbox" id="cashEscludi" class="toggle-on" title="Spunta per escludere il cash dai conteggi (simulazione)">
+    <label for="cashEscludi" class="cash-escludi-label" title="Se spuntato, il cash NON entra nei totali TWS, AT NOW / A SCADENZA e nel grafico payoff (simulazione)">Escludi cash</label>
+  </div>
+  <div class="param-group">
+    <span class="label">Data analisi</span>
+    <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui. Default: data odierna.">
+  </div>
+</div>
+
+<div class="columns">
+
+  <div class="column" id="colNES">
+    <div class="col-header">
+      <select id="tipoNES" data-col="NES">
+        <option value="-">-</option>
+        <option value="NES" selected>NES</option>
+        <option value="MES">MES</option>
+        <option value="ES">ES</option>
+        <option value="X">X</option>
+      </select>
+    </div>
+    <div class="riga-totale" id="rtNES">
+      <div class="rt-pos">
+        <span class="rt-qta"><span class="dir-flat">â</span></span>
+        <span class="rt-prezzo">entrata <strong>â</strong></span>
+      </div>
+      <div class="rt-pnl">
+        <div class="rt-pnl-item">
+          <span class="rt-label">Aperto</span>
+          <span class="rt-val muted" id="rtApertoNES">0,00</span>
+        </div>
+        <div class="rt-pnl-item rt-totale">
+          <span class="rt-label">Totale</span>
+          <span class="rt-val muted" id="rtTotNES">0,00</span>
+        </div>
+      </div>
+    </div>
+    <div class="movimenti">
+      <table>
+        <thead>
+          <tr>
+            <th title="Includi nei conteggi">ï</th>
+            <th>Dir</th>
+            <th>Q.tÃ </th>
+            <th>Prezzo nominale</th>
+            <th></th>
+            <th>P&amp;L</th>
+          </tr>
+        </thead>
+        <tbody id="bodyNES"></tbody>
+      </table>
+      <button class="btn-add" data-col="NES">+ Aggiungi movimento</button>
+    </div>
+  </div>
+
+  <div class="column" id="colMES">
+    <div class="col-header">
+      <select id="tipoMES" data-col="MES">
+        <option value="-">-</option>
+        <option value="NES">NES</option>
+        <option value="MES" selected>MES</option>
+        <option value="ES">ES</option>
+        <option value="X">X</option>
+      </select>
+    </div>
+    <div class="riga-totale" id="rtMES">
+      <div class="rt-pos">
+        <span class="rt-qta"><span class="dir-flat">â</span></span>
+        <span class="rt-prezzo">entrata <strong>â</strong></span>
+      </div>
+      <div class="rt-pnl">
+        <div class="rt-pnl-item">
+          <span class="rt-label">Aperto</span>
+          <span class="rt-val muted" id="rtApertoMES">0,00</span>
+        </div>
+        <div class="rt-pnl-item rt-totale">
+          <span class="rt-label">Totale</span>
+          <span class="rt-val muted" id="rtTotMES">0,00</span>
+        </div>
+      </div>
+    </div>
+    <div class="movimenti">
+      <table>
+        <thead>
+          <tr>
+            <th title="Includi nei conteggi">ï</th>
+            <th>Dir</th>
+            <th>Q.tÃ </th>
+            <th>Prezzo nominale</th>
+            <th></th>
+            <th>P&amp;L</th>
+          </tr>
+        </thead>
+        <tbody id="bodyMES"></tbody>
+      </table>
+      <button class="btn-add" data-col="MES">+ Aggiungi movimento</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="options-card" id="optionsCard">
+  <div class="options-header">
+    <div class="title-wrap">
+      <span class="title">Opzioni</span>
+      <select id="strumentoOpzioni" title="Strumento della scheda opzioni: MES (Ã5), ES (Ã50) o AZIONI (Ã100). Ogni strumento ha le sue righe e la scheda resta dormiente se vuota: non Ã¨ eliminabile.">
+        <option value="MES" selected>MES</option>
+        <option value="ES">ES</option>
+        <option value="AZIONI">AZIONI</option>
+      </select>
+      <div class="param-group">
+        <span class="label">Vol ATM %</span>
+        <input type="number" id="volAtm" class="small" value="15" step="0.1" title="VolatilitÃ  ATM per POP (probabilitÃ  di profitto), bande Â±1Ï/Â±2Ï del grafico e curve Now">
+      </div>
+      <div class="param-group">
+        <span class="label">Div %</span>
+        <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato dal modello Black-Scholes con r e q per le opzioni su AZIONI. Per MES/ES (opzioni su futures, Black-76) non si applica.">
+      </div>
+    </div>
+    <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
+      <div class="pnl-opz">
+        <span class="label">P&amp;L Opzioni</span>
+        <span class="value" id="pnlOpzioni">0,00</span>
+      </div>
+      <div class="pnl-opz">
+        <span class="label" title="Delta di posizione: $ per punto di movimento del sottostante (q.tÃ  Ã delta Ã moltiplicatore strumento). Sommabile tra MES, ES e AZIONI.">Î tot $/pt</span>
+        <span class="value" id="greeksDelta" style="font-size:14px;">â</span>
+      </div>
+      <div class="pnl-opz">
+        <span class="label" title="Gamma di posizione: $ per puntoÂ² (q.tÃ  Ã gamma Ã moltiplicatore strumento)">Î tot $/ptÂ²</span>
+        <span class="value" id="greeksGamma" style="font-size:14px;">â</span>
+      </div>
+      <div class="pnl-opz">
+        <span class="label" title="Vega di posizione: $ per 1% di volatilitÃ  implicita (q.tÃ  Ã vega Ã moltiplicatore strumento)">Vega tot $/1%</span>
+        <span class="value" id="greeksVega" style="font-size:14px;">â</span>
+      </div>
+      <div class="pnl-opz">
+        <span class="label" title="Theta di posizione: $ al giorno (q.tÃ  Ã theta Ã moltiplicatore strumento)">Î tot $/gg</span>
+        <span class="value" id="greeksTheta" style="font-size:14px;">â</span>
+      </div>
+    </div>
+  </div>
+  <div class="movimenti">
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th title="Includi nei conteggi">ï</th>
+          <th title="Clicca per aprire / chiudere la posizione">Stato</th>
+          <th title="Elimina riga"></th>
+          <th>Pos</th><th>Tipo</th><th>Q.tÃ </th>
+          <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
+          <th title="Giorni alla scadenza dalla data analisi">GG</th>
+          <th title="ATM/OTM/ITM + distanza in Ï (Vol ATM, DTE)">M/S</th>
+          <th>Teorico</th><th title="Delta di posizione: $ per punto di movimento del sottostante (q.tÃ  Ã Î Ã moltiplicatore)">Î</th><th title="Gamma di posizione: $ per puntoÂ²">Î</th><th title="Vega di posizione: $ per 1% di volatilitÃ  implicita">Vega</th><th title="Theta di posizione: $ al giorno">Î</th>
+          <th title="Valore intrinseco: max(SâK, 0) per call, max(KâS, 0) per put">V. Intr</th>
+          <th title="Valore temporale: teorico â valore intrinseco">V. Temp</th>
+          <th title="ProbabilitÃ  che il sottostante tocchi lo strike prima della scadenza della gamba (usa la vol della gamba)">P. Tocco</th>
+          <th title="P&L della riga a scadenza della gamba opzioni piÃ¹ corta (metodo calendar: le gambe piÃ¹ lunghe valgono il teorico col tempo residuo)">P&amp;L Scad.</th>
+          <th title="P&L attuale mark-to-market: (teorico â premio) Ã dir Ã q.tÃ  Ã molt.">P&amp;L</th>
+          <th title="Debit/Credit: premio Ã q.tÃ  Ã moltiplicatore">Deb/Cred</th>
+        </tr>
+      </thead>
+      <tbody id="bodyOpzioni"></tbody>
+    </table>
+    </div>
+    <button class="btn-add" id="btnAddOpzione">+ Aggiungi opzione</button>
+  </div>
+</div>
+
+<div class="riepilogo">
+  <h2>Riepilogo</h2>
+  <div class="row"><span class="label">Prezzo medio carico NES</span><span class="value" id="rpmNES">â</span></div>
+  <div class="row"><span class="label">Prezzo medio carico MES</span><span class="value" id="rpmMES">â</span></div>
+  <div class="row"><span class="label">P&amp;L NES</span><span class="value" id="rpnlNES">0,00</span></div>
+  <div class="row"><span class="label">P&amp;L MES</span><span class="value" id="rpnlMES">0,00</span></div>
+  <div class="row"><span class="label opt-line">P&amp;L Opzioni (MES + ES + Azioni)</span><span class="value" id="rpnlOpzioni">0,00</span></div>
+  <div class="row"><span class="label">Cash annotato (incassi / premi a scadenza)</span><span class="value" id="rcash">0,00</span></div>
+  <div class="highlight">
+    <div class="row" style="border:none; padding:4px 0;">
+      <span class="label" id="totaleTwsLabel" style="font-size:13px; color:var(--text); font-weight:600;">TOTALE FUTURES TWS</span>
+      <span class="big-value" id="totaleTWS">0,00</span>
+    </div>
+    <div class="row" style="border:none; padding:2px 0;">
+      <span class="label">Profitto attuale â AT NOW</span>
+      <span class="value" id="pnlNowTot">â</span>
+    </div>
+    <div class="row" style="border:none; padding:2px 0 6px 0;">
+      <span class="label" title="Valutato alla scadenza della gamba opzioni piÃ¹ corta: le gambe in scadenza al valore intrinseco, le gambe piÃ¹ lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">Profitto a scadenza â A SCADENZA (se lo spot resta qui)</span>
+      <span class="value" id="pnlScadenzaTot">â</span>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+      Futures NES + MES + Opzioni MES/ES/Azioni (aperte al teorico) + Cash annotato â corrisponde al balance su Interactive Brokers
+    </div>
+  </div>
+</div>
+
+<!-- Grafico Payoff Combinato -->
+<div class="chart-panel" id="payoffPanel">
+  <h2>Payoff Combinato</h2>
+  <div class="chart-controls">
+    <label><input type="checkbox" id="showExpiry" checked> A scadenza</label>
+    <label><input type="checkbox" id="showNow" checked> Now (teorico)</label>
+    <label><input type="checkbox" id="showBE" checked> Breakeven</label>
+    <span style="margin-left:8px;">Delta netto: <strong id="payoffDeltaNetto" style="color:var(--text);">â</strong></span>
+  </div>
+  <div class="chart-controls" style="margin-top:-4px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
+    <span>BE inf. <strong id="beInf" style="color:var(--text);">â</strong></span>
+    <span>BE sup. <strong id="beSup" style="color:var(--text);">â</strong></span>
+    <span>POP <strong id="popValue" style="color:var(--purple);">â</strong></span>
+    <label style="display:inline-flex; gap:5px; align-items:center; cursor:pointer;">
+      <input type="checkbox" id="showSigma" title="Spunta per nascondere le deviazioni standard dal grafico"> Dev. std
+      <select id="nSD" class="small" style="width:auto; padding:2px 4px; font-size:11px;" title="Numero di deviazioni standard (1â10) da disegnare sul grafico attorno allo spot: step = spot Ã Vol ATM Ã âT del POP">
+        <option value="1">1Â° SD</option>
+        <option value="2" selected>2Â° SD</option>
+        <option value="3">3Â° SD</option>
+        <option value="4">4Â° SD</option>
+        <option value="5">5Â° SD</option>
+        <option value="6">6Â° SD</option>
+        <option value="7">7Â° SD</option>
+        <option value="8">8Â° SD</option>
+        <option value="9">9Â° SD</option>
+        <option value="10">10Â° SD</option>
+      </select>
+    </label>
+    <span style="display:inline-flex; gap:6px; margin-left:auto; align-items:center; flex-wrap:wrap;">
+      <button type="button" class="btn" id="btnZoomOut" title="Zoom â" style="padding:6px 12px; font-size:16px; min-width:42px;">â</button>
+      <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px; font-size:12px;">Centra</button>
+      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px; font-size:16px; min-width:42px;">+</button>
+      <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px; font-size:11px;">Reset</button>
+    </span>
+  </div>
+  <svg id="payoffChart" viewBox="0 0 920 380" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair; touch-action:none;"></svg>
+  <div class="chart-legend">
+    <span id="legendSchede" style="display:contents;"></span>
+    <span><i style="background:#ffffff;"></i> P&amp;L a scadenza (linea piena)</span>
+    <span><i style="background:#ffffff; height:0; border-top:2px dashed #ffffff; width:18px;"></i> P&amp;L Now (linea tratteggiata)</span>
+    <span><i style="background:var(--accent);"></i> Spot</span>
+    <span><i style="background:#f1c40f;"></i> Breakeven</span>
+    <span><i style="background:#2ecc71; opacity:0.4;"></i> Dev. standard</span>
+    <span style="color:var(--muted); font-size:10px;">Desktop: rotella = zoom, trascina = sposta Â· Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom Â· I BE del grafico non includono le commissioni</span>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+
+</body>
+</html>
