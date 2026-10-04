@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sintassi di ogni modulo (node --check)
+        run: |
+          set -e
+          count=0
+          for f in js/*.js; do
+            [ -e "$f" ] || { echo 'Nessun modulo trovato in js/'; exit 1; }
+            node --check "$f"
+            echo "OK: $f"
+            count=$((count+1))
+          done
+          echo "Moduli verificati: $count"
+
+      - name: Concatenazione moduli 1-12 sintatticamente valida
+        run: |
+          set -e
+          cat js/config.js js/matematica.js js/futures.js js/opzioni.js \
+              js/render-futures.js js/render-opzioni.js js/grafico.js \
+              js/calcola-tutto.js js/schede.js js/storage.js js/eventi.js \
+              js/main.js > /tmp/app-concat.js
+          node --check /tmp/app-concat.js
+          echo 'OK: concatenazione in ordine 1-12 valida'
+
+      - name: Nessun file JS fuori da js/
+        run: |
+          found=$(find . -name '*.js' -not -path './js/*' -not -path './.git/*')
+          if [ -n "$found" ]; then
+            echo '::error::File JS fuori da js/ non ammessi (duplicati)'
+            echo "$found"
+            exit 1
+          fi
+          echo 'OK: nessun file JS fuori da js/'
+
+      - name: index.html carica i 12 moduli nell'ordine corretto
+        run: |
+          expected='js/config.js js/matematica.js js/futures.js js/opzioni.js js/render-futures.js js/render-opzioni.js js/grafico.js js/calcola-tutto.js js/schede.js js/storage.js js/eventi.js js/main.js'
+          actual=$(grep -o 'src="js/[^"]*"' index.html | sed 's/^src="//;s/"$//' | tr '\n' ' ' | sed 's/ $//')
+          if [ "$actual" != "$expected" ]; then
+            echo '::error::Ordine script in index.html non corretto'
+            echo "atteso : $expected"
+            echo "attuale: $actual"
+            exit 1
+          fi
+          echo 'OK: ordine di caricamento dei moduli corretto'
