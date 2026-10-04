@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 // scripts/modularizza.mjs — divide js/app.js in moduli indipendenti.
-// Garanzie: (1) la concatenazione dei moduli nell'ordine di caricamento è
+// Garanzie: (1) la concatenazione dei moduli nell ordine di caricamento è
 // byte-identica al vecchio js/app.js; (2) ogni modulo supera node --check.
 // Se una qualunque verifica fallisce lo script esce con errore e NON committa.
 
 import { readFileSync, writeFileSync, unlinkSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
-const run = (cmd) => execSync(cmd, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
-
+const run = (cmd) => execSync(cmd, { stdio: ["ignore", "pipe", "pipe"] }).toString();
+const NL = String.fromCharCode(10);
 const HEADER_LINES = 2;
-const HEADER_NOTE = "// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.";
+const HEADER_NOTE = "// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.";
 
 const MODULES = [
   { file: 'config.js',         banner: null, desc: 'costanti, moltiplicatori, stato iniziale e helper DOM' },
@@ -27,67 +27,61 @@ const MODULES = [
   { file: 'main.js',           banner: 'AVVIO', desc: 'avvio: valori di default e primo render' },
 ];
 
-const fail = (msg) => { console.error('ERRORE: ' + msg); process.exit(1); };
+const fail = (msg) => { console.error("ERRORE: " + msg); process.exit(1); };
 
 const src = readFileSync('js/app.js', 'utf8');
-const lines = src.split('
-');
+const lines = src.split(NL);
 
 // --- individua i banner di sezione (commento ====== / titolo / ======) ---
+const isBar = (l) => {
+  const t = (l || "").trim();
+  return t.startsWith("//") && /^[=]+$/.test(t.slice(2).trim());
+};
 const banners = [];
 for (let i = 0; i < lines.length - 2; i++) {
-  const isBar = (l) => /^ {2}//\s*=+\s*$/.test(l || '');
   if (isBar(lines[i]) && isBar(lines[i + 2])) {
-    const m = (lines[i + 1] || '').match(/^ {2}\/\/\s*(\S.*?)\s*$/);
-    if (m) banners.push({ line: i, title: m[1] });
+    const t = (lines[i + 1] || "").trim();
+    if (t.startsWith("// ")) banners.push({ line: i, title: t.slice(3).trim() });
   }
 }
-console.log('Banner trovati: ' + banners.length);
-if (banners.length !== MODULES.length - 1) fail('attesi ' + (MODULES.length - 1) + ' banner, trovati ' + banners.length);
+console.log("Banner trovati: " + banners.length);
+if (banners.length !== MODULES.length - 1) fail("attesi " + (MODULES.length - 1) + " banner, trovati " + banners.length);
 
 // --- assegna gli intervalli di righe a ogni modulo ---
-let cursor = 0;
 for (const mod of MODULES) {
   if (mod.banner === null) { mod.start = 0; continue; }
   const b = banners.filter(x => x.title === mod.banner);
-  if (b.length !== 1) fail('banner non univoco: "' + mod.banner + '"');
+  if (b.length !== 1) fail("banner non univoco: " + mod.banner);
   mod.start = b[0].line;
 }
 for (let k = 0; k < MODULES.length; k++) {
   MODULES[k].end = (k + 1 < MODULES.length ? MODULES[k + 1].start - 1 : lines.length - 1);
-  if (MODULES[k].end < MODULES[k].start) fail('intervallo vuoto per ' + MODULES[k].file);
+  if (MODULES[k].end < MODULES[k].start) fail("intervallo vuoto per " + MODULES[k].file);
 }
 
 // --- scrive i moduli (header di 2 righe + contenuto originale) ---
 for (const mod of MODULES) {
-  const content = lines.slice(mod.start, mod.end + 1).join('
-');
-  const header = '// ' + mod.file + ' — ' + mod.desc + '
-' + HEADER_NOTE + '
-';
+  const content = lines.slice(mod.start, mod.end + 1).join(NL);
+  const header = "// " + mod.file + " — " + mod.desc + NL + HEADER_NOTE + NL;
   writeFileSync('js/' + mod.file, header + content);
 }
 
 // --- verifica 1: ricostruzione byte-identica (senza gli header) ---
 const recon = MODULES
-  .map(m => readFileSync('js/' + m.file, 'utf8').split('
-').slice(HEADER_LINES).join('
-'))
-  .join('
-');
-if (recon !== src) fail('ricostruzione non identica al vecchio js/app.js');
-console.log('OK ricostruzione byte-identica (' + src.length + ' caratteri)');
+  .map(m => readFileSync('js/' + m.file, 'utf8').split(NL).slice(HEADER_LINES).join(NL))
+  .join(NL);
+if (recon !== src) fail("ricostruzione non identica al vecchio js/app.js");
+console.log("OK ricostruzione byte-identica (" + src.length + " caratteri)");
 
 // --- verifica 2: sintassi di ogni modulo ---
 for (const mod of MODULES) run('node --check js/' + mod.file);
-console.log('OK node --check su tutti i ' + MODULES.length + ' moduli');
+console.log("OK node --check su tutti i " + MODULES.length + " moduli");
 
 // --- aggiorna index.html con i tag script in ordine ---
 const tag = '<script src="js/app.js"></script>';
 const html = readFileSync('index.html', 'utf8');
-if (html.split(tag).length !== 2) fail('tag script app.js non trovato (o presente più volte) in index.html');
-const tags = MODULES.map(m => '<script src="js/' + m.file + '"></script>').join('
-');
+if (html.split(tag).length !== 2) fail("tag script app.js non trovato (o presente più volte) in index.html");
+const tags = MODULES.map(m => '<script src="js/' + m.file + '"></script>').join(NL);
 writeFileSync('index.html', html.replace(tag, tags));
 
 // --- pulizia: file monolitico, file di supporto e workflow di appoggio ---
@@ -95,4 +89,4 @@ unlinkSync('js/app.js');
 rmSync('.split', { recursive: true, force: true });
 rmSync('scripts', { recursive: true, force: true });
 rmSync('.github/workflows', { recursive: true, force: true });
-console.log('MODULARIZZAZIONE COMPLETATA');
+console.log("MODULARIZZAZIONE COMPLETATA");
