@@ -63,15 +63,14 @@
     return minT;
   }
 
-  // POP: probabilitÃ  che a scadenza il P&L combinato sia > 0.
-  // Nota: tra due BE consecutivi il payoff a scadenza non puÃ² cambiare segno
-  // (zero-crossing contigui), quindi il test a punto medio Ã¨ corretto.
-  // Se NON vengono trovati BE (struttura sempre in profitto/perdita nel range
-  // scansionato, o BE fuori range), il dominio viene segmentato in tratti.
+  // POP: probabilità che a scadenza il P&L combinato sia > 0.
+  // Ritorna { total, zones } dove zones = [{ lo, hi, prob, profitable }].
+  // Nota: tra due BE consecutivi il payoff a scadenza non può cambiare segno
+  // (zero-crossing contigui), quindi il test a punto medio è corretto.
   function calcolaPOP(scheda, spot, breakevens, resNES, resMES, scanMin, scanMax) {
     const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
     const vol = volPct / 100;
-    // POP alla scadenza piÃ¹ corta (coerente con la curva A SCADENZA calendar)
+    // POP alla scadenza più corta (coerente con la curva A SCADENZA calendar)
     let T = nearestOptionYears(scheda);
     // Se non ci sono opzioni ma ci sono futures, usa orizzonte 30 giorni come riferimento
     if (T === null) {
@@ -97,6 +96,7 @@
     }
 
     let prob = 0;
+    const zones = [];
     for (let i = 0; i < bounds.length - 1; i++) {
       const lo = bounds[i];
       const hi = bounds[i + 1];
@@ -105,25 +105,73 @@
         : (lo + hi) / 2;
       const midS = mid <= 0 ? 0.01 : mid;
       const pnl = pnlCombinatoAt(scheda, midS, 'expiry', resNES, resMES);
-      if (pnl > 0) {
-        const cdfHi = hi === Infinity ? 1 : lognormalCDF(hi, spot, vol, T);
-        const cdfLo = lognormalCDF(lo <= 0 ? 0.0001 : lo, spot, vol, T);
-        prob += Math.max(0, cdfHi - cdfLo);
+      const cdfHi = hi === Infinity ? 1 : lognormalCDF(hi, spot, vol, T);
+      const cdfLo = lognormalCDF(lo <= 0 ? 0.0001 : lo, spot, vol, T);
+      const pZone = Math.max(0, cdfHi - cdfLo);
+      const profitable = pnl > 0;
+      if (profitable) prob += pZone;
+      // Zone significative solo quando ci sono BE (altrimenti troppo frammentate)
+      if (bes.length > 0) {
+        zones.push({ lo, hi, prob: pZone, profitable });
       }
     }
-    return Math.min(1, Math.max(0, prob));
+    return {
+      total: Math.min(1, Math.max(0, prob)),
+      zones
+    };
   }
 
-  function updatePOPLabel(pop) {
+  function updatePOPLabel(popResult) {
     const e = el('popValue');
+    const wrap = el('popZoneWrap');
     if (!e) return;
+
+    const pop = (popResult && typeof popResult === 'object') ? popResult.total : popResult;
+    const zones = (popResult && typeof popResult === 'object') ? (popResult.zones || []) : [];
+
     if (pop === null || !isFinite(pop)) {
-      e.textContent = 'â';
+      e.textContent = '—';
       e.style.color = 'var(--muted)';
+      if (wrap) wrap.innerHTML = '';
       return;
     }
     e.textContent = (pop * 100).toLocaleString('it-IT', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '%';
     e.style.color = pop >= 0.5 ? 'var(--green)' : 'var(--red)';
+
+    // Etichette per zona di profitto (come nel calcolatore di riferimento)
+    if (!wrap) return;
+    if (!zones.length) {
+      wrap.innerHTML = '';
+      return;
+    }
+    const fmtPct = p => (p * 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    const fmtBound = v => (!isFinite(v) || v === Infinity) ? '+∞' : (v <= 0 ? '0' : v.toFixed(0));
+    // Zone in profitto con descrizione chiara del significato
+    const profitZones = zones.filter(z => z.profitable);
+    if (!profitZones.length) {
+      wrap.innerHTML = '<span style="color:var(--red);">nessuna zona in profitto</span>';
+      return;
+    }
+    wrap.innerHTML = profitZones.map(z => {
+      const isLower = z.lo <= 0 || z.lo < 1;              // sotto il BE inferiore
+      const isUpper = !isFinite(z.hi) || z.hi === Infinity; // sopra il BE superiore
+      let label, title;
+      if (isLower && isUpper) {
+        label = 'profitto ovunque';
+        title = 'A scadenza il P&L è positivo su tutto il dominio';
+      } else if (isLower) {
+        label = `profitto sotto BE inf. (S &lt; ${fmtBound(z.hi)})`;
+        title = `Probabilità di realizzare profitto scendendo sotto il BE inferiore (${fmtBound(z.hi)})`;
+      } else if (isUpper) {
+        label = `profitto sopra BE sup. (S &gt; ${fmtBound(z.lo)})`;
+        title = `Probabilità di rimanere sopra il BE superiore (${fmtBound(z.lo)}) e realizzare profitto`;
+      } else {
+        label = `profitto tra ${fmtBound(z.lo)} e ${fmtBound(z.hi)}`;
+        title = `Probabilità che a scadenza il sottostante sia tra ${fmtBound(z.lo)} e ${fmtBound(z.hi)} (zona di profitto)`;
+      }
+      const col = z.prob >= 0.5 ? 'var(--green)' : (z.prob > 0.05 ? 'var(--yellow)' : 'var(--muted)');
+      return `<span title="${title}">${label} <strong style="color:${col};">${fmtPct(z.prob)}</strong></span>`;
+    }).join('<span style="opacity:0.35; margin:0 2px;">|</span>');
   }
 
   // Bande Â±1Ï/Â±2Ï attorno allo spot: Vol ATM e orizzonte T del POP
