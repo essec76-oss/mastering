@@ -31,3 +31,21 @@ La concatenazione dei moduli nell'ordine 1–12 riproduce **esattamente** il cod
 (ricostruzione byte-identica e `node --check` su ogni modulo verificati in CI al momento dello split).
 Si usano script classici (non ES module) e nessun bundler: la pagina funziona anche aprendo
 `index.html` direttamente da disco (`file://`).
+
+## Deploy automatico (Vercel)
+
+Il sito è pubblicato su Vercel tramite l'**integrazione nativa Git** (nessun segreto,
+nessun workflow di deploy): a ogni push su `main` Vercel pubblica automaticamente
+la produzione, e ogni pull request riceve un URL di anteprima isolato.
+
+### Setup una tantum (una sola volta, ~2 minuti)
+
+1. Apri [vercel.com/new](https://vercel.com/new) e importa la repo `mastering`
+   (autorete il **Vercel GitHub App** su tutte le repo o solo su questa quando richiesto).
+2. Nella schermata di import **nessuna impostazione da cambiare**: Vercel rileva il sito
+   statico puro (`vercel.json` dichiara già `framework: null`, nessuna build).
+3. Clicca **Deploy**. Fatto.
+
+Da quel momento: push su `main` → produzione aggiornata; PR aperta → URL di preview;
+rollback istantneo disponibile dalla dashboard Vercel in un click.
+La CI (`ci.yml`) continua a validare i moduli su ogni PR e push, indipendente dal deploy.
