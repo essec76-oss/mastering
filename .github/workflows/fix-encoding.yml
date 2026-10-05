@@ -5,6 +5,7 @@ on:
     branches: ['fix/encoding-index-html']
 permissions:
   contents: write
+  issues: write
 jobs:
   fix:
     runs-on: ubuntu-latest
@@ -13,15 +14,16 @@ jobs:
         with:
           ref: fix/encoding-index-html
           fetch-depth: 0
-      - name: Restore originals and fix encoding
+      - name: Run repair
+        shell: bash
         run: |
-          set -e
+          exec > /tmp/fix.log 2>&1
+          set -ex
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
           git checkout origin/main -- index.html js/
           cat > /tmp/fixenc.py <<'PYEOF'
-import glob, sys
+import glob
 
 CP1252 = {
     0x80: 0x20AC, 0x82: 0x201A, 0x83: 0x0192, 0x84: 0x201E, 0x85: 0x2026,
@@ -42,12 +44,6 @@ def build_map():
 
 M = build_map()
 
-def try_decode_utf8(bs):
-    try:
-        return bs.decode('utf-8')
-    except UnicodeDecodeError:
-        return None
-
 def fix_text(text):
     out = []
     i, n = 0, len(text)
@@ -59,8 +55,10 @@ def fix_text(text):
                 j += 1
             run = text[i:j]
             bs = bytes(M[c] for c in run)
-            dec = try_decode_utf8(bs)
-            out.append(dec if dec is not None else run)
+            try:
+                out.append(bs.decode('utf-8'))
+            except UnicodeDecodeError:
+                out.append(run)
             i = j
         else:
             out.append(ch)
@@ -79,16 +77,23 @@ def process(path):
     if cur != orig:
         with open(path, 'w', encoding='utf-8', newline='') as f:
             f.write(cur)
-        print(f"fixed: {path}")
+        print("fixed: " + path)
 
 for p in ['index.html'] + sorted(glob.glob('js/*.js')):
     process(p)
 PYEOF
           python3 /tmp/fixenc.py
-          if git diff --quiet; then
+          git status --porcelain
+          if git diff --cached --quiet && git diff --quiet; then
             echo "No changes needed"
           else
             git add -A
             git commit -m "fix(encoding): ripristina originali da main e corregge mojibake via script"
             git push
           fi
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "fix-encoding workflow fallito" --body-file /tmp/fix.log || true
