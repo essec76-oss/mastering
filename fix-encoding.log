@@ -1,0 +1,33 @@
++ git config user.name 'github-actions[bot]'
++ git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
++ git checkout origin/main -- index.html js/
++ python3 .github/scripts/fixenc.py
+fixed: index.html
+fixed: js/calcola-tutto.js
+fixed: js/config.js
+fixed: js/grafico.js
+fixed: js/matematica.js
+fixed: js/opzioni.js
+fixed: js/render-futures.js
+fixed: js/render-opzioni.js
+fixed: js/schede.js
+fixed: js/storage.js
++ git status --porcelain
+MM index.html
+MM js/calcola-tutto.js
+MM js/config.js
+MM js/grafico.js
+MM js/matematica.js
+MM js/opzioni.js
+MM js/render-futures.js
+MM js/render-opzioni.js
+MM js/schede.js
+MM js/storage.js
++ git add -A
++ git commit -m 'fix(encoding): ripristina originali da main e corregge mojibake via script'
+[fix/encoding-index-html 99c513e] fix(encoding): ripristina originali da main e corregge mojibake via script
+ 9 files changed, 312 insertions(+), 110 deletions(-)
++ git push
+To https://github.com/essec76-oss/mastering
+   8be5a7e..99c513e  fix/encoding-index-html -> fix/encoding-index-html
+repair outcome: success
