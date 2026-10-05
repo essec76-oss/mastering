@@ -1,5 +1,5 @@
 // schede.js — schede multi-scenario: Matrice e comparazioni
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
   // ============================================================
   // SCHEDE: MATRICE + COMPARAZIONI
   // ============================================================
@@ -12,7 +12,7 @@
       b.type = 'button';
       b.className = 'scheda-tab' + (i === stato.attiva ? ' active' : '');
       b.title = i === 0
-        ? 'Scheda principale Matrice â non rimovibile'
+        ? 'Scheda principale Matrice — non rimovibile'
         : 'Scheda comparazione: modifica la strategia e confrontala sul grafico';
       const nome = document.createElement('span');
       nome.textContent = s.nome;
@@ -20,7 +20,7 @@
       if (i > 0) {
         const x = document.createElement('span');
         x.className = 'tab-close';
-        x.textContent = 'Ã';
+        x.textContent = '×';
         x.title = 'Rimuovi "' + s.nome + '"';
         x.addEventListener('click', ev => {
           ev.stopPropagation();
@@ -65,7 +65,7 @@
     stato.attiva = stato.schede.length - 1;
     renderTabs();
     renderScheda();
-    mostraStatus('â ' + clone.nome + ' creata');
+    mostraStatus('✓ ' + clone.nome + ' creata');
   }
 
   // Le comparazioni si rimuovono, la Matrice mai
@@ -79,19 +79,19 @@
 
   // Passaggio inverso della comparazione: copia la strategia della
   // comparazione attiva SOPRA la Matrice, che torna la strategia primaria
-  // (Ã¨ la soluzione che hai trasmesso in reale sulla piattaforma).
+  // (è la soluzione che hai trasmesso in reale sulla piattaforma).
   // La comparazione non viene cancellata: resta per riferimento.
   function promuoviSuMatrice() {
     if (stato.attiva <= 0) return;
     const comp = schedaAttiva();
-    if (!confirm(`Promuovere "${comp.nome}" su Matrice?\n\nLa strategia attuale della Matrice verrÃ  SOSTITUITA da quella di "${comp.nome}".\nLa scheda "${comp.nome}" resterÃ  disponibile per riferimento.`)) return;
+    if (!confirm(`Promuovere "${comp.nome}" su Matrice?\n\nLa strategia attuale della Matrice verrà SOSTITUITA da quella di "${comp.nome}".\nLa scheda "${comp.nome}" resterà disponibile per riferimento.`)) return;
     const copia = JSON.parse(JSON.stringify(comp));
     copia.nome = 'Matrice';
     stato.schede[0] = copia;
     stato.attiva = 0;
     renderTabs();
     renderScheda();
-    mostraStatus('â ' + comp.nome + ' promossa su Matrice');
+    mostraStatus('✓ ' + comp.nome + ' promossa su Matrice');
   }
 
   // Legenda del grafico: nome e colore di ogni scheda
