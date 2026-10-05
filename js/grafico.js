@@ -4,7 +4,7 @@
   // PAYOFF COMBINATO
   // ============================================================
   // Restituisce il P&L di un singolo future aperto a un prezzo S
-  // Usa media carico e quantitÃ  netta (come nel Mastering)
+  // Usa media carico e quantità netta (come nel Mastering)
   function pnlFutureApertoAt(S, col, res) {
     if (!res || res.qtaNetta === 0 || isNaN(res.mediaPulita)) return 0;
     const tipo = res.tipo;
@@ -18,7 +18,7 @@
 
   // Prima scadenza (ISO) tra le opzioni ATTIVE e non CHIUSE della scheda.
   // Usata dal metodo "calendar": la curva A SCADENZA viene calcolata alla
-  // scadenza della gamba piÃ¹ corta; le gambe piÃ¹ lunghe sono valutate al
+  // scadenza della gamba più corta; le gambe più lunghe sono valutate al
   // loro prezzo teorico (BS per AZIONI, Black-76 per futures) col tempo
   // residuo a quella data.
   function firstExpiryOpzioni(scheda) {
@@ -28,17 +28,18 @@
       if (o.attivo === false || o.stato === 'CHIUSA') return;
       if (!o.scadenza) return;
       const T = yearsBetween(today, o.scadenza);
-      if (T == null || T < 0) return; // giÃ  scaduta: resta all'intrinseco
+      if (T == null || T < 0) return; // già scaduta: resta all'intrinseco
       if (minScad === null || o.scadenza < minScad) minScad = o.scadenza;
     });
     return minScad;
   }
 
   // P&L di una singola opzione a un prezzo S
-  // mode = 'expiry' â alla prima scadenza della scheda: le gambe che scadono
-  //   in quella data valgono l'intrinseco; le gambe con scadenza piÃ¹ lunga
+  // mode = 'expiry' → alla prima scadenza della scheda: le gambe che scadono
+  //   in quella data valgono l'intrinseco; le gambe con scadenza più lunga
   //   (strategie calendar) valgono il teorico col tempo residuo
-  // mode = 'now'    â prezzo teorico (BS per AZIONI, Black-76 per futures)
+  // mode = 'now'    → prezzo 
+teorico (BS per AZIONI, Black-76 per futures)
   function pnlOpzioneAt(S, opz, mode, firstExpiry) {
     if (opz.attivo === false || opz.stato === 'CHIUSA') return 0;
     const qta = opz.qta || 0;
@@ -51,7 +52,7 @@
     let valoreOpzione = 0;
     if (mode === 'expiry') {
       if (firstExpiry && opz.scadenza && opz.scadenza > firstExpiry) {
-        // Gamba con scadenza piÃ¹ lunga: valutata al teorico alla prima scadenza
+        // Gamba con scadenza più lunga: valutata al teorico alla prima scadenza
         const Tres = yearsBetween(firstExpiry, opz.scadenza);
         const teo = modelPrice(S, opz, Tres, tipo);
         valoreOpzione = teo === null ? intrinseco : teo;
@@ -67,14 +68,14 @@
     }
 
     // P&L = (valore attuale - premio) * segno_posizione * qta * moltiplicatore
-    // Per SELL (side=-1): se l'opzione vale meno del premio â profitto
-    // Per BUY  (side=+1): se l'opzione vale piÃ¹ del premio â profitto
+    // Per SELL (side=-1): se l'opzione vale meno del premio → profitto
+    // Per BUY  (side=+1): se l'opzione vale più del premio → profitto
     const side = opz.pos === 'SELL' ? -1 : 1;
     const fee = feeLatoOpzione() * qta;
     return (valoreOpzione - premio) * side * qta * moltOpz(opz) - fee;
   }
 
-  // Casella Cash: sfondo verde se il valore Ã¨ positivo, rosso se negativo
+  // Casella Cash: sfondo verde se il valore è positivo, rosso se negativo
   function aggiornaStileCash() {
     const inp = el('cash');
     if (!inp) return;
@@ -84,7 +85,8 @@
     else if (v < 0) inp.classList.add('neg');
   }
 
-  // Cash annotato: entra nei conteggi se non escluso con il box di simulazione
+  // Cash annotato: entra nei conteggi se non escluso con il box di si
+mulazione
   function cashAttivo() {
     const c = (typeof stato.cash === 'number') ? stato.cash : 0;
     return stato.cashEscluso ? 0 : c;
@@ -92,8 +94,8 @@
 
   // P&L totale della posizione combinata a un generico prezzo S
   // (include il cash annotato: sposta tutta la curva e i breakeven)
-  // In mode 'expiry' la valutazione Ã¨ fatta alla prima scadenza opzioni
-  // (metodo calendar: le gambe piÃ¹ lunghe al teorico col tempo residuo).
+  // In mode 'expiry' la valutazione è fatta alla prima scadenza opzioni
+  // (metodo calendar: le gambe più lunghe al teorico col tempo residuo).
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
     let tot = cashAttivo();
     tot += pnlFutureApertoAt(S, 'NES', resNES);
@@ -105,13 +107,13 @@
     return tot;
   }
 
-  // Delta netto totale (futures + opzioni), in "unitÃ  MES" (1 MES = 1.0)
+  // Delta netto totale (futures + opzioni), in "unità MES" (1 MES = 1.0)
   function deltaNettoTotale(scheda, resNES, resMES) {
     let d = 0;
     // Futures: convertiamo tutto in equivalenti MES (moltiplicatore 5)
     if (resNES && resNES.qtaNetta !== 0) {
       const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
-      d += resNES.qtaNetta * (molt / 5); // es. 10 NES long â +1.0 delta MES-eq
+      d += resNES.qtaNetta * (molt / 5); // es. 10 NES long → +1.0 delta MES-eq
     }
     if (resMES && resMES.qtaNetta !== 0) {
       const molt = MOLTIPLICATORI[resMES.tipo] || 5;
@@ -124,7 +126,7 @@
       if (!isFinite(g.delta)) return; // input incompleti: nessun contributo
       const segno = opz.pos === 'SELL' ? -1 : 1;
       const qta = opz.qta || 0;
-      d += segno * qta * g.delta * (moltOpz(opz) / 5); // in unitÃ  MES-equivalenti
+      d += segno * qta * g.delta * (moltOpz(opz) / 5); // in unità MES-equivalenti
     });
     return d;
   }
@@ -133,7 +135,8 @@
   let chartView = {
     xMin: null, xMax: null,   // range corrente
     baseMin: null, baseMax: null, // range di default
-    lastResNES: null, lastResMES: null, lastSpot: 0,
+    lastResNES: null, lastResMES: null, lastSp
+ot: 0,
     breakevens: []
   };
   let chartGeom = null;
@@ -190,19 +193,20 @@
     return pts.filter(p => isFinite(p) && p > 0);
   }
 
-  // Range di scansione BE/POP: parte da spotÂ±45% ma si estende per
-  // includere tutti i punti della struttura (ingressi/strike) Â±30%.
+  // Range di scansione BE/POP: parte da spot±45% ma si estende per
+  // includere tutti i punti della struttura (ingressi/strike) ±30%.
   function scanRangeForBE(spot) {
     let minS = Math.max(1, spot * 0.55);
     let maxS = spot * 1.45;
-    collectStructureAnchors(spot).forEach(a => {
+    collectStructureAnchors(spot).forEach(a =
+> {
       minS = Math.min(minS, Math.max(1, a * 0.7));
       maxS = Math.max(maxS, a * 1.3);
     });
     return { minS, maxS };
   }
 
-  // Vista "smart": inquadra BE e struttura (sell put â BE a sx, sell call â a dx, due BE â entrambi)
+  // Vista "smart": inquadra BE e struttura (sell put → BE a sx, sell call → a dx, due BE → entrambi)
   function computeSmartChartRange(spot, breakevens) {
     const anchors = collectStructureAnchors(spot);
     const bes = (breakevens || []).filter(b => isFinite(b) && b > 0);
@@ -210,7 +214,7 @@
     let minS, maxS;
 
     if (bes.length >= 2) {
-      // Struttura con due (o piÃ¹) BE: inquadra tra il minimo e il massimo BE + padding
+      // Struttura con due (o più) BE: inquadra tra il minimo e il massimo BE + padding
       const lo = Math.min(...bes);
       const hi = Math.max(...bes);
       const span = Math.max(hi - lo, 40);
@@ -250,7 +254,8 @@
 
     // Garantisce un'ampiezza minima leggibile
     const minWidth = Math.max(60, spot * 0.04);
-    if (maxS - minS < minWidth) {
+    if (maxS - minS < minWidt
+h) {
       const mid = (minS + maxS) / 2;
       minS = mid - minWidth / 2;
       maxS = mid + minWidth / 2;
@@ -292,7 +297,7 @@
     const smart = computeSmartChartRange(spot, bes);
     chartView.xMin = smart.minS;
     chartView.xMax = smart.maxS;
-    // Aggiorna anche base cosÃ¬ Reset torna a questa inquadratura operativa
+    // Aggiorna anche base così Reset torna a questa inquadratura operativa
     chartView.baseMin = smart.minS;
     chartView.baseMax = smart.maxS;
     redrawChartFromView();
@@ -303,7 +308,8 @@
     // senza i vertici esatti la polilinea SVG taglia le cuspidi del payoff
     // a scadenza e la curva appare morbida invece dello spigolo vivo.
     const n = 220;
-    const events = new Set([minS, maxS]);
+    const events = new
+ Set([minS, maxS]);
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
       const k = parseFloat(o.strike) || 0;
@@ -343,13 +349,14 @@
   // Oltre agli attraversamenti veri e propri gestisce anche i casi limite:
   //   - tangenza: la curva TOCCA lo zero senza attraversarlo (radice doppia);
   //   - tratti piatti esattamente a zero (es. ratio spread a credito pari):
-  //     il cambio di segno 0â+/â rileva il bordo del tratto, che Ã¨ il BE
+  //     il cambio di segno 0→+/− rileva il bordo del tratto, che è il BE
   //     significativo (il punto in cui il P&L smette di essere zero);
-  //   - primo campione giÃ  a zero col successivo positivo (bordo sinistro).
+  //   - primo campione già a zero col successivo positivo (bordo sinistro).
   function findBreakevens(pts) {
     const out = [];
     for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1].pnlExpiry;
+      con
+st a = pts[i - 1].pnlExpiry;
       const b = pts[i].pnlExpiry;
       if (!isFinite(a) || !isFinite(b)) continue;
       if ((a <= 0 && b > 0) || (a >= 0 && b < 0)) {
@@ -371,8 +378,8 @@
   // Campionamento DENSO per la ricerca dei breakeven: alla solita griglia
   // uniforme aggiunge i punti esatti sugli strike, sulla media carico e
   // sugli ingressi futures attivi (le cuspidi del payoff a scadenza), con un
-  // piccolo intorno Â±Îµ. Motivazione: con la sola griglia a 180 punti, quando
-  // il range di scansione Ã¨ molto piÃ¹ ampio della struttura (es. opzioni su
+  // piccolo intorno ±ε. Motivazione: con la sola griglia a 180 punti, quando
+  // il range di scansione è molto più ampio della struttura (es. opzioni su
   // AZIONI con strike ~100 mentre lo spot resta sui valori dei futures
   // ~7700) l'intera struttura cade tra due campioni lontani e gli
   // attraversamenti venivano persi o stimati grossolanamente.
@@ -393,7 +400,8 @@
     });
     const grid = [];
     for (let i = 0; i <= n; i++) grid.push(minS + i * (maxS - minS) / n);
-    const eps = Math.max((maxS - minS) * 1e-4, 1e-6);
+ 
+   const eps = Math.max((maxS - minS) * 1e-4, 1e-6);
     events.forEach(e => {
       const v = Math.min(maxS, Math.max(minS, e));
       grid.push(v - eps, v, v + eps);
@@ -403,15 +411,15 @@
   }
 
   // Ricerca breakeven ROBUSTA. Difetti storici della vecchia scansione:
-  //   1) il range [spotÂ±45% âª strutturaÂ±30%] non copriva i BE che cadono
-  //      piÃ¹ lontano (premi pesanti, strutture sbilanciate) â BE mai rilevati
+  //   1) il range [spot±45% ∪ struttura±30%] non copriva i BE che cadono
+  //      più lontano (premi pesanti, strutture sbilanciate) → BE mai rilevati
   //      anche se la curva li mostrava a grafico;
   //   2) il campionamento uniforme perdeva attraversamenti quando la
   //      struttura occupava una fetta minima del range (vedi sopra).
-  // Qui si scandisce col campionamento denso e, se alle estremitÃ  la coda
+  // Qui si scandisce col campionamento denso e, se alle estremità la coda
   // del payoff (rettilinea oltre ogni strike/ingresso) punta a uno zero
   // fuori range, il range viene esteso fino a intercettarlo (max 6 giri).
-  // CosÃ¬ un BE viene individuato in ogni caso: se esiste, lo si trova.
+  // Così un BE viene individuato in ogni caso: se esiste, lo si trova.
   function findBreakevensRobust(scheda, spot, minS, maxS, resNES, resMES) {
     let lo = Math.max(0.01, Math.min(minS, spot * 0.55));
     let hi = Math.max(maxS, spot * 1.45);
@@ -420,14 +428,15 @@
     for (let iter = 0; iter < 6; iter++) {
       const pts = buildPayoffPointsDense(scheda, lo, hi, resNES, resMES);
       bes = findBreakevens(pts);
-      // pendenza asintotica ai bordi: zero estrapolato fuori range â estendi
+      // pendenza asintotica ai bordi: zero estrapolato fuori range → estendi
       const p0 = pts[0], p1 = pts[1], pN = pts[pts.length - 1], pN1 = pts[pts.length - 2];
       let expLo = false, expHi = false, newLo = lo, newHi = hi;
       if (p0 && p1 && isFinite(p0.pnlExpiry) && isFinite(p1.pnlExpiry) && p1.S > p0.S) {
         const m = (p1.pnlExpiry - p0.pnlExpiry) / (p1.S - p0.S);
         if (Math.abs(m) > 1e-12) {
           const z = p0.S - p0.pnlExpiry / m;
-          if (z < lo && z > 0) { expLo = true; newLo = Math.max(0.01, z * 0.98); }
+          if (z < lo && z > 0) { expLo = true; ne
+wLo = Math.max(0.01, z * 0.98); }
         }
       }
       if (pN && pN1 && isFinite(pN.pnlExpiry) && isFinite(pN1.pnlExpiry) && pN.S > pN1.S) {
@@ -489,7 +498,8 @@
 
   function redrawChartFromView() {
     const { xMin, xMax, lastSpot, breakevens } = chartView;
-    if (!(lastSpot > 0) || xMin == null || xMax == null) return;
+    if (!(lastSpot > 0) || xMin == null || xMax == null) r
+eturn;
     const showExpiry = el('showExpiry') ? el('showExpiry').checked : true;
     const showNow    = el('showNow')    ? el('showNow').checked    : true;
     const curveSets = buildCurveSets(xMin, xMax);
@@ -497,12 +507,12 @@
   }
 
   function resetChartZoom() {
-    // Reset = ri-applica inquadratura smart (non solo il vecchio Â±12%)
+    // Reset = ri-applica inquadratura smart (non solo il vecchio ±12%)
     fitChartToStructure();
   }
 
   function structureSignature() {
-    // firma leggera per capire se la struttura Ã¨ cambiata (non solo lo spot)
+    // firma leggera per capire se la struttura è cambiata (non solo lo spot)
     const parts = [`${stato.schede.length}:${stato.attiva}`];
     const scheda = schedaAttiva();
     ['NES', 'MES'].forEach(col => {
@@ -522,7 +532,7 @@
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const deltaEl = el('payoffDeltaNetto');
     if (!(spot > 0)) {
-      deltaEl.textContent = 'â';
+      deltaEl.textContent = '—';
       chartView.lastSpot = 0;
       chartView.breakevens = [];
       chartView._sig = null;
@@ -535,7 +545,8 @@
 
     const delta = deltaNettoTotale(scheda, resNES, resMES);
     deltaEl.textContent = formatGreek(delta, 3);
-    deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    deltaEl.style.color = delta >= 0 ? 'v
+ar(--green)' : 'var(--red)';
 
     chartView.lastResNES = resNES;
     chartView.lastResMES = resMES;
@@ -545,7 +556,7 @@
     // ROBUSTA: campionamento denso sugli strike/ingressi + estensione
     // automatica del range se il BE cade oltre i confini. Il range include
     // anche la porzione di grafico attualmente visibile: un BE che si vede
-    // a video non puÃ² piÃ¹ restare non rilevato.
+    // a video non può più restare non rilevato.
     const scan = scanRangeForBE(spot);
     let scanMin = scan.minS, scanMax = scan.maxS;
     if (chartView.xMin != null && chartView.xMax != null && chartView.xMax > chartView.xMin) {
@@ -560,7 +571,7 @@
     const structureChanged = sig !== chartView._sig;
     chartView._sig = sig;
 
-    // Prima volta o struttura cambiata â inquadratura smart automatica
+    // Prima volta o struttura cambiata → inquadratura smart automatica
     // (cambio solo spot: mantiene lo zoom utente)
     if (chartView.xMin == null || structureChanged) {
       const smart = computeSmartChartRange(spot, chartView.breakevens);
@@ -577,7 +588,8 @@
     drawPayoffChart(curveSets, spot, showExpiry, showNow, chartView.breakevens, chartView.sigma, stato.attiva);
   }
 
-  function drawPayoffChart(curveSets, spot, showExpiry, showNow, breakevens, sigma, attivaIdx) {
+  function drawPayoffChart(curveSets, spot, showExpiry
+, showNow, breakevens, sigma, attivaIdx) {
     const svg = el('payoffChart');
     if (!svg) return;
     breakevens = breakevens || [];
@@ -630,14 +642,15 @@
     }
 
     // Griglia X
-    const nGridX = 8;
+    const nGridX
+ = 8;
     for (let i = 0; i <= nGridX; i++) {
       const x = xMin + (i / nGridX) * (xMax - xMin);
       const px = xPix(x);
       svgContent += `<text x="${px}" y="${H - padB + 16}" fill="#8b93a7" font-size="10" text-anchor="middle">${Math.round(x)}</text>`;
     }
 
-    // Deviazioni standard verticali (Vol ATM, orizzonte POP): linee Â±kÂ·Ï attorno
+    // Deviazioni standard verticali (Vol ATM, orizzonte POP): linee ±k·σ attorno
     // allo spot, k = 1..N scelto dal menu a tendina. Colore verde per non
     // confonderle con la linea spot (azzurra). Logica come il resto del file:
     // box "Dev. std" spuntato = nascoste, non spuntato = visibili.
@@ -667,6 +680,7 @@
       const clipPosH = Math.max(0, zeroY - padT);
       const clipNegH = Math.max(0, H - padB - zeroY);
       svgContent += `
+
         <defs>
           <clipPath id="clipPos"><rect x="${padL}" y="${padT}" width="${plotW}" height="${clipPosH}"/></clipPath>
           <clipPath id="clipNeg"><rect x="${padL}" y="${zeroY}" width="${plotW}" height="${clipNegH}"/></clipPath>
@@ -705,7 +719,8 @@
     // Marker Spot
     if (spot >= xMin && spot <= xMax) {
       const sx = xPix(spot);
-      svgContent += `<line x1="${sx}" y1="${padT}" x2="${sx}" y2="${H - padB}" stroke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+      svgContent += `<line x1="${sx}" y1="${padT}" x2="${sx}" y2="${H - padB}" st
+roke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
       svgContent += `<text x="${sx}" y="${padT - 8}" fill="#4f8cff" font-size="11" text-anchor="middle">Spot ${Math.round(spot)}</text>`;
     }
 
@@ -744,7 +759,8 @@
   }
 
   function handleChartHover(e) {
-    if (!chartGeom || !chartGeom.pts.length) return;
+    
+if (!chartGeom || !chartGeom.pts.length) return;
     const svg = el('payoffChart');
     if (!svg) return;
 
@@ -764,271 +780,10 @@
 
     const S = xMin + ((svgPt.x - padL) / (W - padL - padR)) * (xMax - xMin);
 
-    // punto piÃ¹ vicino nella curva
+    // punto più vicino nella curva
     let nearest = pts[0];
     let best = Infinity;
     for (const p of pts) {
-      const d = Math.abs(p.S - S);
-      if (d < best) { best = d; nearest = p; }
-    }
+      const d = Ma
 
-    const px = xPix(nearest.S);
-    const line = document.getElementById('hoverLine');
-    const dotExp = document.getElementById('hoverDotExpiry');
-    const dotNow = document.getElementById('hoverDotNow');
-    const box = document.getElementById('hoverBox');
-    const t1 = document.getElementById('hoverText1');
-    const t2 = document.getElementById('hoverText2');
-    const t3 = document.getElementById('hoverText3');
-    if (!line || !box) return;
-
-    line.setAttribute('x1', px);
-    line.setAttribute('x2', px);
-    line.style.display = '';
-
-    if (showExpiry && dotExp) {
-      dotExp.setAttribute('cx', px);
-      dotExp.setAttribute('cy', yPix(nearest.pnlExpiry));
-      dotExp.setAttribute('fill', chartGeom.activeColor || '#ffffff');
-      dotExp.style.display = '';
-    } else if (dotExp) dotExp.style.display = 'none';
-
-    if (showNow && dotNow) {
-      dotNow.setAttribute('cx', px);
-      dotNow.setAttribute('cy', yPix(nearest.pnlNow));
-      dotNow.style.display = '';
-    } else if (dotNow) dotNow.style.display = 'none';
-
-    const fmt = v => (v >= 0 ? '+' : '') + v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const lines = [
-      `Prezzo  ${nearest.S.toFixed(2)}`,
-      showExpiry ? `Scadenza  ${fmt(nearest.pnlExpiry)}` : null,
-      showNow ? `Now  ${fmt(nearest.pnlNow)}` : null
-    ].filter(Boolean);
-
-    const boxW = 168;
-    const boxH = 10 + lines.length * 15;
-    let boxX = px + 12;
-    if (boxX + boxW > W - padR) boxX = px - boxW - 12;
-    let boxY = padT + 8;
-    // posiziona vicino al punto principale
-    const refY = showExpiry ? yPix(nearest.pnlExpiry) : yPix(nearest.pnlNow);
-    boxY = Math.max(padT + 4, Math.min(refY - boxH - 8, H - padB - boxH - 4));
-
-    box.setAttribute('x', boxX);
-    box.setAttribute('y', boxY);
-    box.setAttribute('width', boxW);
-    box.setAttribute('height', boxH);
-    box.style.display = '';
-
-    const texts = [t1, t2, t3];
-    lines.forEach((txt, i) => {
-      if (!texts[i]) return;
-      texts[i].setAttribute('x', boxX + 10);
-      texts[i].setAttribute('y', boxY + 16 + i * 15);
-      texts[i].textContent = txt;
-      texts[i].style.display = '';
-      // colori: prezzo muted, scadenza bianco, now grigio chiaro
-      if (i === 0) texts[i].setAttribute('fill', '#a8b0c0');
-      else if (txt.startsWith('Scadenza')) texts[i].setAttribute('fill', '#ffffff');
-      else texts[i].setAttribute('fill', '#c8d0dc');
-    });
-    for (let i = lines.length; i < 3; i++) {
-      if (texts[i]) texts[i].style.display = 'none';
-    }
-  }
-
-  // Frazione (0..1) della larghezza plot sotto il centro di due dita
-  function touchPointFrac(svg, t0, t1) {
-    if (!chartGeom) return null;
-    const pt = svg.createSVGPoint();
-    pt.x = (t0.clientX + t1.clientX) / 2;
-    pt.y = (t0.clientY + t1.clientY) / 2;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return null;
-    const sp = pt.matrixTransform(ctm.inverse());
-    const plotW = chartGeom.W - chartGeom.padL - chartGeom.padR;
-    return Math.max(0, Math.min(1, (sp.x - chartGeom.padL) / plotW));
-  }
-
-  // Gesture a due dita: pan + pinch combinati.
-  // Memorizza la distanza iniziale e il prezzo ("ancora") sotto il centro dita.
-  function buildTwoFingerGesture(svg, touches) {
-    const t0 = touches[0], t1 = touches[1];
-    if (chartView.xMin == null) return { mode: 'hover' };
-    const frac = touchPointFrac(svg, t0, t1);
-    if (frac == null) return { mode: 'hover' };
-    const startW = chartView.xMax - chartView.xMin;
-    return {
-      mode: 'two',
-      startDist: Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1,
-      startW,
-      anchorS: chartView.xMin + frac * startW
-    };
-  }
-
-  function bindChartHover() {
-    const svg = el('payoffChart');
-    if (!svg) return;
-
-    if (!chartHoverBound) {
-      svg.addEventListener('mousemove', (e) => {
-        if (isPanning || touchGesture) return;
-        handleChartHover(e);
-      });
-      svg.addEventListener('mouseleave', () => {
-        clearChartHover();
-        if (isPanning) {
-          isPanning = false;
-          svg.style.cursor = 'crosshair';
-        }
-      });
-      chartHoverBound = true;
-    }
-
-    if (!chartInteractBound) {
-      // Zoom con rotella (centrato sul cursore)
-      svg.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        if (!chartGeom || chartView.xMin == null) return;
-
-        const pt = svg.createSVGPoint();
-        pt.x = e.clientX; pt.y = e.clientY;
-        const ctm = svg.getScreenCTM();
-        if (!ctm) return;
-        const svgPt = pt.matrixTransform(ctm.inverse());
-
-        const { padL, W, padR } = chartGeom;
-        const plotW = W - padL - padR;
-        // prezzo sotto il cursore
-        const frac = Math.max(0, Math.min(1, (svgPt.x - padL) / plotW));
-        const cursorS = chartView.xMin + frac * (chartView.xMax - chartView.xMin);
-
-        const factor = e.deltaY < 0 ? 0.85 : 1.18; // zoom in / out
-        let newWidth = (chartView.xMax - chartView.xMin) * factor;
-        // limiti: non troppo stretto, non troppo largo rispetto alla base
-        const baseW = (chartView.baseMax - chartView.baseMin) || newWidth;
-        newWidth = Math.max(baseW * 0.05, Math.min(baseW * 4, newWidth));
-
-        let newMin = cursorS - frac * newWidth;
-        let newMax = newMin + newWidth;
-        if (newMin < 1) { newMin = 1; newMax = newMin + newWidth; }
-
-        chartView.xMin = newMin;
-        chartView.xMax = newMax;
-        clearChartHover();
-        scheduleChartRedraw();
-      }, { passive: false });
-
-      // Pan: trascina (desktop)
-      svg.addEventListener('mousedown', (e) => {
-        if (e.button !== 0 || !chartGeom) return;
-        isPanning = true;
-        panStartX = e.clientX;
-        panStartMin = chartView.xMin;
-        panStartMax = chartView.xMax;
-        svg.style.cursor = 'grabbing';
-        clearChartHover();
-        e.preventDefault();
-      });
-
-      window.addEventListener('mousemove', (e) => {
-        if (!isPanning || !chartGeom) return;
-        const { plotW } = chartGeom;
-        const dxPx = e.clientX - panStartX;
-        const range = panStartMax - panStartMin;
-        const dxS = -(dxPx / plotW) * range;
-        let newMin = panStartMin + dxS;
-        let newMax = panStartMax + dxS;
-        if (newMin < 1) {
-          const shift = 1 - newMin;
-          newMin += shift;
-          newMax += shift;
-        }
-        chartView.xMin = newMin;
-        chartView.xMax = newMax;
-        scheduleChartRedraw();
-      });
-
-      window.addEventListener('mouseup', () => {
-        if (!isPanning) return;
-        isPanning = false;
-        const svgEl = el('payoffChart');
-        if (svgEl) svgEl.style.cursor = 'crosshair';
-      });
-
-      // ---- Touch: un dito = cursore prezzo/tooltip, due dita = sposta + pinch zoom ----
-      svg.addEventListener('touchstart', (e) => {
-        if (!chartGeom || chartView.xMin == null) return;
-        if (e.touches.length === 1) {
-          touchGesture = { mode: 'hover' };
-          handleChartHover(e.touches[0]);
-        } else if (e.touches.length >= 2) {
-          touchGesture = buildTwoFingerGesture(svg, e.touches);
-        }
-      }, { passive: true });
-
-      svg.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // niente scroll pagina: il dito controlla il grafico
-        if (!touchGesture || !chartGeom) return;
-
-        if (touchGesture.mode === 'hover') {
-          if (e.touches.length === 1) {
-            handleChartHover(e.touches[0]);
-          } else if (e.touches.length >= 2) {
-            // da cursore a due dita: passa a pan/zoom
-            touchGesture = buildTwoFingerGesture(svg, e.touches);
-          }
-          return;
-        }
-
-        if (touchGesture.mode === 'two' && e.touches.length === 2) {
-          const t0 = e.touches[0], t1 = e.touches[1];
-          const curDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
-          if (!(curDist > 0) || !(touchGesture.startDist > 0)) return;
-          // zoom dal rapporto delle distanze
-          let newW = touchGesture.startW * (touchGesture.startDist / curDist);
-          const baseW = (chartView.baseMax - chartView.baseMin) || touchGesture.startW;
-          newW = Math.max(baseW * 0.05, Math.min(baseW * 4, newW));
-          // pan: l'ancora iniziale segue la posizione corrente del centro dita
-          const frac = touchPointFrac(svg, t0, t1);
-          if (frac == null) return;
-          let newMin = touchGesture.anchorS - frac * newW;
-          let newMax = newMin + newW;
-          if (newMin < 1) { newMin = 1; newMax = newMin + newW; }
-          chartView.xMin = newMin;
-          chartView.xMax = newMax;
-          scheduleChartRedraw();
-        }
-      }, { passive: false });
-
-      svg.addEventListener('touchend', (e) => {
-        if (e.touches.length === 0) {
-          touchGesture = null;
-          clearChartHover();
-        } else if (e.touches.length === 1 && chartView.xMin != null) {
-          // da due dita a una: passa alla modalitÃ  cursore
-          touchGesture = { mode: 'hover' };
-          handleChartHover(e.touches[0]);
-        }
-      }, { passive: true });
-      svg.addEventListener('touchcancel', () => { touchGesture = null; clearChartHover(); }, { passive: true });
-
-      // Doppio click = reset
-      svg.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        resetChartZoom();
-      });
-
-      const btnReset = el('btnResetZoom');
-      if (btnReset) btnReset.addEventListener('click', resetChartZoom);
-      const btnFit = el('btnFitView');
-      if (btnFit) btnFit.addEventListener('click', fitChartToStructure);
-      const btnIn = el('btnZoomIn');
-      if (btnIn) btnIn.addEventListener('click', () => zoomChartByFactor(0.75));
-      const btnOut = el('btnZoomOut');
-      if (btnOut) btnOut.addEventListener('click', () => zoomChartByFactor(1.35));
-
-      chartInteractBound = true;
-    }
-  }
+... [Content truncated]
