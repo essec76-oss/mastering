@@ -34,7 +34,7 @@
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dati));
-      if (!silent) mostraStatus('â Salvato');
+      if (!silent) mostraStatus('✓ Salvato');
     } catch (e) { mostraStatus('Errore salvataggio', true); }
   }
 
@@ -49,7 +49,8 @@
       const dati = JSON.parse(raw);
       if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
       if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
-      if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
+      if (typeof dati.volAtm === 'number') el('volAtm').value = dati.vo
+lAtm;
       if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
       if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
       stato.cashEscluso = dati.cashEscluso === true;
@@ -61,7 +62,7 @@
       if (Array.isArray(dati.schede) && dati.schede.length) {
         stato.schede = dati.schede.map(migraScheda);
       } else if (Array.isArray(dati.NES) || Array.isArray(dati.MES) || Array.isArray(dati.opzioni)) {
-        // v18 e precedenti: una sola scheda â diventa la Matrice
+        // v18 e precedenti: una sola scheda → diventa la Matrice
         stato.schede = [migraScheda({
           nome: 'Matrice',
           tipoNES: dati.tipoNES || 'NES',
@@ -92,7 +93,8 @@
   function migraMov(m) {
     if (m.prezzoPulito === undefined) m.prezzoPulito = m.prezzo || 0;
     delete m.prezzo;
-    if (m.attivo === undefined) m.attivo = true;
+  
+  if (m.attivo === undefined) m.attivo = true;
     return m;
   }
 
@@ -154,6 +156,7 @@
     s.textContent = txt;
     s.style.color = err ? 'var(--red)' : 'var(--green)';
     s.classList.add('show');
-    clearTimeout(statusTimer);
+  
+  clearTimeout(statusTimer);
     statusTimer = setTimeout(() => s.classList.remove('show'), 1800);
   }
