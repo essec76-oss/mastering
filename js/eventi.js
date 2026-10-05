@@ -45,7 +45,8 @@
   });
   el('tipoMES').addEventListener('change', e => {
     schedaAttiva().tipoMES = e.target.value;
-    renderMovimenti('MES'); calcolaTutto();
+    r
+enderMovimenti('MES'); calcolaTutto();
   });
 
   document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
@@ -84,3 +85,22 @@
   if (el('btnPromuovi')) el('btnPromuovi').addEventListener('click', promuoviSuMatrice);
   el('btnSalva').addEventListener('click', () => salva(false));
   el('btnReset').addEventListener('click', reset);
+
+  // Strategie salvate: salvataggio multiplo con nome + export/import file
+  if (el('btnSalvaCome')) el('btnSalvaCome').addEventListener('click', () => salvaConNome(el('nomeStrategia').value));
+  if (el('btnCaricaSalvato')) el('btnCaricaSalvato').addEventListener('click', () => {
+    const v = el('listaSalvate').value;
+    if (v) caricaSalvato(v);
+  });
+  if (el('btnEliminaSalvato')) el('btnEliminaSalvato').addEventListener('click', () => {
+    const v = el('listaSalvate').value;
+    if (v) eliminaSalvato(v);
+  });
+  if (el('btnEsporta')) el('btnEsporta').addEventListener('click', esportaFile);
+  if (el('btnImporta')) el('btnImporta').addEventListener('click', () => el('fileImporta').click());
+  if (el('fileImporta')) el('fileImporta').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) importaDaInputFile(f);
+    e.target.value = '';
+  });
+  renderListaSalvate();

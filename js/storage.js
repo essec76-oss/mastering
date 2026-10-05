@@ -1,4 +1,4 @@
-// storage.js — persistenza localStorage, migrazioni e stato di salvataggio
+// storage.js — persistenza localStorage, strategie salvate (multi-save), migrazioni e stato di salvataggio
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
   // ============================================================
   // UTILITY
@@ -17,7 +17,7 @@
     }
   });
 
-  function salva(silent) {
+  function raccogliDati() {
     const dati = {
       prezzoSpot: parseFloat(el('prezzoSpot').value) || 0,
       riskFree: parseFloat(el('riskFree').value) || 0,
@@ -32,8 +32,12 @@
       attiva: stato.attiva,
       schede: stato.schede
     };
+    return dati;
+  }
+
+  function salva(silent) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dati));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(raccogliDati()));
       if (!silent) mostraStatus('✓ Salvato');
     } catch (e) { mostraStatus('Errore salvataggio', true); }
   }
@@ -46,10 +50,19 @@
         raw = localStorage.getItem(k);
       }
       if (!raw) return false;
+      applicaDati(JSON.parse(raw));
+
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Applica un oggetto dati (corrente, salvato o importato) ai controlli della pagina
+  function applicaDati(dati) {
       const dati = JSON.parse(raw);
       if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
       if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
-      if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
+      if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volA
+tm;
       if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
       if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
       stato.cashEscluso = dati.cashEscluso === true;
@@ -72,8 +85,117 @@
         })];
       }
       stato.attiva = Math.max(0, Math.min(stato.schede.length - 1, dati.attiva || 0));
-      return true;
-    } catch (e) { return false; }
+  }
+
+  // ============================================================
+  // STRATEGIE SALVATE: salvataggio multiplo con nome (es. AMZN, AAPL)
+  // Ogni strategia è un "dato completo" indipendente: spot, parametri,
+  // cash, schede (Matrice + comparazioni) e righe futures/opzioni.
+  // ============================================================
+  const STORAGE_SALVATI = 'mastering_salvati_v1';
+
+  function leggiSalvati() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_SALVATI)) || {}; }
+    catch (e) { return {}; }
+  }
+  function scriviSalvati(map) {
+    localStorage.setItem(STORAGE_SALVATI, JSON.stringify(map));
+  }
+  function listaSalvate() {
+    return Object.keys(leggiSalvati()).sort((a, b) => a.localeCompare(b));
+  }
+  function renderListaSalvate() {
+    const sel = el('listaSalvate');
+    if (!sel) return;
+    const nomi = listaSalvate();
+    const corrente = el('nomeStrategia') ? el('nomeStrategia').value.trim() : '';
+    sel.innerHTML = '';
+    if (!nomi.length) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '— nessuna strategia salvata —';
+      sel.appendChild(o);
+      return;
+    }
+    nomi.forEach(n => {
+      const o = document.createElement('option');
+      o.value = n; o.textContent = n;
+      if (n === corrente) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  function salvaConNome(nome) {
+    nome = (nome || '').trim();
+    const input = el('nomeStrategia');
+    if (!nome) { mostraStatus('Inserisci un nome (es. AMZN)', true); if (input) input.focus(); return; }
+    const map = leggiSalvati();
+    if (map[nome] && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
+    map[nome] = { salvatoIl: new Date().toISOString(), dati: raccogliDati() };
+    try {
+      scriviSalvati(map);
+      renderListaSalvate();
+      mostraStatus('✓ Strategia "' + nome + '" salvata');
+    } catch (e) { mostraStatus('Errore salvataggio', true); }
+  }
+
+  function caricaSalvato(nome) {
+    const e = leggiSalvati()[nome];
+    if (!e || !e.dati) { mostraStatus('Strategia non trovata', true); return; }
+    applicaDati(e.dati);
+    if (el('nomeStrategia')) el('nomeStrategia').value = nome;
+    renderTabs(); renderScheda(); renderListaSalvate();
+    mostraStatus('✓ "' + nome + '" caricata');
+  }
+
+  function eliminaSalvato(nome) {
+    if (!nome) return;
+    if (!confirm('Eliminare la strategia salvata "' + nome + '"?\n\n(Il lavoro corrente a video non cambia.)')) return;
+    const map = leggiSalvati();
+    delete map[nome];
+    scriviSalvati(map);
+    renderListaSalvate();
+    mostraStatus('✓ "' + nome + '" eliminata');
+  }
+
+  // ============================================================
+  // EXPORT / IMPORT FILE JSON (backup e spostamento tra browser/PC)
+  // ============================================================
+  function esportaFile() {
+    const nome = (el('nomeStrategia') && el('nomeStrategia').value.trim()) || 'strategia';
+    const payload = {
+      formato: 'mastering-strategia', versione: 1,
+      nome, esportatoIl: new Date().toISOString(),
+      dati: raccogliDati()
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const oggi = new Date().toISOString().slice(0, 10);
+    a.download = 'mastering-' + nome.replace(/[^a-z0-9_-]+/gi, '_') + '-' + oggi + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    mostraStatus('✓ File esportato');
+  }
+
+  function importaDaJson(testo) {
+    const obj = JSON.parse(testo);
+    const dati = (obj && obj.formato === 'mastering-strategia') ? obj.dati : obj;
+    if (!dati || !Array.isArray(dati.schede)) throw new Error('formato non riconosciuto');
+    applicaDati(dati);
+    if (el('nomeStrategia') && obj && obj.nome) el('nomeStrategia').value = obj.nome;
+    renderTabs(); renderScheda(); renderListaSalvate();
+    mostraStatus('✓ Strategia importata');
+  }
+
+  function importaDaInputFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { importaDaJson(String(reader.result)); }
+      catch (e) { mostraStatus('File non valido', true); }
+    };
+    reader.readAsText(file);
   }
 
   // Migrazione di una scheda (dati vecchi/corrotti non rompono nulla)
@@ -92,7 +214,8 @@
   function migraMov(m) {
     if (m.prezzoPulito === undefined) m.prezzoPulito = m.prezzo || 0;
     delete m.prezzo;
-    if (m.attivo === undefined) m.attivo = true;
+    if
+ (m.attivo === undefined) m.attivo = true;
     return m;
   }
 
@@ -154,6 +277,7 @@
     s.textContent = txt;
     s.style.color = err ? 'var(--red)' : 'var(--green)';
     s.classList.add('show');
-    clearTimeout(statusTimer);
+    cl
+earTimeout(statusTimer);
     statusTimer = setTimeout(() => s.classList.remove('show'), 1800);
   }

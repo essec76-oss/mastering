@@ -27,6 +27,20 @@
   <button class="btn" id="btnPromuovi" title="Copia la strategia di questa comparazione sulla Matrice, che diventa la strategia primaria (con conferma)" style="display:none;">→ Promuovi su Matrice</button>
 </div>
 
+
+<div class="salvati-bar">
+  <span class="label">Strategie salvate</span>
+  <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare/caricare la strategia corrente">
+  <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva come…</button>
+  <select id="listaSalvate" title="Strategie salvate in questo browser"></select>
+  <button class="btn" id="btnCaricaSalvato" title="Carica la strategia selezionata (sostituisce il lavoro corrente)">Carica</button>
+  <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata dall'elenco salvato">Elimina</button>
+  <span style="width:1px; height:24px; background:var(--border);"></span>
+  <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
+  <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
+  <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
+</div>
+
 <div class="price-bar">
   <span class="label">Prezzo Spot</span>
   <input type="number" id="prezzoSpot" value="7700" step="0.25">
@@ -60,7 +74,7 @@
         <option value="NES" selected>NES</option>
         <option value="MES">MES</option>
         <option value="ES">ES</option>
-        <option value="X">AZIONI</option>
+        <option value="X">X</option>
       </select>
     </div>
     <div class="riga-totale" id="rtNES">
@@ -105,7 +119,7 @@
         <option value="NES">NES</option>
         <option value="MES" selected>MES</option>
         <option value="ES">ES</option>
-        <option value="X">AZIONI</option>
+        <option value="X">X</option>
       </select>
     </div>
     <div class="riga-totale" id="rtMES">
