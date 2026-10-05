@@ -31,3 +31,22 @@ La concatenazione dei moduli nell'ordine 1–12 riproduce **esattamente** il cod
 (ricostruzione byte-identica e `node --check` su ogni modulo verificati in CI al momento dello split).
 Si usano script classici (non ES module) e nessun bundler: la pagina funziona anche aprendo
 `index.html` direttamente da disco (`file://`).
+
+## Deploy automatico (Vercel)
+
+Ogni push su `main` pubblica il sito in produzione su Vercel tramite il workflow
+`.github/workflows/deploy.yml`.
+
+### Setup una tantum (3 segreti GitHub)
+
+1. Su [vercel.com](https://vercel.com) importa la repo `mastering` (oppure localmente:
+   `npm i -g vercel` e `vercel link` nella root del progetto).
+2. Crea un token su **Vercel → Settings → Tokens**.
+3. Copia gli ID da **Vercel → Project → Settings → General**:
+   - **Vercel ID** (team/utente) → segreto `VERCEL_ORG_ID`
+   - **Project ID** → segreto `VERCEL_PROJECT_ID`
+4. Su GitHub: **repo → Settings → Secrets and variables → Actions → New repository secret**,
+   aggiungi `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`.
+
+Fatto questo, ogni merge/push su `main` aggiorna automaticamente l'app online.
+Il workflow fallisce con un messaggio esplicito se un segreto manca.
