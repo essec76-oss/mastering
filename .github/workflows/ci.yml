@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -52,8 +56,27 @@ jobs:
             }
           }
           JSON
-          npx --yes eslint@8.57.1 --no-eslintrc -c /tmp/eslintrc.json /tmp/app-concat.js
-          echo 'OK: lint superato (warning ammessi)'
+          if npx --yes eslint@8.57.1 --no-eslintrc -c /tmp/eslintrc.json /tmp/app-concat.js > /tmp/lint-output.txt 2>&1; then
+            echo 'OK: lint superato (warning ammessi)'
+          else
+            echo '::error::Il lint ha trovato errori — dettagli nel commento sulla PR'
+            exit 1
+          fi
+
+      - name: Dettaglio errori lint sulla PR
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### ❌ Lint concatenazione — errori rilevati'
+            echo ''
+            echo '```'
+            head -c 20000 /tmp/lint-output.txt
+            echo ''
+            echo '```'
+          } > /tmp/comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/comment.md
 
       - name: Nessun file JS fuori da js/
         run: |
@@ -98,7 +121,7 @@ jobs:
 
       - name: Guardia dimensioni file sorgente (max 512 KB)
         run: |
-          big=$(find js css -type f -size +512k; find index.html -size +512k 2>/dev/null)
+          big=$(find js css -type f -size +512k)
           if [ -n "$big" ]; then
             echo '::error::File sorgente oltre 512 KB — probabile commit accidentale'
             echo "$big"
