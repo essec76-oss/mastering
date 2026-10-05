@@ -34,19 +34,18 @@ Si usano script classici (non ES module) e nessun bundler: la pagina funziona an
 
 ## Deploy automatico (Vercel)
 
-Ogni push su `main` pubblica il sito in produzione su Vercel tramite il workflow
-`.github/workflows/deploy.yml`.
+Il sito è pubblicato su Vercel tramite l'**integrazione nativa Git** (nessun segreto,
+nessun workflow di deploy): a ogni push su `main` Vercel pubblica automaticamente
+la produzione, e ogni pull request riceve un URL di anteprima isolato.
 
-### Setup una tantum (3 segreti GitHub)
+### Setup una tantum (una sola volta, ~2 minuti)
 
-1. Su [vercel.com](https://vercel.com) importa la repo `mastering` (oppure localmente:
-   `npm i -g vercel` e `vercel link` nella root del progetto).
-2. Crea un token su **Vercel → Settings → Tokens**.
-3. Copia gli ID da **Vercel → Project → Settings → General**:
-   - **Vercel ID** (team/utente) → segreto `VERCEL_ORG_ID`
-   - **Project ID** → segreto `VERCEL_PROJECT_ID`
-4. Su GitHub: **repo → Settings → Secrets and variables → Actions → New repository secret**,
-   aggiungi `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`.
+1. Apri [vercel.com/new](https://vercel.com/new) e importa la repo `mastering`
+   (autorete il **Vercel GitHub App** su tutte le repo o solo su questa quando richiesto).
+2. Nella schermata di import **nessuna impostazione da cambiare**: Vercel rileva il sito
+   statico puro (`vercel.json` dichiara già `framework: null`, nessuna build).
+3. Clicca **Deploy**. Fatto.
 
-Fatto questo, ogni merge/push su `main` aggiorna automaticamente l'app online.
-Il workflow fallisce con un messaggio esplicito se un segreto manca.
+Da quel momento: push su `main` → produzione aggiornata; PR aperta → URL di preview;
+rollback istantneo disponibile dalla dashboard Vercel in un click.
+La CI (`ci.yml`) continua a validare i moduli su ogni PR e push, indipendente dal deploy.
