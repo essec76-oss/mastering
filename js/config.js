@@ -4,7 +4,7 @@
 // v23 — futures X (azioni): moltiplicatore ×1 (q.tà 1 = 1 singola azione).
   // Le OPZIONI AZIONI restano ×100 (MOLTIPLICATORI_OPZ): un contratto di opzione
   // muove sempre 100 azioni, quindi 100 azioni future coprono 1 contratto opzione.
-  // Commissione azioni ora per singola azione (FEE_STOCK_LATO 0.01 $: 100 azioni ≈ 1 $).
+  // Commissioni azioni rimosse (FEE_STOCK_LATO = 0).
   // v22 — breakeven sempre individuati + greche di posizione scalate + fix mobile.
   // BE: la vecchia scansione (griglia uniforme a 180 punti su spot±45% esteso
   // alla struttura±30%) perdeva gli attraversamenti quando la struttura occupava
@@ -23,7 +23,8 @@
   // Ora sono greche di POSIZIONE in $ (q.tà × greca × moltiplicatore): Δ $/pt,
   // Γ $/pt², Vega $/1% IV, Θ $/gg — omogenee e sommabili tra strumenti.
   // MOBILE: font 16px sui campi input/select sotto gli 800px (iOS zooma la
-  // pagina intera al focus dei campi < 16px: la causa dei dati "fuori schermo"),
+  // pagina intera al focus dei campi < 16px: la causa dei dati "fuor
+i schermo"),
   // nessuno scroll orizzontale a livello pagina, prime 3 colonne della tabella
   // opzioni sticky durante lo scorrimento, .table-scroll irrobustito.
   // Nessun cambiamento di storage: STORAGE_KEY resta mastering_v20.
@@ -51,7 +52,8 @@ le colonne V. Intr (valore intrinseco), V. Temp (valore
   // MES/ES. Storage v20 con persistenza anche del dividendo.
   // v19 — schede multi-scenario: la scheda "Matrice" (non rimovibile) e le
   // comparazioni clonabili col pulsante "Crea comparazione"; i valori a video
-  // (futures, opzioni, riepilogo, greche) sono della scheda attiva, il grafico
+  // (futures, opzioni, riepilogo, greche) sono 
+della scheda attiva, il grafico
   // disegna e confronta le curve di TUTTE le schede. Etichetta "Escludi cash",
   // sfondo casella cash verde/rosso, spinner numerici rimossi, badge q.tà
   // rimosso (il totale aperti è già nella riga di intestazione), voce
@@ -78,9 +80,9 @@ rre come lo spot), box "Dev. std"
   const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 1 };
   // Commissioni per lato (apertura o chiusura), in $ per contratto/unità.
   // Futures NES/MES/ES: ~1,205 $ per contratto. Opzioni: ~1 $ per contratto.
-  // X = azioni (molt. 1): commissione PER SINGOLA AZIONE (~0,01 $; 100 azioni ≈ 1 $).
-  const FEE_FUTURES_LATO = 1.205; // NES / MES / ES
-  const FEE_STOCK_LATO   = 0.01;  // X (azioni), per singola azione
+  // X = azioni: NESSUNA commissione (fee 0).
+  const FEE_STOCK_LATO   = 0;     // X (azioni): nessuna fee
+ngola azione
   const FEE_OPTION_LATO  = 1.00;  // opzioni MES / ES / AZIONI
   // Retrocompatibilità alias
   const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
