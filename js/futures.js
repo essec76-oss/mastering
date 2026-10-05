@@ -1,5 +1,5 @@
 // futures.js — calcolo colonna futures: prezzo medio e P&L
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
   // ============================================================
   // CALCOLO COLONNA
   // ============================================================
