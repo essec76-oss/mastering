@@ -1,12 +1,12 @@
 // opzioni.js — P&L opzioni: valore nominale, singola riga, totale
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
   // ============================================================
   // OPZIONI
   // ============================================================
   // P&L di una singola opzione:
-  // - disattivata â 0
-  // - CHIUSA â 0 (il realizzato va annotato nel box Cash in alto)
-  // - APERTA â mark-to-market: (teorico â premio) Ã side Ã qta Ã 5
+  // - disattivata → 0
+  // - CHIUSA → 0 (il realizzato va annotato nel box Cash in alto)
+  // - APERTA → mark-to-market: (teorico − premio) × side × qta × 5
   //   Coerente con la curva "Now" del grafico e con il balance IBKR.
   function calcolaPnlOpzione(opz) {
     if (opz.attivo === false) return 0;
