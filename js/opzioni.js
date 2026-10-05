@@ -3,9 +3,6 @@
   // ============================================================
   // OPZIONI
   // ============================================================
-  function valoreNominaleOpzione(opz) {
-    return (opz.premio || 0) * moltOpz(opz) * (opz.qta || 0);
-  }
   // P&L di una singola opzione:
   // - disattivata â 0
   // - CHIUSA â 0 (il realizzato va annotato nel box Cash in alto)

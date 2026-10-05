@@ -73,8 +73,6 @@
   const FEE_STOCK_LATO   = 1.00;  // X (azioni)
   const FEE_OPTION_LATO  = 1.00;  // opzioni MES / ES / AZIONI
   // Retrocompatibilità alias
-  const FEE_LATO = FEE_FUTURES_LATO;
-  const FEE_ROUND_TRIP = FEE_LATO * 2;
   const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
   function moltOpz(opz) { return MOLTIPLICATORI_OPZ[(opz && opz.strumento) || 'MES']; }
   function commissioniAttive() {

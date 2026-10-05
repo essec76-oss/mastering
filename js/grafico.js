@@ -206,7 +206,6 @@
   function computeSmartChartRange(spot, breakevens) {
     const anchors = collectStructureAnchors(spot);
     const bes = (breakevens || []).filter(b => isFinite(b) && b > 0);
-    const all = [...anchors, ...bes];
 
     let minS, maxS;
 
@@ -935,7 +934,7 @@
 
       window.addEventListener('mousemove', (e) => {
         if (!isPanning || !chartGeom) return;
-        const { padL, W, padR, plotW } = chartGeom;
+        const { plotW } = chartGeom;
         const dxPx = e.clientX - panStartX;
         const range = panStartMax - panStartMin;
         const dxS = -(dxPx / plotW) * range;
