@@ -9,13 +9,13 @@
     const prezzoEl = rt.querySelector('.rt-prezzo strong');
 
     if (res.qtaNetta === 0) {
-      qtaEl.innerHTML = '<span class="dir-flat">â</span>';
-      prezzoEl.textContent = 'â';
+      qtaEl.innerHTML = '<span class="dir-flat">—</span>';
+      prezzoEl.textContent = '—';
     } else {
       const dir = res.qtaNetta > 0 ? 'LONG' : 'SHORT';
       const dirClsName = res.qtaNetta > 0 ? 'dir-long' : 'dir-short';
       qtaEl.innerHTML = `${Math.abs(res.qtaNetta)} <span class="${dirClsName}">${dir}</span>`;
-      prezzoEl.textContent = isNaN(res.mediaPulita) ? 'â' : formatPrezzo(res.mediaPulita);
+      prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
     }
 
     const setVal = (id, val) => {
@@ -49,7 +49,8 @@
     });
   }
 
-  function renderMovimenti(col) {
+  function renderMovi
+menti(col) {
     const scheda = schedaAttiva();
     const res = calcolaColonna(scheda, col);
     renderRigaTotale(col, res);
@@ -66,7 +67,7 @@
 
       // Attivo (toggle)
       const tdAtt = document.createElement('td');
-      tdAtt.dataset.label = 'ï';
+      tdAtt.dataset.label = '';
       const inAtt = document.createElement('input');
       inAtt.type = 'checkbox';
       inAtt.className = 'toggle-on';
@@ -91,15 +92,16 @@
       });
       tdDir.appendChild(selDir); tr.appendChild(tdDir);
 
-      // Q.tÃ  (il totale delle posizioni aperte Ã¨ nella riga di intestazione)
+      // Q.tà (il totale delle posizioni aperte è nella riga di intestazione)
       const tdQta = document.createElement('td');
-      tdQta.dataset.label = 'Q.tÃ ';
+      tdQta.dataset.label = 'Q.tà';
       const inQta = document.createElement('input');
       inQta.type = 'number'; inQta.step = '1'; inQta.min = '0';
       inQta.value = mov.quantita;
       inQta.addEventListener('input', e => {
         const v = e.target.value;
-        scheda[col][idx].quantita = v === '' ? 0 : (parseFloat(v) || 0);
+        scheda[col][
+idx].quantita = v === '' ? 0 : (parseFloat(v) || 0);
         aggiornaCalcolati(col); calcolaTutto();
       });
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
@@ -111,7 +113,7 @@
       inPrezzo.type = 'number'; inPrezzo.step = '0.25';
       inPrezzo.className = 'prezzo-nominale';
       inPrezzo.value = (mov.prezzoPulito === 0 || mov.prezzoPulito === undefined) ? '' : mov.prezzoPulito;
-      inPrezzo.placeholder = 'â';
+      inPrezzo.placeholder = '—';
       inPrezzo.addEventListener('input', e => {
         const v = e.target.value;
         scheda[col][idx].prezzoPulito = v === '' ? 0 : (parseFloat(v) || 0);
@@ -137,7 +139,7 @@
       tdPnl.className = 'pnl-riga td-pnl';
       tdPnl.dataset.label = 'P&L';
       if (!isOn) {
-        tdPnl.textContent = 'â';
+        tdPnl.textContent = '—';
         tdPnl.classList.add('muted');
       } else {
         const pnlVal = info.pnlTotale || 0;
