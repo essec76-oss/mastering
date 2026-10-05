@@ -1,7 +1,11 @@
 // config.js — costanti, moltiplicatori, stato iniziale e helper DOM
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
 
-// v22 — breakeven sempre individuati + greche di posizione scalate + fix mobile.
+// v23 — futures X (azioni): moltiplicatore ×1 (q.tà 1 = 1 singola azione).
+  // Le OPZIONI AZIONI restano ×100 (MOLTIPLICATORI_OPZ): un contratto di opzione
+  // muove sempre 100 azioni, quindi 100 azioni future coprono 1 contratto opzione.
+  // Commissione azioni ora per singola azione (FEE_STOCK_LATO 0.01 $: 100 azioni ≈ 1 $).
+  // v22 — breakeven sempre individuati + greche di posizione scalate + fix mobile.
   // BE: la vecchia scansione (griglia uniforme a 180 punti su spot±45% esteso
   // alla struttura±30%) perdeva gli attraversamenti quando la struttura occupava
   // una fetta minima del range (es. opzioni AZIONI con strike ~100 e spot ~7700:
@@ -24,7 +28,8 @@
   // opzioni sticky durante lo scorrimento, .table-scroll irrobustito.
   // Nessun cambiamento di storage: STORAGE_KEY resta mastering_v20.
   // v21 — riga opzioni portata in parità con la gamba opzioni del Calcolatore
-  // Payoff: aggiunte le colonne V. Intr (valore intrinseco), V. Temp (valore
+  // Payoff: aggiunte 
+le colonne V. Intr (valore intrinseco), V. Temp (valore
   // temporale = teorico − intrinseco), P. Tocco (probabilità che il
   // sottostante tocchi lo strike prima della scadenza della gamba, stessa
   // formula del Calcolatore), P&L Scad. (P&L della singola riga alla prima
@@ -51,7 +56,8 @@
   // sfondo casella cash verde/rosso, spinner numerici rimossi, badge q.tà
   // rimosso (il totale aperti è già nella riga di intestazione), voce
   // "Realizzato" eliminata.
-  // v18 — deviazioni standard verdi (prima azzurre come lo spot), box "Dev. std"
+  // v18 — deviazioni standard verdi (prima azzu
+rre come lo spot), box "Dev. std"
   // con logica invertita come il resto del file (spunta = nasconde), header
   // Opzioni selezionabile da menu a tendina (MES / ES / AZIONI) con
   // moltiplicatore dedicato (5 / 50 / 100), scheda opzioni non eliminabile
@@ -66,11 +72,15 @@
   // scansione BE/POP adattiva al di fuori di spot±45%, perf (niente calcoli morti,
   // redraw throttled), touch pan/pinch, intrinseco a scadenza, autosave, robustezza margini.
 
-  const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 100 };
+  // Futures: X = azioni, q.tà 1 = 1 singola azione (molt. 1, non 100).
+  // La coerenza con le opzioni AZIONI (×100) è salvaguardata da MOLTIPLICATORI_OPZ:
+  // 1 contratto opzione = 100 azioni, quindi 100 q.tà di futures X = 1 contratto.
+  const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 1 };
   // Commissioni per lato (apertura o chiusura), in $ per contratto/unità.
-  // X = azioni (molt. 100): ~1 $ per ordine. Opzioni: ~1 $ per contratto.
+  // Futures NES/MES/ES: ~1,205 $ per contratto. Opzioni: ~1 $ per contratto.
+  // X = azioni (molt. 1): commissione PER SINGOLA AZIONE (~0,01 $; 100 azioni ≈ 1 $).
   const FEE_FUTURES_LATO = 1.205; // NES / MES / ES
-  const FEE_STOCK_LATO   = 1.00;  // X (azioni)
+  const FEE_STOCK_LATO   = 0.01;  // X (azioni), per singola azione
   const FEE_OPTION_LATO  = 1.00;  // opzioni MES / ES / AZIONI
   // Retrocompatibilità alias
   const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
@@ -87,7 +97,8 @@
     return commissioniAttive() ? FEE_OPTION_LATO : 0;
   }
   const STORAGE_KEY = 'mastering_v20';
-  const STORAGE_KEYS_LEGACY = ['mastering_v19', 'mastering_v18', 'mastering_v17', 'mastering_v16', 'mastering_v15', 'mastering_v14', 'mastering_v13', 'mastering_v12', 'mastering_v11'];
+  const STORAGE_KEYS_LEGACY = ['mastering_v19'
+, 'mastering_v18', 'mastering_v17', 'mastering_v16', 'mastering_v15', 'mastering_v14', 'mastering_v13', 'mastering_v12', 'mastering_v11'];
 
   // Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette
   const PALETTE_COMP = ['#f97316', '#22d3ee', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
