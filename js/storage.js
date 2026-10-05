@@ -34,7 +34,7 @@
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dati));
-      if (!silent) mostraStatus('â Salvato');
+      if (!silent) mostraStatus('✓ Salvato');
     } catch (e) { mostraStatus('Errore salvataggio', true); }
   }
 
@@ -61,7 +61,7 @@
       if (Array.isArray(dati.schede) && dati.schede.length) {
         stato.schede = dati.schede.map(migraScheda);
       } else if (Array.isArray(dati.NES) || Array.isArray(dati.MES) || Array.isArray(dati.opzioni)) {
-        // v18 e precedenti: una sola scheda â diventa la Matrice
+        // v18 e precedenti: una sola scheda → diventa la Matrice
         stato.schede = [migraScheda({
           nome: 'Matrice',
           tipoNES: dati.tipoNES || 'NES',

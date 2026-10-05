@@ -11,8 +11,8 @@
     renderRigaTotale('NES', resNES);
     renderRigaTotale('MES', resMES);
 
-    el('rpmNES').textContent = isNaN(resNES.mediaPulita) ? 'â' : formatPrezzo(resNES.mediaPulita);
-    el('rpmMES').textContent = isNaN(resMES.mediaPulita) ? 'â' : formatPrezzo(resMES.mediaPulita);
+    el('rpmNES').textContent = isNaN(resNES.mediaPulita) ? '—' : formatPrezzo(resNES.mediaPulita);
+    el('rpmMES').textContent = isNaN(resMES.mediaPulita) ? '—' : formatPrezzo(resMES.mediaPulita);
 
     // Header scheda: P&L delle opzioni dello strumento selezionato nel menu
     const pnlOpz = calcolaPnlOpzioniTotale(strumentoOpzSelezionato());
@@ -44,13 +44,13 @@
     const twsLabel = el('totaleTwsLabel');
     if (twsLabel) twsLabel.textContent = scheda.nome === 'Matrice'
       ? 'TOTALE FUTURES TWS'
-      : 'TOTALE FUTURES â ' + scheda.nome;
+      : 'TOTALE FUTURES — ' + scheda.nome;
 
     // AT NOW = teorico Black-76 allo spot attuale (profitto se chiudessi ora),
     // A SCADENZA = valutato alla prima scadenza opzioni: intrinseco per le
     // gambe che scadono in quella data, teorico col tempo residuo per le
-    // gambe piÃ¹ lunghe (strategie calendar). Il cash annotato (se non escluso
-    // col box) Ã¨ compreso in entrambi.
+    // gambe più lunghe (strategie calendar). Il cash annotato (se non escluso
+    // col box) è compreso in entrambi.
     const spotVal = parseFloat(el('prezzoSpot').value) || 0;
     const pnlNowVal = spotVal > 0 ? pnlCombinatoAt(scheda, spotVal, 'now', resNES, resMES) : NaN;
     const pnlScad = spotVal > 0 ? pnlCombinatoAt(scheda, spotVal, 'expiry', resNES, resMES) : NaN;
