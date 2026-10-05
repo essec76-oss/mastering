@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -34,6 +38,85 @@ jobs:
           node --check /tmp/app-concat.js
           echo 'OK: concatenazione in ordine 1-12 valida'
 
+      - name: Lint concatenazione (variabili non definite, codice irraggiungibile, chiavi duplicate)
+        run: |
+          set -e
+          cat > /tmp/eslintrc.json <<'JSON'
+          {
+            "root": true,
+            "parserOptions": { "ecmaVersion": 2022, "sourceType": "script" },
+            "env": { "browser": true, "es2022": true },
+            "rules": {
+              "no-undef": "error",
+              "no-debugger": "error",
+              "no-dupe-keys": "error",
+              "no-unreachable": "error",
+              "no-redeclare": "warn",
+              "no-unused-vars": "warn"
+            }
+          }
+          JSON
+          if npx --yes eslint@8.57.1 --no-eslintrc -c /tmp/eslintrc.json /tmp/app-concat.js > /tmp/lint-output.txt 2>&1; then
+            echo 'OK: lint superato (warning ammessi)'
+          else
+            echo '::error::Il lint ha trovato errori — dettagli nel commento sulla PR'
+            exit 1
+          fi
+
+      - name: Riepilogo lint sulla PR (mappato su file:riga)
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          node <<'NODE' > /tmp/mapped.txt
+          const fs = require('fs');
+          const order = ['config.js','matematica.js','futures.js','opzioni.js','render-futures.js','render-opzioni.js','grafico.js','calcola-tutto.js','schede.js','storage.js','eventi.js','main.js'];
+          const contents = order.map(f => fs.readFileSync('js/' + f, 'utf8'));
+          const starts = []; let acc = 0;
+          for (const c of contents) { starts.push(acc); acc += c.length; }
+          const concat = contents.join('');
+          const fileLines = {}; order.forEach((f, i) => { fileLines[f] = contents[i].split('\n'); });
+          const origins = []; let pos = 0;
+          for (const line of concat.split('\n')) {
+            let fi = 0;
+            for (let k = 0; k < starts.length; k++) if (starts[k] <= pos) fi = k;
+            const local = concat.slice(starts[fi], pos);
+            origins.push(order[fi] + ':' + local.split('\n').length);
+            pos += line.length + 1;
+          }
+          const out = fs.readFileSync('/tmp/lint-output.txt', 'utf8');
+          let any = false;
+          for (const l of out.split('\n')) {
+            const m = l.match(/^\s*(\d+):(\d+)\s+(error|warning)\s+(.+)$/);
+            if (!m) { if (any) console.log(l); continue; }
+            any = true;
+            const origin = origins[parseInt(m[1], 10) - 1] || '?';
+            const parts = origin.split(':');
+            const src = (fileLines[parts[0]] || [])[parseInt(parts[1], 10) - 1] || '';
+            console.log('[' + origin + '] ' + m[3] + '  ' + m[4].trim() + '  ||  ' + src.trim().slice(0, 110));
+          }
+          if (!any) console.log('Nessun problema segnalato dal lint.');
+          NODE
+          if grep -qE '^[[:space:]]*[0-9]+:[0-9]+[[:space:]]+error' /tmp/lint-output.txt; then
+            TITLE='### ❌ Lint concatenazione — errori (mappati su file:riga)'
+          else
+            TITLE='### ⚠️ Riepilogo lint (warning non bloccanti, mappati su file:riga)'
+          fi
+          gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | select((.body | startswith("### ❌ Lint")) or (.body | startswith("### ⚠️ Riepilogo lint"))) | .id' 2>/dev/null \
+            | while read -r cid; do gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$cid" || true; done
+          {
+            echo "$TITLE"
+            echo ''
+            echo '```'
+            cat /tmp/mapped.txt
+            echo '```'
+          } > /tmp/comment.md
+          if grep -qE '^\[' /tmp/mapped.txt; then
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/comment.md
+          fi
+
       - name: Nessun file JS fuori da js/
         run: |
           found=$(find . -name '*.js' -not -path './js/*' -not -path './.git/*')
@@ -43,6 +126,47 @@ jobs:
             exit 1
           fi
           echo 'OK: nessun file JS fuori da js/'
+
+      - name: Nessun console.log/debugger nei sorgenti
+        run: |
+          hits=$(grep -rnE '\bconsole\.(log|debug|info)\b|\bdebugger\b' js/ index.html css/ || true)
+          if [ -n "$hits" ]; then
+            echo '::error::console.log/debugger non ammessi nei sorgenti (usare la UI)'
+            echo "$hits"
+            exit 1
+          fi
+          echo 'OK: nessun console.log/debugger'
+
+      - name: Ogni id usato con el(...) esiste in index.html o e creato dinamicamente
+        run: |
+          set -e
+          node <<'NODE'
+          const fs = require('fs');
+          const files = fs.readdirSync('js').filter(f => f.endsWith('.js')).map(f => 'js/' + f);
+          const js = files.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const used = new Set();
+          for (const m of js.matchAll(/\bel\(\s*(['"])([A-Za-z][\w-]*)\1\s*\)/g)) used.add(m[2]);
+          const present = new Set();
+          for (const m of html.matchAll(/id=["'`][A-Za-z][\w-]*/g)) present.add(m[0].slice(4));
+          for (const m of js.matchAll(/id=\\?["'`\\]+([A-Za-z][\w-]*)/g)) present.add(m[1]);
+          const missing = [...used].filter(id => !present.has(id));
+          if (missing.length) {
+            for (const id of missing) console.error("::error::el('" + id + "') punta a un id assente in index.html e non creato dinamicamente");
+            process.exit(1);
+          }
+          console.log('OK: ' + used.size + ' id verificati, tutti presenti');
+          NODE
+
+      - name: Guardia dimensioni file sorgente (max 512 KB)
+        run: |
+          big=$(find js css -type f -size +512k)
+          if [ -n "$big" ]; then
+            echo '::error::File sorgente oltre 512 KB — probabile commit accidentale'
+            echo "$big"
+            exit 1
+          fi
+          echo 'OK: nessun file sorgente oltre 512 KB'
 
       - name: index.html carica i 12 moduli nell'ordine corretto
         run: |
