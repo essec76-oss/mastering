@@ -1,4 +1,4 @@
-name: Fix encoding mojibake
+name: Fix encoding mojibake v3
 on:
   workflow_dispatch:
   push:
@@ -14,11 +14,12 @@ jobs:
         with:
           ref: fix/encoding-index-html
           fetch-depth: 0
-      - name: Run repair
-        shell: bash
+      - name: Repair
+        id: repair
+        continue-on-error: true
         run: |
           exec > /tmp/fix.log 2>&1
-          set -ex
+          set -x
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout origin/main -- index.html js/
@@ -77,23 +78,25 @@ def process(path):
     if cur != orig:
         with open(path, 'w', encoding='utf-8', newline='') as f:
             f.write(cur)
-        print("fixed: " + path)
+        print('fixed: ' + path)
 
 for p in ['index.html'] + sorted(glob.glob('js/*.js')):
     process(p)
 PYEOF
           python3 /tmp/fixenc.py
           git status --porcelain
-          if git diff --cached --quiet && git diff --quiet; then
-            echo "No changes needed"
-          else
-            git add -A
-            git commit -m "fix(encoding): ripristina originali da main e corregge mojibake via script"
-            git push
-          fi
-      - name: Report failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
+          git add -A
+          git commit -m "fix(encoding): ripristina originali da main e corregge mojibake via script" || true
+          git push || true
+      - name: Persist log
+        if: always()
+        continue-on-error: true
         run: |
-          gh issue create --repo "$GITHUB_REPOSITORY" --title "fix-encoding workflow fallito" --body-file /tmp/fix.log || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp /tmp/fix.log fix-encoding.log 2>/dev/null || echo "no fix.log produced" > fix-encoding.log
+          echo "repair outcome: ${{ steps.repair.outcome }}" >> fix-encoding.log
+          git checkout -B fix-encoding-logs
+          git add fix-encoding.log
+          git commit -m "log della run fix-encoding"
+          git push -f origin fix-encoding-logs
