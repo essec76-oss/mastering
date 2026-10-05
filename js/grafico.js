@@ -38,8 +38,7 @@
   // mode = 'expiry' → alla prima scadenza della scheda: le gambe che scadono
   //   in quella data valgono l'intrinseco; le gambe con scadenza più lunga
   //   (strategie calendar) valgono il teorico col tempo residuo
-  // mode = 'now'    → prezzo 
-teorico (BS per AZIONI, Black-76 per futures)
+  // mode = 'now'    → prezzo teorico (BS per AZIONI, Black-76 per futures)
   function pnlOpzioneAt(S, opz, mode, firstExpiry) {
     if (opz.attivo === false || opz.stato === 'CHIUSA') return 0;
     const qta = opz.qta || 0;
@@ -85,8 +84,7 @@ teorico (BS per AZIONI, Black-76 per futures)
     else if (v < 0) inp.classList.add('neg');
   }
 
-  // Cash annotato: entra nei conteggi se non escluso con il box di si
-mulazione
+  // Cash annotato: entra nei conteggi se non escluso con il box di simulazione
   function cashAttivo() {
     const c = (typeof stato.cash === 'number') ? stato.cash : 0;
     return stato.cashEscluso ? 0 : c;
@@ -135,8 +133,7 @@ mulazione
   let chartView = {
     xMin: null, xMax: null,   // range corrente
     baseMin: null, baseMax: null, // range di default
-    lastResNES: null, lastResMES: null, lastSp
-ot: 0,
+    lastResNES: null, lastResMES: null, lastSpot: 0,
     breakevens: []
   };
   let chartGeom = null;
@@ -198,8 +195,7 @@ ot: 0,
   function scanRangeForBE(spot) {
     let minS = Math.max(1, spot * 0.55);
     let maxS = spot * 1.45;
-    collectStructureAnchors(spot).forEach(a =
-> {
+    collectStructureAnchors(spot).forEach(a => {
       minS = Math.min(minS, Math.max(1, a * 0.7));
       maxS = Math.max(maxS, a * 1.3);
     });
@@ -254,8 +250,7 @@ ot: 0,
 
     // Garantisce un'ampiezza minima leggibile
     const minWidth = Math.max(60, spot * 0.04);
-    if (maxS - minS < minWidt
-h) {
+    if (maxS - minS < minWidth) {
       const mid = (minS + maxS) / 2;
       minS = mid - minWidth / 2;
       maxS = mid + minWidth / 2;
@@ -308,8 +303,7 @@ h) {
     // senza i vertici esatti la polilinea SVG taglia le cuspidi del payoff
     // a scadenza e la curva appare morbida invece dello spigolo vivo.
     const n = 220;
-    const events = new
- Set([minS, maxS]);
+    const events = new Set([minS, maxS]);
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
       const k = parseFloat(o.strike) || 0;
@@ -355,8 +349,7 @@ h) {
   function findBreakevens(pts) {
     const out = [];
     for (let i = 1; i < pts.length; i++) {
-      con
-st a = pts[i - 1].pnlExpiry;
+      const a = pts[i - 1].pnlExpiry;
       const b = pts[i].pnlExpiry;
       if (!isFinite(a) || !isFinite(b)) continue;
       if ((a <= 0 && b > 0) || (a >= 0 && b < 0)) {
@@ -400,8 +393,7 @@ st a = pts[i - 1].pnlExpiry;
     });
     const grid = [];
     for (let i = 0; i <= n; i++) grid.push(minS + i * (maxS - minS) / n);
- 
-   const eps = Math.max((maxS - minS) * 1e-4, 1e-6);
+    const eps = Math.max((maxS - minS) * 1e-4, 1e-6);
     events.forEach(e => {
       const v = Math.min(maxS, Math.max(minS, e));
       grid.push(v - eps, v, v + eps);
@@ -435,8 +427,7 @@ st a = pts[i - 1].pnlExpiry;
         const m = (p1.pnlExpiry - p0.pnlExpiry) / (p1.S - p0.S);
         if (Math.abs(m) > 1e-12) {
           const z = p0.S - p0.pnlExpiry / m;
-          if (z < lo && z > 0) { expLo = true; ne
-wLo = Math.max(0.01, z * 0.98); }
+          if (z < lo && z > 0) { expLo = true; newLo = Math.max(0.01, z * 0.98); }
         }
       }
       if (pN && pN1 && isFinite(pN.pnlExpiry) && isFinite(pN1.pnlExpiry) && pN.S > pN1.S) {
@@ -498,8 +489,7 @@ wLo = Math.max(0.01, z * 0.98); }
 
   function redrawChartFromView() {
     const { xMin, xMax, lastSpot, breakevens } = chartView;
-    if (!(lastSpot > 0) || xMin == null || xMax == null) r
-eturn;
+    if (!(lastSpot > 0) || xMin == null || xMax == null) return;
     const showExpiry = el('showExpiry') ? el('showExpiry').checked : true;
     const showNow    = el('showNow')    ? el('showNow').checked    : true;
     const curveSets = buildCurveSets(xMin, xMax);
@@ -545,8 +535,7 @@ eturn;
 
     const delta = deltaNettoTotale(scheda, resNES, resMES);
     deltaEl.textContent = formatGreek(delta, 3);
-    deltaEl.style.color = delta >= 0 ? 'v
-ar(--green)' : 'var(--red)';
+    deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
 
     chartView.lastResNES = resNES;
     chartView.lastResMES = resMES;
@@ -588,8 +577,7 @@ ar(--green)' : 'var(--red)';
     drawPayoffChart(curveSets, spot, showExpiry, showNow, chartView.breakevens, chartView.sigma, stato.attiva);
   }
 
-  function drawPayoffChart(curveSets, spot, showExpiry
-, showNow, breakevens, sigma, attivaIdx) {
+  function drawPayoffChart(curveSets, spot, showExpiry, showNow, breakevens, sigma, attivaIdx) {
     const svg = el('payoffChart');
     if (!svg) return;
     breakevens = breakevens || [];
@@ -642,8 +630,7 @@ ar(--green)' : 'var(--red)';
     }
 
     // Griglia X
-    const nGridX
- = 8;
+    const nGridX = 8;
     for (let i = 0; i <= nGridX; i++) {
       const x = xMin + (i / nGridX) * (xMax - xMin);
       const px = xPix(x);
@@ -680,7 +667,6 @@ ar(--green)' : 'var(--red)';
       const clipPosH = Math.max(0, zeroY - padT);
       const clipNegH = Math.max(0, H - padB - zeroY);
       svgContent += `
-
         <defs>
           <clipPath id="clipPos"><rect x="${padL}" y="${padT}" width="${plotW}" height="${clipPosH}"/></clipPath>
           <clipPath id="clipNeg"><rect x="${padL}" y="${zeroY}" width="${plotW}" height="${clipNegH}"/></clipPath>
@@ -719,8 +705,7 @@ ar(--green)' : 'var(--red)';
     // Marker Spot
     if (spot >= xMin && spot <= xMax) {
       const sx = xPix(spot);
-      svgContent += `<line x1="${sx}" y1="${padT}" x2="${sx}" y2="${H - padB}" st
-roke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+      svgContent += `<line x1="${sx}" y1="${padT}" x2="${sx}" y2="${H - padB}" stroke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
       svgContent += `<text x="${sx}" y="${padT - 8}" fill="#4f8cff" font-size="11" text-anchor="middle">Spot ${Math.round(spot)}</text>`;
     }
 
@@ -759,8 +744,7 @@ roke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
   }
 
   function handleChartHover(e) {
-    
-if (!chartGeom || !chartGeom.pts.length) return;
+    if (!chartGeom || !chartGeom.pts.length) return;
     const svg = el('payoffChart');
     if (!svg) return;
 
@@ -784,6 +768,267 @@ if (!chartGeom || !chartGeom.pts.length) return;
     let nearest = pts[0];
     let best = Infinity;
     for (const p of pts) {
-      const d = Ma
+      const d = Math.abs(p.S - S);
+      if (d < best) { best = d; nearest = p; }
+    }
 
-... [Content truncated]
+    const px = xPix(nearest.S);
+    const line = document.getElementById('hoverLine');
+    const dotExp = document.getElementById('hoverDotExpiry');
+    const dotNow = document.getElementById('hoverDotNow');
+    const box = document.getElementById('hoverBox');
+    const t1 = document.getElementById('hoverText1');
+    const t2 = document.getElementById('hoverText2');
+    const t3 = document.getElementById('hoverText3');
+    if (!line || !box) return;
+
+    line.setAttribute('x1', px);
+    line.setAttribute('x2', px);
+    line.style.display = '';
+
+    if (showExpiry && dotExp) {
+      dotExp.setAttribute('cx', px);
+      dotExp.setAttribute('cy', yPix(nearest.pnlExpiry));
+      dotExp.setAttribute('fill', chartGeom.activeColor || '#ffffff');
+      dotExp.style.display = '';
+    } else if (dotExp) dotExp.style.display = 'none';
+
+    if (showNow && dotNow) {
+      dotNow.setAttribute('cx', px);
+      dotNow.setAttribute('cy', yPix(nearest.pnlNow));
+      dotNow.style.display = '';
+    } else if (dotNow) dotNow.style.display = 'none';
+
+    const fmt = v => (v >= 0 ? '+' : '') + v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const lines = [
+      `Prezzo  ${nearest.S.toFixed(2)}`,
+      showExpiry ? `Scadenza  ${fmt(nearest.pnlExpiry)}` : null,
+      showNow ? `Now  ${fmt(nearest.pnlNow)}` : null
+    ].filter(Boolean);
+
+    const boxW = 168;
+    const boxH = 10 + lines.length * 15;
+    let boxX = px + 12;
+    if (boxX + boxW > W - padR) boxX = px - boxW - 12;
+    let boxY = padT + 8;
+    // posiziona vicino al punto principale
+    const refY = showExpiry ? yPix(nearest.pnlExpiry) : yPix(nearest.pnlNow);
+    boxY = Math.max(padT + 4, Math.min(refY - boxH - 8, H - padB - boxH - 4));
+
+    box.setAttribute('x', boxX);
+    box.setAttribute('y', boxY);
+    box.setAttribute('width', boxW);
+    box.setAttribute('height', boxH);
+    box.style.display = '';
+
+    const texts = [t1, t2, t3];
+    lines.forEach((txt, i) => {
+      if (!texts[i]) return;
+      texts[i].setAttribute('x', boxX + 10);
+      texts[i].setAttribute('y', boxY + 16 + i * 15);
+      texts[i].textContent = txt;
+      texts[i].style.display = '';
+      // colori: prezzo muted, scadenza bianco, now grigio chiaro
+      if (i === 0) texts[i].setAttribute('fill', '#a8b0c0');
+      else if (txt.startsWith('Scadenza')) texts[i].setAttribute('fill', '#ffffff');
+      else texts[i].setAttribute('fill', '#c8d0dc');
+    });
+    for (let i = lines.length; i < 3; i++) {
+      if (texts[i]) texts[i].style.display = 'none';
+    }
+  }
+
+  // Frazione (0..1) della larghezza plot sotto il centro di due dita
+  function touchPointFrac(svg, t0, t1) {
+    if (!chartGeom) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = (t0.clientX + t1.clientX) / 2;
+    pt.y = (t0.clientY + t1.clientY) / 2;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const sp = pt.matrixTransform(ctm.inverse());
+    const plotW = chartGeom.W - chartGeom.padL - chartGeom.padR;
+    return Math.max(0, Math.min(1, (sp.x - chartGeom.padL) / plotW));
+  }
+
+  // Gesture a due dita: pan + pinch combinati.
+  // Memorizza la distanza iniziale e il prezzo ("ancora") sotto il centro dita.
+  function buildTwoFingerGesture(svg, touches) {
+    const t0 = touches[0], t1 = touches[1];
+    if (chartView.xMin == null) return { mode: 'hover' };
+    const frac = touchPointFrac(svg, t0, t1);
+    if (frac == null) return { mode: 'hover' };
+    const startW = chartView.xMax - chartView.xMin;
+    return {
+      mode: 'two',
+      startDist: Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1,
+      startW,
+      anchorS: chartView.xMin + frac * startW
+    };
+  }
+
+  function bindChartHover() {
+    const svg = el('payoffChart');
+    if (!svg) return;
+
+    if (!chartHoverBound) {
+      svg.addEventListener('mousemove', (e) => {
+        if (isPanning || touchGesture) return;
+        handleChartHover(e);
+      });
+      svg.addEventListener('mouseleave', () => {
+        clearChartHover();
+        if (isPanning) {
+          isPanning = false;
+          svg.style.cursor = 'crosshair';
+        }
+      });
+      chartHoverBound = true;
+    }
+
+    if (!chartInteractBound) {
+      // Zoom con rotella (centrato sul cursore)
+      svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (!chartGeom || chartView.xMin == null) return;
+
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX; pt.y = e.clientY;
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return;
+        const svgPt = pt.matrixTransform(ctm.inverse());
+
+        const { padL, W, padR } = chartGeom;
+        const plotW = W - padL - padR;
+        // prezzo sotto il cursore
+        const frac = Math.max(0, Math.min(1, (svgPt.x - padL) / plotW));
+        const cursorS = chartView.xMin + frac * (chartView.xMax - chartView.xMin);
+
+        const factor = e.deltaY < 0 ? 0.85 : 1.18; // zoom in / out
+        let newWidth = (chartView.xMax - chartView.xMin) * factor;
+        // limiti: non troppo stretto, non troppo largo rispetto alla base
+        const baseW = (chartView.baseMax - chartView.baseMin) || newWidth;
+        newWidth = Math.max(baseW * 0.05, Math.min(baseW * 4, newWidth));
+
+        let newMin = cursorS - frac * newWidth;
+        let newMax = newMin + newWidth;
+        if (newMin < 1) { newMin = 1; newMax = newMin + newWidth; }
+
+        chartView.xMin = newMin;
+        chartView.xMax = newMax;
+        clearChartHover();
+        scheduleChartRedraw();
+      }, { passive: false });
+
+      // Pan: trascina (desktop)
+      svg.addEventListener('mousedown', (e) => {
+        if (e.button !== 0 || !chartGeom) return;
+        isPanning = true;
+        panStartX = e.clientX;
+        panStartMin = chartView.xMin;
+        panStartMax = chartView.xMax;
+        svg.style.cursor = 'grabbing';
+        clearChartHover();
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanning || !chartGeom) return;
+        const { plotW } = chartGeom;
+        const dxPx = e.clientX - panStartX;
+        const range = panStartMax - panStartMin;
+        const dxS = -(dxPx / plotW) * range;
+        let newMin = panStartMin + dxS;
+        let newMax = panStartMax + dxS;
+        if (newMin < 1) {
+          const shift = 1 - newMin;
+          newMin += shift;
+          newMax += shift;
+        }
+        chartView.xMin = newMin;
+        chartView.xMax = newMax;
+        scheduleChartRedraw();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isPanning) return;
+        isPanning = false;
+        const svgEl = el('payoffChart');
+        if (svgEl) svgEl.style.cursor = 'crosshair';
+      });
+
+      // ---- Touch: un dito = cursore prezzo/tooltip, due dita = sposta + pinch zoom ----
+      svg.addEventListener('touchstart', (e) => {
+        if (!chartGeom || chartView.xMin == null) return;
+        if (e.touches.length === 1) {
+          touchGesture = { mode: 'hover' };
+          handleChartHover(e.touches[0]);
+        } else if (e.touches.length >= 2) {
+          touchGesture = buildTwoFingerGesture(svg, e.touches);
+        }
+      }, { passive: true });
+
+      svg.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // niente scroll pagina: il dito controlla il grafico
+        if (!touchGesture || !chartGeom) return;
+
+        if (touchGesture.mode === 'hover') {
+          if (e.touches.length === 1) {
+            handleChartHover(e.touches[0]);
+          } else if (e.touches.length >= 2) {
+            // da cursore a due dita: passa a pan/zoom
+            touchGesture = buildTwoFingerGesture(svg, e.touches);
+          }
+          return;
+        }
+
+        if (touchGesture.mode === 'two' && e.touches.length === 2) {
+          const t0 = e.touches[0], t1 = e.touches[1];
+          const curDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+          if (!(curDist > 0) || !(touchGesture.startDist > 0)) return;
+          // zoom dal rapporto delle distanze
+          let newW = touchGesture.startW * (touchGesture.startDist / curDist);
+          const baseW = (chartView.baseMax - chartView.baseMin) || touchGesture.startW;
+          newW = Math.max(baseW * 0.05, Math.min(baseW * 4, newW));
+          // pan: l'ancora iniziale segue la posizione corrente del centro dita
+          const frac = touchPointFrac(svg, t0, t1);
+          if (frac == null) return;
+          let newMin = touchGesture.anchorS - frac * newW;
+          let newMax = newMin + newW;
+          if (newMin < 1) { newMin = 1; newMax = newMin + newW; }
+          chartView.xMin = newMin;
+          chartView.xMax = newMax;
+          scheduleChartRedraw();
+        }
+      }, { passive: false });
+
+      svg.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+          touchGesture = null;
+          clearChartHover();
+        } else if (e.touches.length === 1 && chartView.xMin != null) {
+          // da due dita a una: passa alla modalità cursore
+          touchGesture = { mode: 'hover' };
+          handleChartHover(e.touches[0]);
+        }
+      }, { passive: true });
+      svg.addEventListener('touchcancel', () => { touchGesture = null; clearChartHover(); }, { passive: true });
+
+      // Doppio click = reset
+      svg.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        resetChartZoom();
+      });
+
+      const btnReset = el('btnResetZoom');
+      if (btnReset) btnReset.addEventListener('click', resetChartZoom);
+      const btnFit = el('btnFitView');
+      if (btnFit) btnFit.addEventListener('click', fitChartToStructure);
+      const btnIn = el('btnZoomIn');
+      if (btnIn) btnIn.addEventListener('click', () => zoomChartByFactor(0.75));
+      const btnOut = el('btnZoomOut');
+      if (btnOut) btnOut.addEventListener('click', () => zoomChartByFactor(1.35));
+
+      chartInteractBound = true;
+    }
+  }

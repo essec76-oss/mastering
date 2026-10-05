@@ -47,8 +47,7 @@
     // Tema arancione + pulsante "Promuovi" solo sulle schede comparazione
     document.body.classList.toggle('scheda-comp', stato.attiva > 0);
     const btnP = el('btnPromuovi');
-    if (btnP) btnP.style.display = stato.attiva > 0 ? '' : 'non
-e';
+    if (btnP) btnP.style.display = stato.attiva > 0 ? '' : 'none';
     el('tipoNES').value = scheda.tipoNES || 'NES';
     el('tipoMES').value = scheda.tipoMES || 'MES';
     if (el('strumentoOpzioni')) el('strumentoOpzioni').value = scheda.strumentoOpzioni || 'MES';
@@ -100,6 +99,5 @@ e';
     const wrap = el('legendSchede');
     if (!wrap) return;
     wrap.innerHTML = stato.schede.map((s, i) =>
-      `<span><i style="background:
-${coloreScheda(i)};"></i> ${s.nome}</span>`).join('');
+      `<span><i style="background:${coloreScheda(i)};"></i> ${s.nome}</span>`).join('');
   }

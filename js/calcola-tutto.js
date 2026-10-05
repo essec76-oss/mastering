@@ -36,8 +36,7 @@
     el('rcash').textContent = formatEuro(cashInserito);
     el('rcash').className = 'value ' + (stato.cashEscluso ? 'muted' : (cashInserito > 0 ? 'green' : cashInserito < 0 ? 'red' : 'muted'));
 
-    const totaleTWS 
-= resNES.pnlTotale + resMES.pnlTotale + pnlOpzTutti + cash;
+    const totaleTWS = resNES.pnlTotale + resMES.pnlTotale + pnlOpzTutti + cash;
     el('totaleTWS').textContent = formatEuro(totaleTWS);
     el('totaleTWS').className = 'big-value ' + (totaleTWS >= 0 ? 'green' : 'red');
 

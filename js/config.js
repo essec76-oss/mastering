@@ -23,8 +23,7 @@
   // nessuno scroll orizzontale a livello pagina, prime 3 colonne della tabella
   // opzioni sticky durante lo scorrimento, .table-scroll irrobustito.
   // Nessun cambiamento di storage: STORAGE_KEY resta mastering_v20.
-  // v21 — riga opzioni portata in parità con la gamba opzioni del Calcol
-atore
+  // v21 — riga opzioni portata in parità con la gamba opzioni del Calcolatore
   // Payoff: aggiunte le colonne V. Intr (valore intrinseco), V. Temp (valore
   // temporale = teorico − intrinseco), P. Tocco (probabilità che il
   // sottostante tocchi lo strike prima della scadenza della gamba, stessa
@@ -52,7 +51,6 @@ atore
   // sfondo casella cash verde/rosso, spinner numerici rimossi, badge q.tà
   // rimosso (il totale aperti è già nella riga di intestazione), voce
   // "Realizzato" eliminata.
-
   // v18 — deviazioni standard verdi (prima azzurre come lo spot), box "Dev. std"
   // con logica invertita come il resto del file (spunta = nasconde), header
   // Opzioni selezionabile da menu a tendina (MES / ES / AZIONI) con
@@ -88,8 +86,7 @@ atore
   function feeLatoOpzione() {
     return commissioniAttive() ? FEE_OPTION_LATO : 0;
   }
-  const STORAGE_KEY
- = 'mastering_v20';
+  const STORAGE_KEY = 'mastering_v20';
   const STORAGE_KEYS_LEGACY = ['mastering_v19', 'mastering_v18', 'mastering_v17', 'mastering_v16', 'mastering_v15', 'mastering_v14', 'mastering_v13', 'mastering_v12', 'mastering_v11'];
 
   // Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette

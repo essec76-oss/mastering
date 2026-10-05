@@ -38,8 +38,7 @@
   function aggiornaExtraOpzione(tr, opz) {
     const setG = (f, val, dig) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
-      if (cell) cell.textContent = formatGreek(
-val, dig);
+      if (cell) cell.textContent = formatGreek(val, dig);
     };
     const setPct = (f, p) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -83,7 +82,6 @@ val, dig);
     const dc = tr.querySelector('[data-field="debitcredit"]');
     if (dc) dc.textContent = formatEuro((opz.premio || 0) * (opz.qta || 0) * moltOpz(opz));
   }
-
 
   function aggiornaRigaOpzione(idx) {
     const tbody = el('bodyOpzioni');
@@ -140,8 +138,7 @@ val, dig);
     return sel ? sel.value : 'MES';
   }
 
-  functi
-on renderOpzioni() {
+  function renderOpzioni() {
     const tbody = el('bodyOpzioni');
     tbody.innerHTML = '';
     const strumentoSel = strumentoOpzSelezionato();
@@ -186,8 +183,7 @@ on renderOpzioni() {
       tdStato.appendChild(btnStato); tr.appendChild(tdStato);
 
       // DEL
-      const tdDel = document.createElement('td'
-);
+      const tdDel = document.createElement('td');
       tdDel.className = 'td-del';
       tdDel.dataset.label = 'DEL';
       const btnDel = document.createElement('button');
@@ -230,8 +226,7 @@ on renderOpzioni() {
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
 
       // K
-      const tdK = document.
-createElement('td');
+      const tdK = document.createElement('td');
       tdK.dataset.label = 'Strike';
       const inK = document.createElement('input');
       inK.type = 'number'; inK.step = '1'; inK.value = opz.strike || '';
@@ -279,8 +274,7 @@ createElement('td');
       });
       tdScad.appendChild(inScad); tr.appendChild(tdScad);
 
-      // GG residui (data analisi → sc
-adenza)
+      // GG residui (data analisi → scadenza)
       const tdGG = document.createElement('td');
       tdGG.dataset.label = 'GG';
       const spanGG = document.createElement('span');
@@ -328,8 +322,7 @@ adenza)
       tdGamma.dataset.label = 'Gamma';
       const spanGamma = document.createElement('span');
       spanGamma.dataset.field = 'gamma';
-      spanGamma.textContent = 'â
-';
+      spanGamma.textContent = '—';
       spanGamma.style.fontVariantNumeric = 'tabular-nums';
       tdGamma.appendChild(spanGamma); tr.appendChild(tdGamma);
 
@@ -375,8 +368,7 @@ adenza)
       const spanTocco = document.createElement('span');
       spanTocco.dataset.field = 'tocco';
       spanTocco.textContent = '—';
-      spanTocco.style.fontVariantNumeric = 'tabular-
-nums';
+      spanTocco.style.fontVariantNumeric = 'tabular-nums';
       tdTocco.appendChild(spanTocco); tr.appendChild(tdTocco);
 
       // P&L a scadenza della gamba più corta (metodo calendar)
@@ -432,8 +424,7 @@ nums';
 
       // Giorni residui (dipendono dalla data analisi)
       aggiornaGiorniResidui(tr, opz);
-      agg
-iornaMoneyness(tr, opz);
+      aggiornaMoneyness(tr, opz);
       aggiornaExtraOpzione(tr, opz);
 
       const setG = (sel, val, dig) => {
@@ -474,8 +465,7 @@ iornaMoneyness(tr, opz);
 
     // Aggiorna totali greche in header (Δ $/pt, Γ $/pt², Vega $/1% IV, Θ $/gg)
     el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
-    el('greeksGamma'
-).textContent = formatGreekAuto(totGamma, 2, 4);
+    el('greeksGamma').textContent = formatGreekAuto(totGamma, 2, 4);
     el('greeksVega').textContent = formatGreekAuto(totVega, 2, 3);
     el('greeksTheta').textContent = formatGreekAuto(totTheta, 2, 3);
   }

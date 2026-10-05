@@ -41,8 +41,7 @@
     if (!(S > 0) || !(S0 > 0)) return S >= S0 ? 1 : 0;
     const sigT = vol * Math.sqrt(T);
     if (!(sigT > 0)) return S >= S0 ? 1 : 0;
-    // P(S_T <= S) con drift 0 (future
-s / Black-76)
+    // P(S_T <= S) con drift 0 (futures / Black-76)
     const d = (Math.log(S / S0) + 0.5 * vol * vol * T) / sigT;
     return normCDF(d);
   }
@@ -88,8 +87,7 @@ s / Black-76)
       bounds = [0, ...bes, Infinity];
     } else {
       // Nessun BE trovato: segmenta il range scansionato e valuta ogni tratto
-      const lo = 
-(isFinite(scanMin) && scanMin > 0) ? scanMin : Math.max(1, spot * 0.55);
+      const lo = (isFinite(scanMin) && scanMin > 0) ? scanMin : Math.max(1, spot * 0.55);
       const hi = (isFinite(scanMax) && scanMax > lo) ? scanMax : spot * 1.45;
       const n = 10;
       const step = (hi - lo) / n;
@@ -142,8 +140,7 @@ s / Black-76)
 
     // Etichette per zona di profitto (come nel calcolatore di riferimento)
     if (!wrap) return;
-    if (!zones.
-length) {
+    if (!zones.length) {
       wrap.innerHTML = '';
       return;
     }
@@ -179,8 +176,7 @@ length) {
 
   // Bande ±1σ/±2σ attorno allo spot: Vol ATM e orizzonte T del POP
   function sigmaBandsAt(spot, resNES, resMES) {
-    const volPct = parseFloat(el('volAtm') && el('volAtm'
-).value) || 0;
+    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
     const vol = volPct / 100;
     let T = nearestOptionYears();
     if (T === null) {
@@ -235,8 +231,7 @@ length) {
     if (!opz.scadenza) return null;
     const scad = parseDataLocal(opz.scadenza);
     if (!scad) return null;
-    return Math.round((s
-cad - dataAnalisiDate()) / 86400000);
+    return Math.round((scad - dataAnalisiDate()) / 86400000);
   }
 
   // Moneyness: ATM se |K−S| ≤ 25 punti, altrimenti ITM/OTM in base al tipo
@@ -279,8 +274,7 @@ cad - dataAnalisiDate()) / 86400000);
     mCell.textContent = m.label;
     mCell.style.color = m.label === 'ATM' ? 'var(--yellow)' : (m.label === 'ITM' ? 'var(--green)' : 'var(--muted)');
     const sig = sigmaDistanceOpzione(opz);
-    if (sig === null) { sCell.textContent =
- ''; return; }
+    if (sig === null) { sCell.textContent = ''; return; }
     const sign = sig >= 0 ? '+' : '−';
     sCell.textContent = sign + Math.abs(sig).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'σ';
   }
@@ -329,8 +323,7 @@ cad - dataAnalisiDate()) / 86400000);
   // dove il sottostante è lo spot azionario e non il future.
   function blackScholes(S, K, T, sigma, type, r, q) {
     S = Number(S); K = Number(K); T = Number(T); sigma = Number(sigma);
-    r 
-= Number(r) || 0; q = Number(q) || 0;
+    r = Number(r) || 0; q = Number(q) || 0;
     if (!isFinite(S) || !isFinite(K) || S <= 0 || K <= 0) {
       return { price: 0, delta: 0, gamma: 0, vega: 0, theta: 0, intrinsic: 0 };
     }
@@ -379,8 +372,7 @@ cad - dataAnalisiDate()) / 86400000);
   // Ritorna null se gli input non bastano (chiamante: fallback intrinseco).
   function modelPrice(S, opz, T, tipo) {
     const r = (parseFloat(el('riskFree').value) || 0) / 100;
-    con
-st vol = (parseFloat(opz.vol) || 0) / 100;
+    const vol = (parseFloat(opz.vol) || 0) / 100;
     const K = opz.strike || 0;
     if (!(T > 0) || !(vol > 0) || !(K > 0) || !(S > 0)) return null;
     if ((opz.strumento || 'MES') === 'AZIONI') {

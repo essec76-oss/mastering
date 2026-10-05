@@ -49,8 +49,7 @@
     });
   }
 
-  function renderMovi
-menti(col) {
+  function renderMovimenti(col) {
     const scheda = schedaAttiva();
     const res = calcolaColonna(scheda, col);
     renderRigaTotale(col, res);
@@ -100,8 +99,7 @@ menti(col) {
       inQta.value = mov.quantita;
       inQta.addEventListener('input', e => {
         const v = e.target.value;
-        scheda[col][
-idx].quantita = v === '' ? 0 : (parseFloat(v) || 0);
+        scheda[col][idx].quantita = v === '' ? 0 : (parseFloat(v) || 0);
         aggiornaCalcolati(col); calcolaTutto();
       });
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
