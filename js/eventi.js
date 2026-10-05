@@ -1,5 +1,5 @@
 // eventi.js — binding degli eventi interfaccia
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
   // ============================================================
   // EVENTI
   // ============================================================
