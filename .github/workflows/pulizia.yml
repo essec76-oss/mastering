@@ -1,0 +1,212 @@
+name: Pulizia codice morto (una tantum)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [pulizia-codice-morto]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  pulizia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Config ESLint (stessa della CI)
+        run: |
+          set -e
+          cat > /tmp/eslintrc.json <<'JSON'
+          {
+            "root": true,
+            "parserOptions": { "ecmaVersion": 2022, "sourceType": "script" },
+            "env": { "browser": true, "es2022": true },
+            "rules": {
+              "no-undef": "error",
+              "no-debugger": "error",
+              "no-dupe-keys": "error",
+              "no-unreachable": "error",
+              "no-redeclare": "warn",
+              "no-unused-vars": "warn"
+            }
+          }
+          JSON
+
+      - name: Applica pulizia (dichiarazioni/funzioni mai usate)
+        run: |
+          set -e
+          node <<'NODE' 2>&1 | tee /tmp/pulizia-log.txt
+          const fs = require('fs');
+          const cp = require('child_process');
+          const order = ['config.js','matematica.js','futures.js','opzioni.js','render-futures.js','render-opzioni.js','grafico.js','calcola-tutto.js','schede.js','storage.js','eventi.js','main.js'];
+          const WHITELIST = new Set(['FEE_ROUND_TRIP','valoreNominaleOpzione','all','padL','W','padR']);
+          let iter1Names = null;
+
+          function readAll() {
+            return order.map(f => fs.readFileSync('js/' + f, 'utf8'));
+          }
+          function mapOrigins(contents) {
+            const starts = []; let acc = 0;
+            for (const c of contents) { starts.push(acc); acc += c.length; }
+            const concat = contents.join('');
+            const origins = []; let pos = 0;
+            for (const line of concat.split('\n')) {
+              let fi = 0;
+              for (let k = 0; k < starts.length; k++) if (starts[k] <= pos) fi = k;
+              const local = concat.slice(starts[fi], pos);
+              origins.push({ file: order[fi], line: local.split('\n').length });
+              pos += line.length + 1;
+            }
+            return origins;
+          }
+          function lint(contents) {
+            fs.writeFileSync('/tmp/app-concat.js', contents.join(''));
+            try {
+              cp.execSync('npx --yes eslint@8.57.1 --no-eslintrc -c /tmp/eslintrc.json /tmp/app-concat.js > /tmp/lint-now.txt 2>&1', { stdio: 'pipe' });
+            } catch (e) {}
+            return fs.readFileSync('/tmp/lint-now.txt', 'utf8');
+          }
+          function parseWarns(out) {
+            const warns = [];
+            for (const l of out.split('\n')) {
+              const m = l.match(/^\s*(\d+):(\d+)\s+warning\s+'([^']+)'\s+is\s+(defined|assigned)\s+a value but never used/);
+              if (m) warns.push({ line: +m[1], col: +m[2], name: m[3], kind: m[4] });
+            }
+            return warns;
+          }
+          function printMapped(out, origins, files) {
+            let any = false;
+            for (const l of out.split('\n')) {
+              const m = l.match(/^\s*(\d+):(\d+)\s+(error|warning)\s+(.+)$/);
+              if (!m) { if (any) console.log(l); continue; }
+              any = true;
+              const o = origins[+m[1] - 1] || { file: '?', line: 0 };
+              const fl = files[order.indexOf(o.file)] || [''];
+              const src = (fl[o.line - 1] || '').trim().slice(0, 100);
+              console.log('[' + o.file + ':' + o.line + '] ' + m[3] + '  ' + m[4].trim() + '  ||  ' + src);
+            }
+            if (!any) console.log('Nessun problema segnalato.');
+          }
+
+          let round = 0;
+          while (round < 4) {
+            round++;
+            const contents = readAll();
+            const files = contents.map(c => c.split('\n'));
+            const out = lint(contents);
+            const warns = parseWarns(out);
+            const origins = mapOrigins(contents);
+            console.log('');
+            console.log('=== ROUND ' + round + ': lint' + (round === 1 ? ' iniziale' : ' di verifica') + ' ===');
+            printMapped(out, origins, files);
+            if (round === 1) iter1Names = new Set(warns.map(w => w.name));
+            if (!warns.length) break;
+
+            // gruppi per (file, riga)
+            const groups = new Map();
+            for (const w of warns) {
+              const o = origins[w.line - 1];
+              if (!o) continue;
+              const key = o.file + ':' + o.line;
+              if (!groups.has(key)) groups.set(key, { file: o.file, lineIdx: o.line - 1, names: new Set() });
+              groups.get(key).names.add(w.name);
+            }
+
+            let edited = 0;
+            const skipped = [];
+            for (const g of groups.values()) {
+              const arr = files[order.indexOf(g.file)];
+              const text = arr[g.lineIdx] || '';
+              const trimmed = text.trim();
+              const allowed = round === 1 ? [...g.names].every(n => WHITELIST.has(n)) : [...g.names].every(n => !iter1Names.has(n));
+              if (!allowed) { skipped.push(g.file + ':' + (g.lineIdx + 1) + ' [' + [...g.names].join(', ') + '] fuori whitelist'); continue; }
+              // funzione mai usata (solo round 1)
+              if (round === 1 && trimmed.startsWith('function ')) {
+                let i = g.lineIdx, depth = 0, started = false;
+                for (; i < arr.length; i++) {
+                  for (const ch of arr[i]) { if (ch === '{') { depth++; started = true; } else if (ch === '}') depth--; }
+                  if (started && depth === 0) break;
+                }
+                arr.splice(g.lineIdx, i - g.lineIdx + 1);
+                console.log('ELIMINATA funzione [' + g.file + ':' + (g.lineIdx + 1) + ']: ' + trimmed.slice(0, 80));
+                edited++;
+                continue;
+              }
+              // destrutturazione
+              const dm = text.match(/^(\s*)(const|let|var)\s*\{([^}]*)\}(.*)$/);
+              if (dm) {
+                const names = dm[3].split(',').map(s => s.trim()).filter(Boolean);
+                const keep = names.filter(n => {
+                  const nm = (n.split(':')[0] || '').trim();
+                  return !g.names.has(nm);
+                });
+                if (!keep.length) {
+                  arr.splice(g.lineIdx, 1);
+                  console.log('ELIMINATA riga [' + g.file + ':' + (g.lineIdx + 1) + ']: ' + trimmed.slice(0, 80));
+                } else {
+                  arr[g.lineIdx] = dm[1] + dm[2] + ' { ' + keep.join(', ') + ' } ' + dm[4].trim().replace(/^=\s*/, '= ');
+                  console.log('RISCRITTA riga [' + g.file + ':' + (g.lineIdx + 1) + ']: ' + arr[g.lineIdx].trim().slice(0, 90));
+                }
+                edited++;
+                continue;
+              }
+              // dichiarazione singola
+              const sm = trimmed.match(/^(const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/);
+              if (sm && g.names.has(sm[2])) {
+                arr.splice(g.lineIdx, 1);
+                console.log('ELIMINATA riga [' + g.file + ':' + (g.lineIdx + 1) + ']: ' + trimmed.slice(0, 80));
+                edited++;
+                continue;
+              }
+              skipped.push(g.file + ':' + (g.lineIdx + 1) + ' [' + [...g.names].join(', ') + '] nessuna regola sicura applicabile');
+            }
+            if (skipped.length) {
+              console.log('SALTATE (nessuna azione):');
+              for (const s of skipped) console.log('  - ' + s);
+            }
+            if (!edited) { console.log('Nessuna modifica ulteriore sicura da applicare.'); break; }
+            // salva i file modificati
+            order.forEach((f, i) => fs.writeFileSync('js/' + f, files[i].join('\n')));
+          }
+          console.log('');
+          console.log('=== PULIZIA COMPLETATA ===');
+          NODE
+
+      - name: Commit e push delle modifiche
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git add js/
+            git commit -m "pulizia: rimuove dichiarazioni e funzioni mai usate
+
+- config.js: costante FEE_ROUND_TRIP mai usata
+- opzioni.js: funzione valoreNominaleOpzione mai chiamata
+- grafico.js: variabile 'all' mai usata; padL/W/padR rimossi dalla destrutturazione (resta solo plotW)
+- effetti a cascata verificati con round di lint iterativi"
+            git push
+          else
+            echo "Nessuna modifica da committare"
+          fi
+
+      - name: Riepilogo sulla PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          PR=$(gh pr list --head pulizia-codice-morto --json number --jq '.[0].number')
+          if [ -n "$PR" ] && [ "$PR" != "null" ]; then
+            {
+              echo '### 🧹 Pulizia automatica del codice morto'
+              echo ''
+              echo '```'
+              head -c 12000 /tmp/pulizia-log.txt
+              echo '```'
+            } > /tmp/comment.md
+            gh pr comment "$PR" --body-file /tmp/comment.md
+          fi
