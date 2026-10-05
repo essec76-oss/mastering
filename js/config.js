@@ -25,7 +25,8 @@
   // MOBILE: font 16px sui campi input/select sotto gli 800px (iOS zooma la
   // pagina intera al focus dei campi < 16px: la causa dei dati "fuor
 i schermo"),
-  // nessuno scroll orizzontale a livello pagina, prime 3 colonne della tabella
+  // nessuno scroll or
+izzontale a livello pagina, prime 3 colonne della tabella
   // opzioni sticky durante lo scorrimento, .table-scroll irrobustito.
   // Nessun cambiamento di storage: STORAGE_KEY resta mastering_v20.
   // v21 — riga opzioni portata in parità con la gamba opzioni del Calcolatore
@@ -54,7 +55,8 @@ le colonne V. Intr (valore intrinseco), V. Temp (valore
   // comparazioni clonabili col pulsante "Crea comparazione"; i valori a video
   // (futures, opzioni, riepilogo, greche) sono 
 della scheda attiva, il grafico
-  // disegna e confronta le curve di TUTTE le schede. Etichetta "Escludi cash",
+  
+// disegna e confronta le curve di TUTTE le schede. Etichetta "Escludi cash",
   // sfondo casella cash verde/rosso, spinner numerici rimossi, badge q.tà
   // rimosso (il totale aperti è già nella riga di intestazione), voce
   // "Realizzato" eliminata.
@@ -81,11 +83,12 @@ rre come lo spot), box "Dev. std"
   // Commissioni per lato (apertura o chiusura), in $ per contratto/unità.
   // Futures NES/MES/ES: ~1,205 $ per contratto. Opzioni: ~1 $ per contratto.
   // X = azioni: NESSUNA commissione (fee 0).
+  const FEE_FUTURES_LATO = 1.205; // NES / MES / ES
   const FEE_STOCK_LATO   = 0;     // X (azioni): nessuna fee
-ngola azione
   const FEE_OPTION_LATO  = 1.00;  // opzioni MES / ES / AZIONI
   // Retrocompatibilità alias
-  const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
+  const MOLTIPL
+ICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
   function moltOpz(opz) { return MOLTIPLICATORI_OPZ[(opz && opz.strumento) || 'MES']; }
   function commissioniAttive() {
     return !!(el('commissioniOn') && el('commissioniOn').checked);
