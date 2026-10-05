@@ -15,8 +15,8 @@
   function normCDF(x) { return 0.5 * (1 + erf(x / Math.SQRT2)); }
   function normPDF(x) { return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI); }
 
-  // ProbabilitÃ  che il sottostante (GBM, drift nullo) tocchi il livello H
-  // prima della scadenza T (in anni), con volatilitÃ  vol (frazione).
+  // Probabilità che il sottostante (GBM, drift nullo) tocchi il livello H
+  // prima della scadenza T (in anni), con volatilità vol (frazione).
   // Identica alla funzione del Calcolatore Payoff (formula della riflessione).
   function touchProbability(S0, H, vol, T) {
     if (!(S0 > 0) || !(H > 0) || !(vol > 0) || !(T > 0)) return null;
@@ -41,13 +41,14 @@
     if (!(S > 0) || !(S0 > 0)) return S >= S0 ? 1 : 0;
     const sigT = vol * Math.sqrt(T);
     if (!(sigT > 0)) return S >= S0 ? 1 : 0;
-    // P(S_T <= S) con drift 0 (futures / Black-76)
+    // P(S_T <= S) con drift 0 (future
+s / Black-76)
     const d = (Math.log(S / S0) + 0.5 * vol * vol * T) / sigT;
     return normCDF(d);
   }
 
-  // Giorni / anni alla scadenza opzione piÃ¹ vicina tra quelle attive e aperte
-  // (della scheda indicata; default = scheda attiva). Ã la "prima scadenza"
+  // Giorni / anni alla scadenza opzione più vicina tra quelle attive e aperte
+  // (della scheda indicata; default = scheda attiva). È la "prima scadenza"
   // usata come orizzonte da POP e bande sigma: coerente col metodo calendar.
   function nearestOptionYears(scheda) {
     const today = dataAnalisiDate();
@@ -87,7 +88,8 @@
       bounds = [0, ...bes, Infinity];
     } else {
       // Nessun BE trovato: segmenta il range scansionato e valuta ogni tratto
-      const lo = (isFinite(scanMin) && scanMin > 0) ? scanMin : Math.max(1, spot * 0.55);
+      const lo = 
+(isFinite(scanMin) && scanMin > 0) ? scanMin : Math.max(1, spot * 0.55);
       const hi = (isFinite(scanMax) && scanMax > lo) ? scanMax : spot * 1.45;
       const n = 10;
       const step = (hi - lo) / n;
@@ -140,7 +142,8 @@
 
     // Etichette per zona di profitto (come nel calcolatore di riferimento)
     if (!wrap) return;
-    if (!zones.length) {
+    if (!zones.
+length) {
       wrap.innerHTML = '';
       return;
     }
@@ -174,9 +177,10 @@
     }).join('<span style="opacity:0.35; margin:0 2px;">|</span>');
   }
 
-  // Bande Â±1Ï/Â±2Ï attorno allo spot: Vol ATM e orizzonte T del POP
+  // Bande ±1σ/±2σ attorno allo spot: Vol ATM e orizzonte T del POP
   function sigmaBandsAt(spot, resNES, resMES) {
-    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
+    const volPct = parseFloat(el('volAtm') && el('volAtm'
+).value) || 0;
     const vol = volPct / 100;
     let T = nearestOptionYears();
     if (T === null) {
@@ -231,17 +235,18 @@
     if (!opz.scadenza) return null;
     const scad = parseDataLocal(opz.scadenza);
     if (!scad) return null;
-    return Math.round((scad - dataAnalisiDate()) / 86400000);
+    return Math.round((s
+cad - dataAnalisiDate()) / 86400000);
   }
 
-  // Moneyness: ATM se |KâS| â¤ 25 punti, altrimenti ITM/OTM in base al tipo
+  // Moneyness: ATM se |K−S| ≤ 25 punti, altrimenti ITM/OTM in base al tipo
   function moneynessOpzione(opz) {
     const S = parseFloat(el('prezzoSpot').value) || 0;
     const K = parseFloat(opz.strike) || 0;
     if (!(S > 0) || !(K > 0)) return null;
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
     const diff = K - S;
-    // ATM: Â±25 punti sui futures; sulle azioni Â±1% del prezzo (min Â±0,5)
+    // ATM: ±25 punti sui futures; sulle azioni ±1% del prezzo (min ±0,5)
     const sogliaAtm = (opz.strumento || 'MES') === 'AZIONI' ? Math.max(0.5, S * 0.01) : 25;
     let label;
     if (Math.abs(diff) <= sogliaAtm) label = 'ATM';
@@ -250,7 +255,7 @@
     return { label, diff, S };
   }
 
-  // Distanza strike-spot in deviazioni standard: (KâS) / (S Â· VolATM Â· â(DTE/365.25))
+  // Distanza strike-spot in deviazioni standard: (K−S) / (S · VolATM · √(DTE/365.25))
   function sigmaDistanceOpzione(opz) {
     const m = moneynessOpzione(opz);
     if (!m) return null;
@@ -268,15 +273,16 @@
     const mCell = tr.querySelector('[data-field="ms"]');
     const sCell = tr.querySelector('[data-field="msSigma"]');
     if (!mCell || !sCell) return;
-    if (opz.attivo === false) { mCell.textContent = 'â'; mCell.style.color = ''; sCell.textContent = ''; return; }
+    if (opz.attivo === false) { mCell.textContent = '—'; mCell.style.color = ''; sCell.textContent = ''; return; }
     const m = moneynessOpzione(opz);
-    if (!m) { mCell.textContent = 'â'; mCell.style.color = ''; sCell.textContent = ''; return; }
+    if (!m) { mCell.textContent = '—'; mCell.style.color = ''; sCell.textContent = ''; return; }
     mCell.textContent = m.label;
     mCell.style.color = m.label === 'ATM' ? 'var(--yellow)' : (m.label === 'ITM' ? 'var(--green)' : 'var(--muted)');
     const sig = sigmaDistanceOpzione(opz);
-    if (sig === null) { sCell.textContent = ''; return; }
-    const sign = sig >= 0 ? '+' : 'â';
-    sCell.textContent = sign + Math.abs(sig).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'Ï';
+    if (sig === null) { sCell.textContent =
+ ''; return; }
+    const sign = sig >= 0 ? '+' : '−';
+    sCell.textContent = sign + Math.abs(sig).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'σ';
   }
 
   function black76(F, K, T, sigma, type, r) {
@@ -320,10 +326,11 @@
 
   // Black-Scholes con tasso r e dividendo continuo q (il modello "bs" con
   // r/q del calcolatore di riferimento): usato per le opzioni su AZIONI,
-  // dove il sottostante Ã¨ lo spot azionario e non il future.
+  // dove il sottostante è lo spot azionario e non il future.
   function blackScholes(S, K, T, sigma, type, r, q) {
     S = Number(S); K = Number(K); T = Number(T); sigma = Number(sigma);
-    r = Number(r) || 0; q = Number(q) || 0;
+    r 
+= Number(r) || 0; q = Number(q) || 0;
     if (!isFinite(S) || !isFinite(K) || S <= 0 || K <= 0) {
       return { price: 0, delta: 0, gamma: 0, vega: 0, theta: 0, intrinsic: 0 };
     }
@@ -367,12 +374,13 @@
   }
 
   // Prezzo teorico di un'opzione a T anni dalla valutazione, col modello
-  // corretto per strumento: AZIONI â Black-Scholes (r e q);
-  // MES / ES â Black-76 (opzioni su futures, q non si applica).
+  // corretto per strumento: AZIONI → Black-Scholes (r e q);
+  // MES / ES → Black-76 (opzioni su futures, q non si applica).
   // Ritorna null se gli input non bastano (chiamante: fallback intrinseco).
   function modelPrice(S, opz, T, tipo) {
     const r = (parseFloat(el('riskFree').value) || 0) / 100;
-    const vol = (parseFloat(opz.vol) || 0) / 100;
+    con
+st vol = (parseFloat(opz.vol) || 0) / 100;
     const K = opz.strike || 0;
     if (!(T > 0) || !(vol > 0) || !(K > 0) || !(S > 0)) return null;
     if ((opz.strumento || 'MES') === 'AZIONI') {
@@ -391,11 +399,11 @@
     const today = dataAnalisiDate();
     const T = opz.scadenza ? yearsBetween(today, opz.scadenza) : 0;
     if (!(K > 0) || !(spot > 0) || T == null) {
-      // input incompleti: 'â' a video (NaN) invece di falsi 0,00
+      // input incompleti: '—' a video (NaN) invece di falsi 0,00
       return { price: NaN, delta: NaN, gamma: NaN, vega: NaN, theta: NaN, intrinsic: NaN, T: T || 0 };
     }
-    // T<=0 (scaduta) â intrinseco; vol=0 â intrinseco.
-    // Modello per strumento: AZIONI â Black-Scholes (r, q); MES/ES â Black-76
+    // T<=0 (scaduta) → intrinseco; vol=0 → intrinseco.
+    // Modello per strumento: AZIONI → Black-Scholes (r, q); MES/ES → Black-76
     const q = (parseFloat(el('divYield') && el('divYield').value) || 0) / 100;
     const g = (opz.strumento || 'MES') === 'AZIONI'
       ? blackScholes(spot, K, Math.max(0, T), vol, tipo, r, q)
@@ -404,10 +412,10 @@
   }
 
   function formatEuro(v) {
-    if (!isFinite(v)) return 'â';
+    if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   function formatPrezzo(v) {
-    if (!isFinite(v)) return 'â';
+    if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
