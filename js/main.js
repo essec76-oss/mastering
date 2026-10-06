@@ -50,7 +50,9 @@
     wrap.id = 'deltaAzioniWrap';
     wrap.style.marginLeft = '8px';
     wrap.innerHTML = 'Delta azioni: <strong id="payoffDeltaAzioni" style="color:var(--text);">—</strong>';
-    dn.parentElement.insertBefore(wrap, dn.parentElement.nextSibling);
+    // insertBefore con nextSibling del parent è invalido (non è figlio del parent).
+    // Usare Element.after() che inserisce correttamente dopo l'elemento.
+    dn.parentElement.after(wrap);
     return wrap;
   }
 
