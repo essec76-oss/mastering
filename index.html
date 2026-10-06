@@ -36,7 +36,8 @@
   <button class="btn" id="btnCaricaSalvato" title="Carica la strategia selezionata (sostituisce il lavoro corrente)">Carica</button>
   <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata dall'elenco salvato">Elimina</button>
   <span style="width:1px; height:24px; background:var(--border);"></span>
-  <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
+  <button class="btn" id="btnEsporta" title="Scarica la strategia corrente
+ come file JSON (backup o spostamento su altro PC)">Esporta file</button>
   <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
   <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
 </div>
@@ -66,7 +67,8 @@
 
 <div class="columns">
 
-  <div class="column" id="colNES">
+  <div class="column" id=
+"colNES">
     <div class="col-header">
       <select id="tipoNES" data-col="NES">
         <option value="-">-</option>
@@ -120,7 +122,8 @@
         <option value="X">AZIONI</option>
       </select>
       <div class="col-summary" id="summaryMES">
-        <span class="cs-qta" id="csQtaMES"><span class="dir-flat">—</span></span>
+        <span class="cs-qta" id="csQtaMES"><span
+ class="dir-flat">—</span></span>
         <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
         <span class="cs-pnl muted" id="csPnlMES">0,00</span>
       </div>
@@ -170,7 +173,8 @@
         <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP (probabilità di profitto), bande ±1σ/±2σ del grafico e curve Now">
       </div>
       <div class="param-group">
-        <span class="label">Div %</span>
+        <span class="label">D
+iv %</span>
         <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato dal modello Black-Scholes con r e q per le opzioni su AZIONI. Per MES/ES (opzioni su futures, Black-76) non si applica.">
       </div>
     </div>
@@ -207,7 +211,8 @@
           <th title="Elimina riga"></th>
           <th>Pos</th><th>Tipo</th><th>Q.tà</th>
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
-          <th title="Giorni alla scadenza dalla data analisi">GG</th>
+          <t
+h title="Giorni alla scadenza dalla data analisi">GG</th>
           <th title="ATM/OTM/ITM + distanza in σ (Vol ATM, DTE)">M/S</th>
           <th>Teorico</th><th title="Delta di posizione: $ per punto di movimento del sottostante (q.tà × Δ × moltiplicatore)">Delta</th><th title="Gamma di posizione: $ per punto²">Gamma</th><th title="Vega di posizione: $ per 1% di volatilità implicita">Vega</th><th title="Theta di posizione: $ al giorno">Theta</th>
           <th title="Valore intrinseco: max(S−K, 0) per call, max(K−S, 0) per put">V. Intr</th>
@@ -226,28 +231,15 @@
 </div>
 
 <div class="riepilogo">
-  <h2>Riepilogo</h2>
-  <div class="row"><span class="label">Prezzo medio carico NES</span><span class="value" id="rpmNES">—</span></div>
-  <div class="row"><span class="label">Prezzo medio carico MES</span><span class="value" id="rpmMES">—</span></div>
-  <div class="row"><span class="label">P&L NES</span><span class="value" id="rpnlNES">0,00</span></div>
-  <div class="row"><span class="label">P&L MES</span><span class="value" id="rpnlMES">0,00</span></div>
-  <div class="row"><span class="label opt-line">P&L Opzioni (MES + ES + Azioni)</span><span class="value" id="rpnlOpzioni">0,00</span></div>
-  <div class="row"><span class="label">Cash annotato (incassi / premi a scadenza)</span><span class="value" id="rcash">0,00</span></div>
-  <div class="highlight">
-    <div class="row" style="border:none; padding:4px 0;">
-      <span class="label" id="totaleTwsLabel" style="font-size:13px; color:var(--text); font-weight:600;">TOTALE FUTURES TWS</span>
-      <span class="big-value" id="totaleTWS">0,00</span>
+  <div class="highlight" style="margin-top:0;">
+    <div class="row" style="border:none; padding:6px 0;">
+      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;">PL AT NOW</span>
+      <span class="big-value" id="pnlNowTot">—</span>
     </div>
-    <div class="row" style="border:none; padding:2px 0;">
-      <span class="label">Profitto attuale — AT NOW</span>
-      <span class="value" id="pnlNowTot">—</span>
-    </div>
-    <div class="row" style="border:none; padding:2px 0 6px 0;">
-      <span class="label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">Profitto a scadenza — A SCADENZA (se lo spot resta qui)</span>
-      <span class="value" id="pnlScadenzaTot">—</span>
-    </div>
-    <div style="font-size:11px; color:var(--muted); margin-top:4px;">
-      Futures NES + MES + Opzioni MES/ES/Azioni (aperte al teorico) + Cash annotato — corrisponde al balance su Interactive Brokers
+    <div class="row" style="border:none; padding:6px 0 2px 0;">
+      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
+      <span class="big-value" id="pnlSca
+denzaTot">—</span>
     </div>
   </div>
 </div>
@@ -280,7 +272,8 @@
         <option value="9">9° SD</option>
         <option value="10">10° SD</option>
       </select>
-    </label>
+    </lab
+el>
     <span style="display:inline-flex; gap:6px; margin-left:auto; align-items:center; flex-wrap:wrap;">
       <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px; font-size:16px; min-width:42px;">−</button>
       <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px; font-size:12px;">Centra</button>
@@ -308,7 +301,8 @@
 <script src="js/render-futures.js"></script>
 <script src="js/render-opzioni.js"></script>
 <script src="js/grafico.js"></script>
-<script src="js/calcola-tutto.js"></script>
+<script src="js/calcola-tutto.js"></scrip
+t>
 <script src="js/schede.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/eventi.js"></script>
