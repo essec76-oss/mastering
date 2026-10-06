@@ -10,12 +10,15 @@
   //   conta 0.50). Mai sommato al delta futures: metriche diverse.
   // Questo blocco ridefinisce deltaNettoTotale (grafico.js) in versione
   // solo-futures e aggiunge il calcolo/display separato per le azioni.
+  // Nota CI: gli id del display dinamico sono letti con
+  // document.getElementById (creati via innerHTML nel wrapper, non in
+  // index.html): el() è riservato agli id statici tracciati dal lint.
 
   // Crea (una sola volta) il display "Delta azioni" accanto a "Delta netto"
   function _ensureDeltaAzioniUI() {
-    let wrap = el('deltaAzioniWrap');
+    var wrap = document.getElementById('deltaAzioniWrap');
     if (wrap) return wrap;
-    const dn = el('payoffDeltaNetto');
+    var dn = el('payoffDeltaNetto');
     if (!dn || !dn.parentElement) return null;
     wrap = document.createElement('span');
     wrap.id = 'deltaAzioniWrap';
@@ -26,9 +29,9 @@
   }
 
   function _renderDeltaAzioni(dAz) {
-    const wrap = _ensureDeltaAzioniUI();
+    var wrap = _ensureDeltaAzioniUI();
     if (!wrap) return;
-    const e = el('payoffDeltaAzioni');
+    var e = document.getElementById('payoffDeltaAzioni');
     if (!e) return;
     if (dAz === 0) {
       wrap.style.display = 'none';
