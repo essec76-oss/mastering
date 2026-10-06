@@ -1,6 +1,6 @@
 // render-futures.js — render righe futures/azioni: come le opzioni, senza header
 // Ogni ingrediente è una riga auto-descritta: nascondi, DEL, BUY/SELL, Q.tà,
-// Prezzo, Delta. Sotto le righe, il Delta totale della colonna ($/pt).
+// Prezzo, Delta, P&L. Sotto le righe, il Delta totale della colonna ($/pt).
 // Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
 
   // ============================================================
@@ -33,8 +33,8 @@
     }
   }
 
-  // Aggiorna le celle Delta delle righe e il Delta totale (senza re-render,
-  // per non perdere il focus sugli input mentre si digita)
+  // Aggiorna le celle Delta e P&L delle righe e il Delta totale (senza
+  // re-render, per non perdere il focus sugli input mentre si digita)
   function aggiornaCalcolati(col) {
     const scheda = schedaAttiva();
     const res = calcolaColonna(scheda, col);
@@ -44,20 +44,36 @@
     tbody.querySelectorAll('tr').forEach((tr, idx) => {
       const info = res.righe[idx];
       if (!info) return;
+      const isOff = scheda[col][idx].attivo === false;
+
       const tdDelta = tr.querySelector('.delta-riga');
-      if (!tdDelta) return;
-      if (scheda[col][idx].attivo === false) {
-        tdDelta.textContent = '—';
-        tdDelta.className = 'delta-riga muted';
-        return;
+      if (tdDelta) {
+        if (isOff) {
+          tdDelta.textContent = '—';
+          tdDelta.className = 'delta-riga muted';
+        } else {
+          const d = deltaRiga(info, res.tipo);
+          if (!isFinite(d) || d === 0) {
+            tdDelta.textContent = '—';
+            tdDelta.className = 'delta-riga muted';
+          } else {
+            tdDelta.textContent = formatGreekAuto(d, 2, 3);
+            tdDelta.className = 'delta-riga ' + (d >= 0 ? 'green' : 'red');
+          }
+        }
       }
-      const d = deltaRiga(info, res.tipo);
-      if (!isFinite(d) || d === 0) {
-        tdDelta.textContent = '—';
-        tdDelta.className = 'delta-riga muted';
-      } else {
-        tdDelta.textContent = formatGreekAuto(d, 2, 3);
-        tdDelta.className = 'delta-riga ' + (d >= 0 ? 'green' : 'red');
+
+      const tdPnl = tr.querySelector('.pnl-riga');
+      if (tdPnl) {
+        if (isOff) {
+          tdPnl.textContent = '—';
+          tdPnl.className = 'pnl-riga muted';
+        } else {
+          const pnlVal = info.pnlTotale || 0;
+          tdPnl.textContent = formatEuro(pnlVal);
+          if (pnlVal === 0 && info.tipo === 'vuota') tdPnl.className = 'pnl-riga muted';
+          else tdPnl.className = 'pnl-riga ' + (pnlVal >= 0 ? 'green' : 'red');
+        }
       }
     });
   }
@@ -165,6 +181,22 @@
         }
       }
       tr.appendChild(tdDelta);
+
+      // P&L di riga (aperto + realizzato, commissioni incluse)
+      const tdPnl = document.createElement('td');
+      tdPnl.className = 'pnl-riga td-pnl';
+      tdPnl.dataset.label = 'P&L';
+      tdPnl.title = 'P&L della riga: aperto + realizzato';
+      if (!isOn) {
+        tdPnl.textContent = '—';
+        tdPnl.classList.add('muted');
+      } else {
+        const pnlVal = info.pnlTotale || 0;
+        tdPnl.textContent = formatEuro(pnlVal);
+        if (pnlVal === 0 && info.tipo === 'vuota') tdPnl.classList.add('muted');
+        else tdPnl.classList.add(pnlVal >= 0 ? 'green' : 'red');
+      }
+      tr.appendChild(tdPnl);
 
       tbody.appendChild(tr);
     });
