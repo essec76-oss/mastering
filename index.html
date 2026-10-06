@@ -12,7 +12,7 @@
 <div class="top-bar">
   <div>
     <h1>Mastering</h1>
-    <div class="subtitle">NES / MES / ES / X — Nano, Micro &amp; E-mini futures ES500 + simulatore azioni — metodo prezzo medio (IBKR)</div>
+    <div class="subtitle">NES / MES / ES / X — Nano, Micro & E-mini futures ES500 + simulatore azioni — metodo prezzo medio (IBKR)</div>
   </div>
   <div class="actions">
     <button class="btn" id="btnCreaComp" title="Clona la scheda attuale in una nuova scheda di comparazione: modificala e confrontala con la Matrice sul grafico">+ Crea comparazione</button>
@@ -75,14 +75,36 @@
         <option value="ES">ES</option>
         <option value="X">AZIONI</option>
       </select>
+      <div class="col-summary" id="summaryNES">
+        <span class="cs-qta" id="csQtaNES"><span class="dir-flat">—</span></span>
+        <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
+        <span class="cs-pnl muted" id="csPnlNES">0,00</span>
+      </div>
     </div>
     <div class="movimenti">
       <table>
+        <thead>
+          <tr>
+            <th title="Escludi dai conteggi">☑</th>
+            <th></th>
+            <th>Pos</th>
+            <th>Q.tà</th>
+            <th>Prezzo</th>
+            <th>Delta</th>
+            <th>P&L</th>
+          </tr>
+        </thead>
         <tbody id="bodyNES"></tbody>
       </table>
-      <div class="delta-tot" title="Delta di posizione della colonna: q.tà netta × moltiplicatore ($ per punto di movimento del sottostante)">
-        <span class="label">Delta tot</span>
-        <span class="value muted" id="deltaTotNES">—</span>
+      <div class="col-footer" title="Quantità netta residua e Delta azioni (convenzione TWS: 100 azioni = 1,00). Il Delta azioni è valorizzato solo se la colonna è impostata su AZIONI.">
+        <div class="cf-item">
+          <span class="label">Q.tà netta</span>
+          <span class="value muted" id="qtaNettaNES">—</span>
+        </div>
+        <div class="cf-item">
+          <span class="label">Delta azioni</span>
+          <span class="value muted" id="deltaAzColNES">—</span>
+        </div>
       </div>
       <button class="btn-add" data-col="NES">+ Aggiungi movimento</button>
     </div>
@@ -97,14 +119,36 @@
         <option value="ES">ES</option>
         <option value="X">AZIONI</option>
       </select>
+      <div class="col-summary" id="summaryMES">
+        <span class="cs-qta" id="csQtaMES"><span class="dir-flat">—</span></span>
+        <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
+        <span class="cs-pnl muted" id="csPnlMES">0,00</span>
+      </div>
     </div>
     <div class="movimenti">
       <table>
+        <thead>
+          <tr>
+            <th title="Escludi dai conteggi">☑</th>
+            <th></th>
+            <th>Pos</th>
+            <th>Q.tà</th>
+            <th>Prezzo</th>
+            <th>Delta</th>
+            <th>P&L</th>
+          </tr>
+        </thead>
         <tbody id="bodyMES"></tbody>
       </table>
-      <div class="delta-tot" title="Delta di posizione della colonna: q.tà netta × moltiplicatore ($ per punto di movimento del sottostante)">
-        <span class="label">Delta tot</span>
-        <span class="value muted" id="deltaTotMES">—</span>
+      <div class="col-footer" title="Quantità netta residua e Delta azioni (convenzione TWS: 100 azioni = 1,00). Il Delta azioni è valorizzato solo se la colonna è impostata su AZIONI.">
+        <div class="cf-item">
+          <span class="label">Q.tà netta</span>
+          <span class="value muted" id="qtaNettaMES">—</span>
+        </div>
+        <div class="cf-item">
+          <span class="label">Delta azioni</span>
+          <span class="value muted" id="deltaAzColMES">—</span>
+        </div>
       </div>
       <button class="btn-add" data-col="MES">+ Aggiungi movimento</button>
     </div>
@@ -132,7 +176,7 @@
     </div>
     <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
       <div class="pnl-opz">
-        <span class="label">P&amp;L Opzioni</span>
+        <span class="label">P&L Opzioni</span>
         <span class="value" id="pnlOpzioni">0,00</span>
       </div>
       <div class="pnl-opz">
@@ -158,7 +202,7 @@
     <table>
       <thead>
         <tr>
-          <th title="Includi nei conteggi"></th>
+          <th title="Includi nei conteggi">☑</th>
           <th title="Clicca per aprire / chiudere la posizione">Stato</th>
           <th title="Elimina riga"></th>
           <th>Pos</th><th>Tipo</th><th>Q.tà</th>
@@ -169,8 +213,8 @@
           <th title="Valore intrinseco: max(S−K, 0) per call, max(K−S, 0) per put">V. Intr</th>
           <th title="Valore temporale: teorico − valore intrinseco">V. Temp</th>
           <th title="Probabilità che il sottostante tocchi lo strike prima della scadenza della gamba (usa la vol della gamba)">P. Tocco</th>
-          <th title="P&L della riga a scadenza della gamba opzioni più corta (metodo calendar: le gambe più lunghe valgono il teorico col tempo residuo)">P&amp;L Scad.</th>
-          <th title="P&L attuale mark-to-market: (teorico − premio) × dir × q.tà × molt.">P&amp;L</th>
+          <th title="P&L della riga a scadenza della gamba opzioni più corta (metodo calendar: le gambe più lunghe valgono il teorico col tempo residuo)">P&L Scad.</th>
+          <th title="P&L attuale mark-to-market: (teorico − premio) × dir × q.tà × molt.">P&L</th>
           <th title="Debit/Credit: premio × q.tà × moltiplicatore">Deb/Cred</th>
         </tr>
       </thead>
@@ -185,9 +229,9 @@
   <h2>Riepilogo</h2>
   <div class="row"><span class="label">Prezzo medio carico NES</span><span class="value" id="rpmNES">—</span></div>
   <div class="row"><span class="label">Prezzo medio carico MES</span><span class="value" id="rpmMES">—</span></div>
-  <div class="row"><span class="label">P&amp;L NES</span><span class="value" id="rpnlNES">0,00</span></div>
-  <div class="row"><span class="label">P&amp;L MES</span><span class="value" id="rpnlMES">0,00</span></div>
-  <div class="row"><span class="label opt-line">P&amp;L Opzioni (MES + ES + Azioni)</span><span class="value" id="rpnlOpzioni">0,00</span></div>
+  <div class="row"><span class="label">P&L NES</span><span class="value" id="rpnlNES">0,00</span></div>
+  <div class="row"><span class="label">P&L MES</span><span class="value" id="rpnlMES">0,00</span></div>
+  <div class="row"><span class="label opt-line">P&L Opzioni (MES + ES + Azioni)</span><span class="value" id="rpnlOpzioni">0,00</span></div>
   <div class="row"><span class="label">Cash annotato (incassi / premi a scadenza)</span><span class="value" id="rcash">0,00</span></div>
   <div class="highlight">
     <div class="row" style="border:none; padding:4px 0;">
@@ -240,15 +284,15 @@
     <span style="display:inline-flex; gap:6px; margin-left:auto; align-items:center; flex-wrap:wrap;">
       <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px; font-size:16px; min-width:42px;">−</button>
       <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px; font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px; font-size:16px; min-width:42px;">+</button>
+      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px; font-size:16px;">+</button>
       <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px; font-size:11px;">Reset</button>
     </span>
   </div>
   <svg id="payoffChart" viewBox="0 0 920 380" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair; touch-action:none;"></svg>
   <div class="chart-legend">
     <span id="legendSchede" style="display:contents;"></span>
-    <span><i style="background:#ffffff;"></i> P&amp;L a scadenza (linea piena)</span>
-    <span><i style="background:#ffffff; height:0; border-top:2px dashed #ffffff; width:18px;"></i> P&amp;L Now (linea tratteggiata)</span>
+    <span><i style="background:#ffffff;"></i> P&L a scadenza (linea piena)</span>
+    <span><i style="background:#ffffff; height:0; border-top:2px dashed #ffffff; width:18px;"></i> P&L Now (linea tratteggiata)</span>
     <span><i style="background:var(--accent);"></i> Spot</span>
     <span><i style="background:#f1c40f;"></i> Breakeven</span>
     <span><i style="background:#2ecc71; opacity:0.4;"></i> Dev. standard</span>
