@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -12,7 +11,7 @@
 <div class="top-bar">
   <div>
     <h1>Mastering</h1>
-    <div class="subtitle">NES / MES / ES / X — Nano, Micro & E-mini futures ES500 + simulatore azioni — metodo prezzo medio (IBKR)</div>
+    <div class="subtitle">NES / MES / ES / X — Nano, Micro &amp; E-mini futures ES500 + simulatore azioni — metodo prezzo medio (IBKR)</div>
   </div>
   <div class="actions">
     <button class="btn" id="btnCreaComp" title="Clona la scheda attuale in una nuova scheda di comparazione: modificala e confrontala con la Matrice sul grafico">+ Crea comparazione</button>
@@ -36,8 +35,7 @@
   <button class="btn" id="btnCaricaSalvato" title="Carica la strategia selezionata (sostituisce il lavoro corrente)">Carica</button>
   <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata dall'elenco salvato">Elimina</button>
   <span style="width:1px; height:24px; background:var(--border);"></span>
-  <button class="btn" id="btnEsporta" title="Scarica la strategia corrente
- come file JSON (backup o spostamento su altro PC)">Esporta file</button>
+  <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
   <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
   <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
 </div>
@@ -51,7 +49,7 @@
   </div>
   <div class="param-group">
     <span class="label">Cash €</span>
-    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati: premi incassati a scadenza o P&L realizzati di righe opzione cancellate/disattivate. Entra nel TOTALE FUTURES TWS, nei totali AT NOW / A SCADENZA e nel grafico payoff.">
+    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati: premi incassati a scadenza o P&amp;L realizzati di righe opzione cancellate/disattivate. Entra nel TOTALE FUTURES TWS, nei totali AT NOW / A SCADENZA e nel grafico payoff.">
     <input type="checkbox" id="cashEscludi" class="toggle-on" title="Spunta per escludere il cash dai conteggi (simulazione)">
     <label for="cashEscludi" class="cash-escludi-label" title="Se spuntato, il cash NON entra nei totali TWS, AT NOW / A SCADENZA e nel grafico payoff (simulazione)">Escludi cash</label>
   </div>
@@ -60,15 +58,14 @@
     <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui. Default: data odierna.">
   </div>
   <div class="param-group">
-    <input type="checkbox" id="commissioniOn" class="toggle-on" checked title="Se attivo, le commissioni entrano nei P&L futures/opzioni, nei totali e nel grafico payoff (quindi anche nei BE)">
+    <input type="checkbox" id="commissioniOn" class="toggle-on" checked title="Se attivo, le commissioni entrano nei P&amp;L futures/opzioni, nei totali e nel grafico payoff (quindi anche nei BE)">
     <label for="commissioniOn" class="cash-escludi-label" title="Futures/X: ~1,20 $/contratto per lato. Opzioni: ~1,00 $/contratto per lato. Round-trip sulle chiusure.">Commissioni</label>
   </div>
 </div>
 
 <div class="columns">
 
-  <div class="column" id=
-"colNES">
+  <div class="column" id="colNES">
     <div class="col-header">
       <select id="tipoNES" data-col="NES">
         <option value="-">-</option>
@@ -93,7 +90,7 @@
             <th>Q.tà</th>
             <th>Prezzo</th>
             <th>Delta</th>
-            <th>P&L</th>
+            <th>P&amp;L</th>
           </tr>
         </thead>
         <tbody id="bodyNES"></tbody>
@@ -122,8 +119,7 @@
         <option value="X">AZIONI</option>
       </select>
       <div class="col-summary" id="summaryMES">
-        <span class="cs-qta" id="csQtaMES"><span
- class="dir-flat">—</span></span>
+        <span class="cs-qta" id="csQtaMES"><span class="dir-flat">—</span></span>
         <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
         <span class="cs-pnl muted" id="csPnlMES">0,00</span>
       </div>
@@ -138,7 +134,7 @@
             <th>Q.tà</th>
             <th>Prezzo</th>
             <th>Delta</th>
-            <th>P&L</th>
+            <th>P&amp;L</th>
           </tr>
         </thead>
         <tbody id="bodyMES"></tbody>
@@ -173,14 +169,13 @@
         <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP (probabilità di profitto), bande ±1σ/±2σ del grafico e curve Now">
       </div>
       <div class="param-group">
-        <span class="label">D
-iv %</span>
+        <span class="label">Div %</span>
         <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato dal modello Black-Scholes con r e q per le opzioni su AZIONI. Per MES/ES (opzioni su futures, Black-76) non si applica.">
       </div>
     </div>
     <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
       <div class="pnl-opz">
-        <span class="label">P&L Opzioni</span>
+        <span class="label">P&amp;L Opzioni</span>
         <span class="value" id="pnlOpzioni">0,00</span>
       </div>
       <div class="pnl-opz">
@@ -211,15 +206,14 @@ iv %</span>
           <th title="Elimina riga"></th>
           <th>Pos</th><th>Tipo</th><th>Q.tà</th>
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
-          <t
-h title="Giorni alla scadenza dalla data analisi">GG</th>
+          <th title="Giorni alla scadenza dalla data analisi">GG</th>
           <th title="ATM/OTM/ITM + distanza in σ (Vol ATM, DTE)">M/S</th>
           <th>Teorico</th><th title="Delta di posizione: $ per punto di movimento del sottostante (q.tà × Δ × moltiplicatore)">Delta</th><th title="Gamma di posizione: $ per punto²">Gamma</th><th title="Vega di posizione: $ per 1% di volatilità implicita">Vega</th><th title="Theta di posizione: $ al giorno">Theta</th>
           <th title="Valore intrinseco: max(S−K, 0) per call, max(K−S, 0) per put">V. Intr</th>
           <th title="Valore temporale: teorico − valore intrinseco">V. Temp</th>
           <th title="Probabilità che il sottostante tocchi lo strike prima della scadenza della gamba (usa la vol della gamba)">P. Tocco</th>
-          <th title="P&L della riga a scadenza della gamba opzioni più corta (metodo calendar: le gambe più lunghe valgono il teorico col tempo residuo)">P&L Scad.</th>
-          <th title="P&L attuale mark-to-market: (teorico − premio) × dir × q.tà × molt.">P&L</th>
+          <th title="P&amp;L della riga a scadenza della gamba opzioni più corta (metodo calendar: le gambe più lunghe valgono il teorico col tempo residuo)">P&amp;L Scad.</th>
+          <th title="P&amp;L attuale mark-to-market: (teorico − premio) × dir × q.tà × molt.">P&amp;L</th>
           <th title="Debit/Credit: premio × q.tà × moltiplicatore">Deb/Cred</th>
         </tr>
       </thead>
@@ -238,8 +232,7 @@ h title="Giorni alla scadenza dalla data analisi">GG</th>
     </div>
     <div class="row" style="border:none; padding:6px 0 2px 0;">
       <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
-      <span class="big-value" id="pnlSca
-denzaTot">—</span>
+      <span class="big-value" id="pnlScadenzaTot">—</span>
     </div>
   </div>
 </div>
@@ -272,8 +265,7 @@ denzaTot">—</span>
         <option value="9">9° SD</option>
         <option value="10">10° SD</option>
       </select>
-    </lab
-el>
+    </label>
     <span style="display:inline-flex; gap:6px; margin-left:auto; align-items:center; flex-wrap:wrap;">
       <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px; font-size:16px; min-width:42px;">−</button>
       <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px; font-size:12px;">Centra</button>
@@ -284,8 +276,8 @@ el>
   <svg id="payoffChart" viewBox="0 0 920 380" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair; touch-action:none;"></svg>
   <div class="chart-legend">
     <span id="legendSchede" style="display:contents;"></span>
-    <span><i style="background:#ffffff;"></i> P&L a scadenza (linea piena)</span>
-    <span><i style="background:#ffffff; height:0; border-top:2px dashed #ffffff; width:18px;"></i> P&L Now (linea tratteggiata)</span>
+    <span><i style="background:#ffffff;"></i> P&amp;L a scadenza (linea piena)</span>
+    <span><i style="background:#ffffff; height:0; border-top:2px dashed #ffffff; width:18px;"></i> P&amp;L Now (linea tratteggiata)</span>
     <span><i style="background:var(--accent);"></i> Spot</span>
     <span><i style="background:#f1c40f;"></i> Breakeven</span>
     <span><i style="background:#2ecc71; opacity:0.4;"></i> Dev. standard</span>
@@ -301,8 +293,7 @@ el>
 <script src="js/render-futures.js"></script>
 <script src="js/render-opzioni.js"></script>
 <script src="js/grafico.js"></script>
-<script src="js/calcola-tutto.js"></scrip
-t>
+<script src="js/calcola-tutto.js"></script>
 <script src="js/schede.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/eventi.js"></script>
