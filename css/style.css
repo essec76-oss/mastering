@@ -333,3 +333,21 @@
   .salvati-bar select,
   .salvati-bar input[type="text"] { font-size: 16px; }
 }
+
+/* DELTA TOT — riepilogo sotto le righe futures/azioni (colonne senza header) */
+.delta-tot { display: flex; justify-content: flex-end; align-items: baseline;
+  gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums; }
+.delta-tot .label { font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+.delta-tot .value { font-size: 15px; font-weight: 700; }
+.delta-tot .value.green { color: var(--green); }
+.delta-tot .value.red { color: var(--red); }
+.delta-tot .value.muted { color: var(--muted); }
+
+/* Cella Delta di riga (stesso stile delle righe opzioni) */
+.movimenti .delta-riga { font-size: 12px; font-weight: 600;
+  white-space: nowrap; padding-left: 6px; font-variant-numeric: tabular-nums; }
+.movimenti .delta-riga.green { color: var(--green); }
+.movimenti .delta-riga.red { color: var(--red); }
+.movimenti .delta-riga.muted { color: var(--muted); }
