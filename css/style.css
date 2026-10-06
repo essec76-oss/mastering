@@ -306,3 +306,30 @@
     .options-card .movimenti th:nth-child(-n+3) {
       background: var(--panel-3); z-index: 3; }
   }
+
+/* Strategie salvate: salvataggio multiplo con nome */
+.salvati-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.salvati-bar .label { font-size: 12px; color: var(--muted); }
+.salvati-bar select,
+.salvati-bar input[type="text"] {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+.salvati-bar select { max-width: 220px; }
+@media (max-width: 800px) {
+  /* iOS: font >= 16px sui campi per evitare lo zoom della pagina al focus */
+  .salvati-bar select,
+  .salvati-bar input[type="text"] { font-size: 16px; }
+}
