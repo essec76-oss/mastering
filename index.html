@@ -76,36 +76,14 @@
         <option value="X">AZIONI</option>
       </select>
     </div>
-    <div class="riga-totale" id="rtNES">
-      <div class="rt-pos">
-        <span class="rt-qta"><span class="dir-flat">—</span></span>
-        <span class="rt-prezzo">entrata <strong>—</strong></span>
-      </div>
-      <div class="rt-pnl">
-        <div class="rt-pnl-item">
-          <span class="rt-label">Aperto</span>
-          <span class="rt-val muted" id="rtApertoNES">0,00</span>
-        </div>
-        <div class="rt-pnl-item rt-totale">
-          <span class="rt-label">Totale</span>
-          <span class="rt-val muted" id="rtTotNES">0,00</span>
-        </div>
-      </div>
-    </div>
     <div class="movimenti">
       <table>
-        <thead>
-          <tr>
-            <th title="Includi nei conteggi"></th>
-            <th>Dir</th>
-            <th>Q.tà</th>
-            <th>Prezzo nominale</th>
-            <th></th>
-            <th>P&amp;L</th>
-          </tr>
-        </thead>
         <tbody id="bodyNES"></tbody>
       </table>
+      <div class="delta-tot" title="Delta di posizione della colonna: q.tà netta × moltiplicatore ($ per punto di movimento del sottostante)">
+        <span class="label">Delta tot</span>
+        <span class="value muted" id="deltaTotNES">—</span>
+      </div>
       <button class="btn-add" data-col="NES">+ Aggiungi movimento</button>
     </div>
   </div>
@@ -120,36 +98,14 @@
         <option value="X">AZIONI</option>
       </select>
     </div>
-    <div class="riga-totale" id="rtMES">
-      <div class="rt-pos">
-        <span class="rt-qta"><span class="dir-flat">—</span></span>
-        <span class="rt-prezzo">entrata <strong>—</strong></span>
-      </div>
-      <div class="rt-pnl">
-        <div class="rt-pnl-item">
-          <span class="rt-label">Aperto</span>
-          <span class="rt-val muted" id="rtApertoMES">0,00</span>
-        </div>
-        <div class="rt-pnl-item rt-totale">
-          <span class="rt-label">Totale</span>
-          <span class="rt-val muted" id="rtTotMES">0,00</span>
-        </div>
-      </div>
-    </div>
     <div class="movimenti">
       <table>
-        <thead>
-          <tr>
-            <th title="Includi nei conteggi"></th>
-            <th>Dir</th>
-            <th>Q.tà</th>
-            <th>Prezzo nominale</th>
-            <th></th>
-            <th>P&amp;L</th>
-          </tr>
-        </thead>
         <tbody id="bodyMES"></tbody>
       </table>
+      <div class="delta-tot" title="Delta di posizione della colonna: q.tà netta × moltiplicatore ($ per punto di movimento del sottostante)">
+        <span class="label">Delta tot</span>
+        <span class="value muted" id="deltaTotMES">—</span>
+      </div>
       <button class="btn-add" data-col="MES">+ Aggiungi movimento</button>
     </div>
   </div>

@@ -1,50 +1,63 @@
-// render-futures.js — render tabelle futures e righe totali
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// render-futures.js — render righe futures/azioni: come le opzioni, senza header
+// Ogni ingrediente è una riga auto-descritta: nascondi, DEL, BUY/SELL, Q.tà,
+// Prezzo, Delta. Sotto le righe, il Delta totale della colonna ($/pt).
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
+
   // ============================================================
   // RENDER
   // ============================================================
-  function renderRigaTotale(col, res) {
-    const rt = el('rt' + col);
-    const qtaEl = rt.querySelector('.rt-qta');
-    const prezzoEl = rt.querySelector('.rt-prezzo strong');
-
-    if (res.qtaNetta === 0) {
-      qtaEl.innerHTML = '<span class="dir-flat">—</span>';
-      prezzoEl.textContent = '—';
-    } else {
-      const dir = res.qtaNetta > 0 ? 'LONG' : 'SHORT';
-      const dirClsName = res.qtaNetta > 0 ? 'dir-long' : 'dir-short';
-      qtaEl.innerHTML = `${Math.abs(res.qtaNetta)} <span class="${dirClsName}">${dir}</span>`;
-      prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
-    }
-
-    const setVal = (id, val) => {
-      const e = el(id);
-      e.textContent = formatEuro(val);
-      e.classList.remove('green', 'red', 'muted');
-      if (!isFinite(val) || val === 0) e.classList.add('muted');
-      else e.classList.add(val >= 0 ? 'green' : 'red');
-    };
-    setVal('rtAperto' + col, res.pnlAperto);
-    setVal('rtTot' + col, res.pnlTotale);
+  // Delta di posizione della singola riga ($/pt): segno × q.tà aperta × molt.
+  function deltaRiga(info, tipo) {
+    if (!info || !(info.qAperta > 0)) return NaN;
+    const molt = MOLTIPLICATORI[tipo] || 0;
+    if (!molt) return NaN;
+    const segno = info.direzione === 'LONG' ? 1 : -1;
+    return segno * info.qAperta * molt;
   }
 
+  // Delta totale della colonna ($/pt): q.tà netta × moltiplicatore.
+  // Manteniamo la firma renderRigaTotale(col, res) usata da calcola-tutto.js.
+  function renderRigaTotale(col, res) {
+    const dEl = el('deltaTot' + col);
+    if (!dEl) return;
+    let d = 0;
+    if (res.tipo && res.tipo !== '-' && res.qtaNetta !== 0) {
+      d = res.qtaNetta * (MOLTIPLICATORI[res.tipo] || 0);
+    }
+    if (d === 0) {
+      dEl.textContent = '—';
+      dEl.className = 'value muted';
+    } else {
+      dEl.textContent = formatGreekAuto(d, 2, 3);
+      dEl.className = 'value ' + (d >= 0 ? 'green' : 'red');
+    }
+  }
+
+  // Aggiorna le celle Delta delle righe e il Delta totale (senza re-render,
+  // per non perdere il focus sugli input mentre si digita)
   function aggiornaCalcolati(col) {
-    const res = calcolaColonna(schedaAttiva(), col);
+    const scheda = schedaAttiva();
+    const res = calcolaColonna(scheda, col);
     renderRigaTotale(col, res);
 
     const tbody = el('body' + col);
-    const trs = tbody.querySelectorAll('tr');
-    trs.forEach((tr, idx) => {
+    tbody.querySelectorAll('tr').forEach((tr, idx) => {
       const info = res.righe[idx];
       if (!info) return;
-      const tdPnl = tr.querySelector('.pnl-riga');
-      if (tdPnl) {
-        const pnlVal = info.pnlTotale || 0;
-        tdPnl.textContent = formatEuro(pnlVal);
-        tdPnl.classList.remove('green', 'red', 'muted');
-        if (pnlVal === 0 && info.tipo === 'vuota') tdPnl.classList.add('muted');
-        else tdPnl.classList.add(pnlVal >= 0 ? 'green' : 'red');
+      const tdDelta = tr.querySelector('.delta-riga');
+      if (!tdDelta) return;
+      if (scheda[col][idx].attivo === false) {
+        tdDelta.textContent = '—';
+        tdDelta.className = 'delta-riga muted';
+        return;
+      }
+      const d = deltaRiga(info, res.tipo);
+      if (!isFinite(d) || d === 0) {
+        tdDelta.textContent = '—';
+        tdDelta.className = 'delta-riga muted';
+      } else {
+        tdDelta.textContent = formatGreekAuto(d, 2, 3);
+        tdDelta.className = 'delta-riga ' + (d >= 0 ? 'green' : 'red');
       }
     });
   }
@@ -64,9 +77,9 @@
       const isOn = mov.attivo !== false;
       if (!isOn) tr.classList.add('row-off');
 
-      // Attivo (toggle)
+      // Nascondi (toggle): esclude la riga dai conteggi
       const tdAtt = document.createElement('td');
-      tdAtt.dataset.label = '';
+      tdAtt.dataset.label = 'Nascondi';
       const inAtt = document.createElement('input');
       inAtt.type = 'checkbox';
       inAtt.className = 'toggle-on';
@@ -79,19 +92,33 @@
       });
       tdAtt.appendChild(inAtt); tr.appendChild(tdAtt);
 
-      // Dir
-      const tdDir = document.createElement('td');
-      tdDir.dataset.label = 'Dir';
-      const selDir = document.createElement('select');
-      selDir.innerHTML = '<option value="LONG">LONG</option><option value="SHORT">SHORT</option>';
-      selDir.value = mov.direzione;
-      selDir.addEventListener('change', e => {
-        scheda[col][idx].direzione = e.target.value;
-        aggiornaCalcolati(col); calcolaTutto();
+      // DEL
+      const tdDel = document.createElement('td');
+      tdDel.className = 'td-del';
+      tdDel.dataset.label = 'DEL';
+      const btnDel = document.createElement('button');
+      btnDel.className = 'btn-del'; btnDel.textContent = 'DEL';
+      btnDel.title = 'Elimina riga';
+      btnDel.addEventListener('click', () => {
+        if (!confirm('Eliminare questa riga di movimento?')) return;
+        scheda[col].splice(idx, 1);
+        renderMovimenti(col); calcolaTutto();
       });
-      tdDir.appendChild(selDir); tr.appendChild(tdDir);
+      tdDel.appendChild(btnDel); tr.appendChild(tdDel);
 
-      // Q.tà (il totale delle posizioni aperte è nella riga di intestazione)
+      // Pos (BUY / SELL) — internamente resta LONG/SHORT
+      const tdPos = document.createElement('td');
+      tdPos.dataset.label = 'Pos';
+      const selPos = document.createElement('select');
+      selPos.innerHTML = '<option value="LONG">BUY</option><option value="SHORT">SELL</option>';
+      selPos.value = mov.direzione;
+      selPos.addEventListener('change', e => {
+        scheda[col][idx].direzione = e.target.value;
+        renderMovimenti(col); calcolaTutto();
+      });
+      tdPos.appendChild(selPos); tr.appendChild(tdPos);
+
+      // Q.tà
       const tdQta = document.createElement('td');
       tdQta.dataset.label = 'Q.tà';
       const inQta = document.createElement('input');
@@ -106,7 +133,7 @@
 
       // Prezzo nominale
       const tdPrezzo = document.createElement('td');
-      tdPrezzo.dataset.label = 'Prezzo nominale';
+      tdPrezzo.dataset.label = 'Prezzo';
       const inPrezzo = document.createElement('input');
       inPrezzo.type = 'number'; inPrezzo.step = '0.25';
       inPrezzo.className = 'prezzo-nominale';
@@ -119,33 +146,25 @@
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
-      // DEL
-      const tdDel = document.createElement('td');
-      tdDel.className = 'td-del';
-      const btnDel = document.createElement('button');
-      btnDel.className = 'btn-del'; btnDel.textContent = 'DEL';
-      btnDel.title = 'Elimina riga';
-      btnDel.addEventListener('click', () => {
-        if (!confirm('Eliminare questa riga di movimento?')) return;
-        scheda[col].splice(idx, 1);
-        renderMovimenti(col); calcolaTutto();
-      });
-      tdDel.appendChild(btnDel); tr.appendChild(tdDel);
-
-      // P&L
-      const tdPnl = document.createElement('td');
-      tdPnl.className = 'pnl-riga td-pnl';
-      tdPnl.dataset.label = 'P&L';
+      // Delta ($/pt)
+      const tdDelta = document.createElement('td');
+      tdDelta.className = 'delta-riga td-delta';
+      tdDelta.dataset.label = 'Delta';
+      tdDelta.title = 'Delta di posizione: $ per punto (q.tà × moltiplicatore)';
       if (!isOn) {
-        tdPnl.textContent = '—';
-        tdPnl.classList.add('muted');
+        tdDelta.textContent = '—';
+        tdDelta.classList.add('muted');
       } else {
-        const pnlVal = info.pnlTotale || 0;
-        tdPnl.textContent = formatEuro(pnlVal);
-        if (pnlVal === 0 && info.tipo === 'vuota') tdPnl.classList.add('muted');
-        else tdPnl.classList.add(pnlVal >= 0 ? 'green' : 'red');
+        const d = deltaRiga(info, res.tipo);
+        if (!isFinite(d) || d === 0) {
+          tdDelta.textContent = '—';
+          tdDelta.classList.add('muted');
+        } else {
+          tdDelta.textContent = formatGreekAuto(d, 2, 3);
+          tdDelta.classList.add(d >= 0 ? 'green' : 'red');
+        }
       }
-      tr.appendChild(tdPnl);
+      tr.appendChild(tdDelta);
 
       tbody.appendChild(tr);
     });
