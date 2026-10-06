@@ -36,6 +36,16 @@ function feeLatoOpzione() {
 const STORAGE_KEY = 'mastering_v20';
 const STORAGE_KEYS_LEGACY = ['mastering_v19', 'mastering_v18', 'mastering_v17', 'mastering_v16', 'mastering_v15', 'mastering_v14', 'mastering_v13', 'mastering_v12', 'mastering_v11'];
 
+// ============================================================
+// Supabase (strategie cloud) — progetto NUOVO dedicato a Mastering
+// 1. Crea il progetto su https://supabase.com
+// 2. Esegui supabase/schema.sql nel SQL Editor
+// 3. Incolla qui Project URL e anon public key (Settings → API)
+// Finché restano i placeholder, le strategie usano solo localStorage.
+// ============================================================
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+
 // Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette
 const PALETTE_COMP = ['#f97316', '#22d3ee', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
 function coloreScheda(i) { return i === 0 ? '#ffffff' : PALETTE_COMP[(i - 1) % PALETTE_COMP.length]; }
