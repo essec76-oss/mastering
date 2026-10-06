@@ -36,6 +36,12 @@ function feeLatoOpzione() {
 const STORAGE_KEY = 'mastering_v20';
 const STORAGE_KEYS_LEGACY = ['mastering_v19', 'mastering_v18', 'mastering_v17', 'mastering_v16', 'mastering_v15', 'mastering_v14', 'mastering_v13', 'mastering_v12', 'mastering_v11'];
 
+// --- Supabase Step 1: solo connessione (ancora nessun salvataggio cloud) ---
+// Dopo aver creato il progetto e eseguito supabase/schema.sql,
+// sostituisci questi due valori (Settings → API nel dashboard Supabase).
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+
 // Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette
 const PALETTE_COMP = ['#f97316', '#22d3ee', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
 function coloreScheda(i) { return i === 0 ? '#ffffff' : PALETTE_COMP[(i - 1) % PALETTE_COMP.length]; }
