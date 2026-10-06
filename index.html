@@ -52,8 +52,7 @@
     <span class="label">Cash €</span>
     <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati: premi incassati a scadenza o P&L realizzati di righe opzione cancellate/disattivate. Entra nel TOTALE FUTURES TWS, nei totali AT NOW / A SCADENZA e nel grafico payoff.">
     <input type="checkbox" id="cashEscludi" class="toggle-on" title="Spunta per escludere il cash dai conteggi (simulazione)">
-    <label for="cashEscludi" class="cash-escludi-label" title="Se spuntato, il cash NON entra nei totali
- TWS, AT NOW / A SCADENZA e nel grafico payoff (simulazione)">Escludi cash</label>
+    <label for="cashEscludi" class="cash-escludi-label" title="Se spuntato, il cash NON entra nei totali TWS, AT NOW / A SCADENZA e nel grafico payoff (simulazione)">Escludi cash</label>
   </div>
   <div class="param-group">
     <span class="label">Data analisi</span>
@@ -74,7 +73,7 @@
         <option value="NES" selected>NES</option>
         <option value="MES">MES</option>
         <option value="ES">ES</option>
-        <option value="X">X</option>
+        <option value="X">AZIONI</option>
       </select>
     </div>
     <div class="riga-totale" id="rtNES">
@@ -102,8 +101,7 @@
             <th>Q.tà</th>
             <th>Prezzo nominale</th>
             <th></th>
-            <th>P&amp;L</th
->
+            <th>P&amp;L</th>
           </tr>
         </thead>
         <tbody id="bodyNES"></tbody>
@@ -119,7 +117,7 @@
         <option value="NES">NES</option>
         <option value="MES" selected>MES</option>
         <option value="ES">ES</option>
-        <option value="X">X</option>
+        <option value="X">AZIONI</option>
       </select>
     </div>
     <div class="riga-totale" id="rtMES">
@@ -164,8 +162,7 @@
       <span class="title">Opzioni</span>
       <select id="strumentoOpzioni" title="Strumento della scheda opzioni: MES (×5), ES (×50) o AZIONI (×100). Ogni strumento ha le sue righe e la scheda resta dormiente se vuota: non è eliminabile.">
         <option value="MES" selected>MES</option>
-        <option value="ES">ES</op
-tion>
+        <option value="ES">ES</option>
         <option value="AZIONI">AZIONI</option>
       </select>
       <div class="param-group">
@@ -199,8 +196,7 @@ tion>
         <span class="value" id="greeksTheta" style="font-size:14px;">—</span>
       </div>
     </div>
-  </d
-iv>
+  </div>
   <div class="movimenti">
     <div class="table-scroll">
     <table>
@@ -233,8 +229,7 @@ iv>
   <h2>Riepilogo</h2>
   <div class="row"><span class="label">Prezzo medio carico NES</span><span class="value" id="rpmNES">—</span></div>
   <div class="row"><span class="label">Prezzo medio carico MES</span><span class="value" id="rpmMES">—</span></div>
-  <div class=
-"row"><span class="label">P&amp;L NES</span><span class="value" id="rpnlNES">0,00</span></div>
+  <div class="row"><span class="label">P&amp;L NES</span><span class="value" id="rpnlNES">0,00</span></div>
   <div class="row"><span class="label">P&amp;L MES</span><span class="value" id="rpnlMES">0,00</span></div>
   <div class="row"><span class="label opt-line">P&amp;L Opzioni (MES + ES + Azioni)</span><span class="value" id="rpnlOpzioni">0,00</span></div>
   <div class="row"><span class="label">Cash annotato (incassi / premi a scadenza)</span><span class="value" id="rcash">0,00</span></div>
@@ -264,8 +259,7 @@ iv>
     <label><input type="checkbox" id="showExpiry" checked> A scadenza</label>
     <label><input type="checkbox" id="showNow" checked> Now (teorico)</label>
     <label><input type="checkbox" id="showBE" checked> Breakeven</label>
-    <span style="margin-left:8px;">Delta netto: <str
-ong id="payoffDeltaNetto" style="color:var(--text);">—</strong></span>
+    <span style="margin-left:8px;">Delta netto: <strong id="payoffDeltaNetto" style="color:var(--text);">—</strong></span>
   </div>
   <div class="chart-controls" style="margin-top:-4px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
     <span>BE inf. <strong id="beInf" style="color:var(--text);">—</strong></span>
@@ -290,8 +284,7 @@ ong id="payoffDeltaNetto" style="color:var(--text);">—</strong></span>
     <span style="display:inline-flex; gap:6px; margin-left:auto; align-items:center; flex-wrap:wrap;">
       <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px; font-size:16px; min-width:42px;">−</button>
       <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px; font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zo
-om +" style="padding:6px 12px; font-size:16px; min-width:42px;">+</button>
+      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px; font-size:16px; min-width:42px;">+</button>
       <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px; font-size:11px;">Reset</button>
     </span>
   </div>

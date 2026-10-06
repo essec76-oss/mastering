@@ -45,8 +45,7 @@
   });
   el('tipoMES').addEventListener('change', e => {
     schedaAttiva().tipoMES = e.target.value;
-    r
-enderMovimenti('MES'); calcolaTutto();
+    renderMovimenti('MES'); calcolaTutto();
   });
 
   document.querySelectorAll('.btn-add[data-col]').forEach(btn => {

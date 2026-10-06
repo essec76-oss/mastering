@@ -61,8 +61,7 @@
       const dati = JSON.parse(raw);
       if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
       if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
-      if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volA
-tm;
+      if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
       if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
       if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
       stato.cashEscluso = dati.cashEscluso === true;
@@ -139,9 +138,9 @@ tm;
   }
 
   function caricaSalvato(nome) {
-    const e = leggiSalvati()[nome];
-    if (!e || !e.dati) { mostraStatus('Strategia non trovata', true); return; }
-    applicaDati(e.dati);
+    const entry = leggiSalvati()[nome];
+    if (!entry || !entry.dati) { mostraStatus('Strategia non trovata', true); return; }
+    applicaDati(entry.dati);
     if (el('nomeStrategia')) el('nomeStrategia').value = nome;
     renderTabs(); renderScheda(); renderListaSalvate();
     mostraStatus('✓ "' + nome + '" caricata');
@@ -214,8 +213,7 @@ tm;
   function migraMov(m) {
     if (m.prezzoPulito === undefined) m.prezzoPulito = m.prezzo || 0;
     delete m.prezzo;
-    if
- (m.attivo === undefined) m.attivo = true;
+    if (m.attivo === undefined) m.attivo = true;
     return m;
   }
 
@@ -277,7 +275,6 @@ tm;
     s.textContent = txt;
     s.style.color = err ? 'var(--red)' : 'var(--green)';
     s.classList.add('show');
-    cl
-earTimeout(statusTimer);
+    clearTimeout(statusTimer);
     statusTimer = setTimeout(() => s.classList.remove('show'), 1800);
   }
