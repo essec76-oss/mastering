@@ -86,9 +86,52 @@
   }
 
   // ============================================================
+  // SUPABASE — Step 1: solo connessione (nessun salvataggio cloud ancora)
+  // ============================================================
+  let _sbClient = null;
+
+  function supabaseConfigurato() {
+    return !!(SUPABASE_URL && SUPABASE_ANON_KEY
+      && SUPABASE_URL.indexOf('YOUR_') === -1
+      && SUPABASE_ANON_KEY.indexOf('YOUR_') === -1
+      && window.supabase && typeof window.supabase.createClient === 'function');
+  }
+
+  function getSupabase() {
+    if (!supabaseConfigurato()) return null;
+    if (!_sbClient) {
+      _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return _sbClient;
+  }
+
+  // Prova una SELECT leggera sulla tabella strategie.
+  // - non configurato → silenzioso
+  // - ok → messaggio verde
+  // - errore → messaggio rosso con dettaglio
+  async function testaConnessioneSupabase() {
+    if (!supabaseConfigurato()) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    try {
+      const { error } = await sb.from('strategie').select('nome').limit(1);
+      if (error) {
+        mostraStatus('Supabase: ' + (error.message || 'errore'), true);
+        return false;
+      }
+      mostraStatus('✓ Supabase collegato');
+      return true;
+    } catch (e) {
+      mostraStatus('Supabase: rete o chiave non valide', true);
+      return false;
+    }
+  }
+
+  // ============================================================
   // STRATEGIE SALVATE: salvataggio multiplo con nome (es. AMZN, AAPL)
   // Ogni strategia è un "dato completo" indipendente: spot, parametri,
   // cash, schede (Matrice + comparazioni) e righe futures/opzioni.
+  // (Step 1: ancora solo localStorage — cloud nello step successivo)
   // ============================================================
   const STORAGE_SALVATI = 'mastering_salvati_v1';
 
