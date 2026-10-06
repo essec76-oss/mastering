@@ -226,28 +226,14 @@
 </div>
 
 <div class="riepilogo">
-  <h2>Riepilogo</h2>
-  <div class="row"><span class="label">Prezzo medio carico NES</span><span class="value" id="rpmNES">—</span></div>
-  <div class="row"><span class="label">Prezzo medio carico MES</span><span class="value" id="rpmMES">—</span></div>
-  <div class="row"><span class="label">P&L NES</span><span class="value" id="rpnlNES">0,00</span></div>
-  <div class="row"><span class="label">P&L MES</span><span class="value" id="rpnlMES">0,00</span></div>
-  <div class="row"><span class="label opt-line">P&L Opzioni (MES + ES + Azioni)</span><span class="value" id="rpnlOpzioni">0,00</span></div>
-  <div class="row"><span class="label">Cash annotato (incassi / premi a scadenza)</span><span class="value" id="rcash">0,00</span></div>
-  <div class="highlight">
-    <div class="row" style="border:none; padding:4px 0;">
-      <span class="label" id="totaleTwsLabel" style="font-size:13px; color:var(--text); font-weight:600;">TOTALE FUTURES TWS</span>
-      <span class="big-value" id="totaleTWS">0,00</span>
+  <div class="highlight" style="margin-top:0;">
+    <div class="row" style="border:none; padding:6px 0;">
+      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;">PL AT NOW</span>
+      <span class="big-value" id="pnlNowTot">—</span>
     </div>
-    <div class="row" style="border:none; padding:2px 0;">
-      <span class="label">Profitto attuale — AT NOW</span>
-      <span class="value" id="pnlNowTot">—</span>
-    </div>
-    <div class="row" style="border:none; padding:2px 0 6px 0;">
-      <span class="label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">Profitto a scadenza — A SCADENZA (se lo spot resta qui)</span>
-      <span class="value" id="pnlScadenzaTot">—</span>
-    </div>
-    <div style="font-size:11px; color:var(--muted); margin-top:4px;">
-      Futures NES + MES + Opzioni MES/ES/Azioni (aperte al teorico) + Cash annotato — corrisponde al balance su Interactive Brokers
+    <div class="row" style="border:none; padding:6px 0 2px 0;">
+      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
+      <span class="big-value" id="pnlScadenzaTot">—</span>
     </div>
   </div>
 </div>
