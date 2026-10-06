@@ -13,7 +13,7 @@
   // index.html): el() è riservato agli id statici tracciati dal lint.
 
   // Versione visibile (verifica deploy): titolo del tab del browser
-  function _appVersion() { return 'v24.1'; }
+  function _appVersion() { return 'v24.2'; }
   document.title = 'Mastering — ' + _appVersion();
 
   // Etichetta leggibile del tipo colonna: X → AZIONI, - → nome colonna
@@ -21,22 +21,6 @@
     if (tipo === 'X') return 'AZIONI';
     if (!tipo || tipo === '-') return col;
     return tipo;
-  }
-
-  // Riepilogo: le etichette NES/MES riflettono il tipo impostato nella
-  // colonna (es. colonna NES impostata su AZIONI → "AZIONI", non "NES")
-  function _aggiornaLabelsRiepilogo() {
-    const scheda = schedaAttiva();
-    if (!scheda) return;
-    const set = (id, prefix) => {
-      const v = el(id);
-      const lbl = v && v.previousElementSibling;
-      if (lbl) lbl.textContent = prefix;
-    };
-    set('rpmNES', 'Prezzo medio carico ' + _tipoLabel(scheda.tipoNES, 'NES'));
-    set('rpnlNES', 'P&L ' + _tipoLabel(scheda.tipoNES, 'NES'));
-    set('rpmMES', 'Prezzo medio carico ' + _tipoLabel(scheda.tipoMES, 'MES'));
-    set('rpnlMES', 'P&L ' + _tipoLabel(scheda.tipoMES, 'MES'));
   }
 
   // Crea (una sola volta) il display "Delta azioni" accanto a "Delta netto".
@@ -111,10 +95,9 @@
     return d;
   }
 
-  // Wrapper di aggiornaPayoffPreview: etichette riepilogo + reset spot <= 0
+  // Wrapper di aggiornaPayoffPreview: reset delta azioni se spot <= 0
   var _origAggiornaPayoffPreview = aggiornaPayoffPreview;
   aggiornaPayoffPreview = function (scheda, resNES, resMES) {
-    _aggiornaLabelsRiepilogo();
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     if (!(spot > 0)) _renderDeltaAzioni(0); // mondo azioni a zero
     _origAggiornaPayoffPreview(scheda, resNES, resMES);
