@@ -157,3 +157,8 @@
 
   renderTabs();
   renderScheda();
+
+  // Step 1 Supabase: se URL/chiave sono configurati, verifica la connessione
+  if (typeof testaConnessioneSupabase === 'function') {
+    testaConnessioneSupabase();
+  }
