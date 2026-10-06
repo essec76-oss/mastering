@@ -8,13 +8,39 @@
   // Mondo AZIONI: convenzione TWS (100 azioni = 1.00; 50 azioni = 0.50;
   //   1 contratto di opzione = 100 azioni, quindi un opzione con delta 0.50
   //   conta 0.50). Mai sommato al delta futures: metriche diverse.
-  // Questo blocco ridefinisce deltaNettoTotale (grafico.js) in versione
-  // solo-futures e aggiunge il calcolo/display separato per le azioni.
   // Nota CI: gli id del display dinamico sono letti con
   // document.getElementById (creati via innerHTML nel wrapper, non in
   // index.html): el() è riservato agli id statici tracciati dal lint.
 
-  // Crea (una sola volta) il display "Delta azioni" accanto a "Delta netto"
+  // Versione visibile (verifica deploy): titolo del tab del browser
+  function _appVersion() { return 'v24.1'; }
+  document.title = 'Mastering — ' + _appVersion();
+
+  // Etichetta leggibile del tipo colonna: X → AZIONI, - → nome colonna
+  function _tipoLabel(tipo, col) {
+    if (tipo === 'X') return 'AZIONI';
+    if (!tipo || tipo === '-') return col;
+    return tipo;
+  }
+
+  // Riepilogo: le etichette NES/MES riflettono il tipo impostato nella
+  // colonna (es. colonna NES impostata su AZIONI → "AZIONI", non "NES")
+  function _aggiornaLabelsRiepilogo() {
+    const scheda = schedaAttiva();
+    if (!scheda) return;
+    const set = (id, prefix) => {
+      const v = el(id);
+      const lbl = v && v.previousElementSibling;
+      if (lbl) lbl.textContent = prefix;
+    };
+    set('rpmNES', 'Prezzo medio carico ' + _tipoLabel(scheda.tipoNES, 'NES'));
+    set('rpnlNES', 'P&L ' + _tipoLabel(scheda.tipoNES, 'NES'));
+    set('rpmMES', 'Prezzo medio carico ' + _tipoLabel(scheda.tipoMES, 'MES'));
+    set('rpnlMES', 'P&L ' + _tipoLabel(scheda.tipoMES, 'MES'));
+  }
+
+  // Crea (una sola volta) il display "Delta azioni" accanto a "Delta netto".
+  // Sempre visibile: 0,00 quando il mondo azioni è piatto, mai nascosto.
   function _ensureDeltaAzioniUI() {
     var wrap = document.getElementById('deltaAzioniWrap');
     if (wrap) return wrap;
@@ -33,11 +59,6 @@
     if (!wrap) return;
     var e = document.getElementById('payoffDeltaAzioni');
     if (!e) return;
-    if (dAz === 0) {
-      wrap.style.display = 'none';
-      e.textContent = '—';
-      return;
-    }
     wrap.style.display = '';
     e.textContent = formatGreek(dAz, 2);
     e.style.color = dAz >= 0 ? 'var(--green)' : 'var(--red)';
@@ -64,8 +85,7 @@
   }
 
   // Delta netto del SOLO mondo futures, in unità MES (1 MES = 1.0).
-  // Sostituisce la versione di grafico.js, che mescolava anche le azioni
-  // (futures X × 1/5 e opzioni AZIONI × 100/5: unità senza senso per TWS).
+  // Le azioni (futures X e opzioni AZIONI) sono escluse: mondo separato.
   function deltaNettoTotale(scheda, resNES, resMES) {
     let d = 0;
     if (resNES && resNES.qtaNetta !== 0 && resNES.tipo !== 'X') {
@@ -89,11 +109,12 @@
     return d;
   }
 
-  // Wrapper di aggiornaPayoffPreview: gestisce il reset quando spot <= 0
+  // Wrapper di aggiornaPayoffPreview: etichette riepilogo + reset spot <= 0
   var _origAggiornaPayoffPreview = aggiornaPayoffPreview;
   aggiornaPayoffPreview = function (scheda, resNES, resMES) {
+    _aggiornaLabelsRiepilogo();
     const spot = parseFloat(el('prezzoSpot').value) || 0;
-    if (!(spot > 0)) _renderDeltaAzioni(0); // nasconde il display azioni
+    if (!(spot > 0)) _renderDeltaAzioni(0); // mondo azioni a zero
     _origAggiornaPayoffPreview(scheda, resNES, resMES);
   };
 
