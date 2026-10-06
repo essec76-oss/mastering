@@ -1,4 +1,4 @@
-// storage.js — persistenza localStorage, strategie salvate (multi-save), migrazioni e stato di salvataggio
+// storage.js — persistenza localStorage + strategie cloud Supabase
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
   // ============================================================
   // UTILITY
@@ -86,31 +86,79 @@
   }
 
   // ============================================================
-  // STRATEGIE SALVATE: salvataggio multiplo con nome (es. AMZN, AAPL)
+  // SUPABASE CLIENT (opzionale — se non configurato → solo localStorage)
+  // ============================================================
+  let _sbClient = null;
+  function supabaseConfigurato() {
+    return !!(SUPABASE_URL && SUPABASE_ANON_KEY
+      && !SUPABASE_URL.includes('YOUR_')
+      && !SUPABASE_ANON_KEY.includes('YOUR_')
+      && window.supabase && typeof window.supabase.createClient === 'function');
+  }
+  function getSupabase() {
+    if (!supabaseConfigurato()) return null;
+    if (!_sbClient) {
+      _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return _sbClient;
+  }
+
+  // ============================================================
+  // STRATEGIE SALVATE: localStorage + cloud Supabase
   // Ogni strategia è un "dato completo" indipendente: spot, parametri,
   // cash, schede (Matrice + comparazioni) e righe futures/opzioni.
   // ============================================================
   const STORAGE_SALVATI = 'mastering_salvati_v1';
 
-  function leggiSalvati() {
+  function leggiSalvatiLocal() {
     try { return JSON.parse(localStorage.getItem(STORAGE_SALVATI)) || {}; }
     catch (e) { return {}; }
   }
-  function scriviSalvati(map) {
+  function scriviSalvatiLocal(map) {
     localStorage.setItem(STORAGE_SALVATI, JSON.stringify(map));
   }
-  function listaSalvate() {
-    return Object.keys(leggiSalvati()).sort((a, b) => a.localeCompare(b));
+
+  // Elenco nomi: preferisce cloud se configurato, altrimenti locale.
+  async function listaSalvate() {
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { data, error } = await sb
+          .from('strategie')
+          .select('nome, salvato_il, updated_at')
+          .order('nome', { ascending: true });
+        if (error) throw error;
+        // Allinea cache locale (solo metadati leggeri + dati già noti)
+        const map = leggiSalvatiLocal();
+        const nomiCloud = new Set((data || []).map(r => r.nome));
+        // Rimuovi dalla cache nomi non più presenti su cloud
+        Object.keys(map).forEach(n => { if (!nomiCloud.has(n)) delete map[n]; });
+        (data || []).forEach(r => {
+          if (!map[r.nome]) map[r.nome] = { salvatoIl: r.salvato_il || r.updated_at, dati: null };
+          else map[r.nome].salvatoIl = r.salvato_il || r.updated_at || map[r.nome].salvatoIl;
+        });
+        scriviSalvatiLocal(map);
+        return (data || []).map(r => r.nome);
+      } catch (e) {
+        // Fallback locale se rete/schema non pronti
+        return Object.keys(leggiSalvatiLocal()).sort((a, b) => a.localeCompare(b));
+      }
+    }
+    return Object.keys(leggiSalvatiLocal()).sort((a, b) => a.localeCompare(b));
   }
-  function renderListaSalvate() {
+
+  async function renderListaSalvate() {
     const sel = el('listaSalvate');
     if (!sel) return;
-    const nomi = listaSalvate();
+    const nomi = await listaSalvate();
     const corrente = el('nomeStrategia') ? el('nomeStrategia').value.trim() : '';
     sel.innerHTML = '';
     if (!nomi.length) {
       const o = document.createElement('option');
-      o.value = ''; o.textContent = '— nessuna strategia salvata —';
+      o.value = '';
+      o.textContent = supabaseConfigurato()
+        ? '— nessuna strategia in cloud —'
+        : '— nessuna strategia salvata —';
       sel.appendChild(o);
       return;
     }
@@ -122,37 +170,100 @@
     });
   }
 
-  function salvaConNome(nome) {
+  async function salvaConNome(nome) {
     nome = (nome || '').trim();
     const input = el('nomeStrategia');
     if (!nome) { mostraStatus('Inserisci un nome (es. AMZN)', true); if (input) input.focus(); return; }
-    const map = leggiSalvati();
-    if (map[nome] && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
-    map[nome] = { salvatoIl: new Date().toISOString(), dati: raccogliDati() };
-    try {
-      scriviSalvati(map);
-      renderListaSalvate();
+
+    const dati = raccogliDati();
+    const entry = { salvatoIl: new Date().toISOString(), dati: dati };
+
+    // 1) Cache locale sempre
+    const map = leggiSalvatiLocal();
+    if (map[nome] && map[nome].dati && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
+    map[nome] = entry;
+    try { scriviSalvatiLocal(map); }
+    catch (e) { mostraStatus('Errore salvataggio locale', true); return; }
+
+    // 2) Cloud se configurato
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { error } = await sb
+          .from('strategie')
+          .upsert(
+            { nome: nome, dati: dati, salvato_il: entry.salvatoIl },
+            { onConflict: 'nome' }
+          );
+        if (error) throw error;
+        mostraStatus('✓ "' + nome + '" salvata in cloud');
+      } catch (e) {
+        mostraStatus('Salvata in locale; cloud non raggiungibile', true);
+      }
+    } else {
       mostraStatus('✓ Strategia "' + nome + '" salvata');
-    } catch (e) { mostraStatus('Errore salvataggio', true); }
+    }
+    await renderListaSalvate();
   }
 
-  function caricaSalvato(nome) {
-    const entry = leggiSalvati()[nome];
+  async function caricaSalvato(nome) {
+    // Preferisci cloud se configurato
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { data, error } = await sb
+          .from('strategie')
+          .select('nome, dati, salvato_il')
+          .eq('nome', nome)
+          .maybeSingle();
+        if (error) throw error;
+        if (data && data.dati) {
+          applicaDati(data.dati);
+          // Aggiorna cache locale
+          const map = leggiSalvatiLocal();
+          map[nome] = { salvatoIl: data.salvato_il || new Date().toISOString(), dati: data.dati };
+          scriviSalvatiLocal(map);
+          if (el('nomeStrategia')) el('nomeStrategia').value = nome;
+          renderTabs(); renderScheda();
+          await renderListaSalvate();
+          mostraStatus('✓ "' + nome + '" caricata da cloud');
+          return;
+        }
+      } catch (e) {
+        // continua sul fallback locale
+      }
+    }
+
+    const entry = leggiSalvatiLocal()[nome];
     if (!entry || !entry.dati) { mostraStatus('Strategia non trovata', true); return; }
     applicaDati(entry.dati);
     if (el('nomeStrategia')) el('nomeStrategia').value = nome;
-    renderTabs(); renderScheda(); renderListaSalvate();
+    renderTabs(); renderScheda();
+    await renderListaSalvate();
     mostraStatus('✓ "' + nome + '" caricata');
   }
 
-  function eliminaSalvato(nome) {
+  async function eliminaSalvato(nome) {
     if (!nome) return;
     if (!confirm('Eliminare la strategia salvata "' + nome + '"?\n\n(Il lavoro corrente a video non cambia.)')) return;
-    const map = leggiSalvati();
+
+    const map = leggiSalvatiLocal();
     delete map[nome];
-    scriviSalvati(map);
-    renderListaSalvate();
-    mostraStatus('✓ "' + nome + '" eliminata');
+    scriviSalvatiLocal(map);
+
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { error } = await sb.from('strategie').delete().eq('nome', nome);
+        if (error) throw error;
+        mostraStatus('✓ "' + nome + '" eliminata da cloud');
+      } catch (e) {
+        mostraStatus('Eliminata in locale; cloud non aggiornato', true);
+      }
+    } else {
+      mostraStatus('✓ "' + nome + '" eliminata');
+    }
+    await renderListaSalvate();
   }
 
   // ============================================================
