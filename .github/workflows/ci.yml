@@ -69,6 +69,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
+          # CONTROLLO AGGIUNTO: verifica che il file esista prima di leggerlo
+          if [ ! -f /tmp/lint-output.txt ]; then
+            echo "Nessun output di lint trovato (probabile errore di sintassi a monte)."
+            exit 0
+          fi
+          
           node <<'NODE' > /tmp/mapped.txt
           const fs = require('fs');
           const order = ['config.js','matematica.js','futures.js','opzioni.js','render-futures.js','render-opzioni.js','grafico.js','calcola-tutto.js','schede.js','storage.js','eventi.js','main.js'];
