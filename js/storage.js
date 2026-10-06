@@ -1,4 +1,4 @@
-// storage.js — persistenza localStorage, strategie salvate (multi-save), migrazioni e stato di salvataggio
+// storage.js — persistenza localStorage + strategie cloud Supabase
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
   // ============================================================
   // UTILITY
@@ -86,7 +86,7 @@
   }
 
   // ============================================================
-  // SUPABASE — Step 1: solo connessione (nessun salvataggio cloud ancora)
+  // SUPABASE — client + test connessione (Step 1)
   // ============================================================
   let _sbClient = null;
 
@@ -105,10 +105,6 @@
     return _sbClient;
   }
 
-  // Prova una SELECT leggera sulla tabella strategie.
-  // - non configurato → silenzioso
-  // - ok → messaggio verde
-  // - errore → messaggio rosso con dettaglio
   async function testaConnessioneSupabase() {
     if (!supabaseConfigurato()) return;
     const sb = getSupabase();
@@ -128,32 +124,47 @@
   }
 
   // ============================================================
-  // STRATEGIE SALVATE: salvataggio multiplo con nome (es. AMZN, AAPL)
-  // Ogni strategia è un "dato completo" indipendente: spot, parametri,
-  // cash, schede (Matrice + comparazioni) e righe futures/opzioni.
-  // (Step 1: ancora solo localStorage — cloud nello step successivo)
+  // STRATEGIE SALVATE — Step 2: cloud Supabase + cache localStorage
   // ============================================================
   const STORAGE_SALVATI = 'mastering_salvati_v1';
 
-  function leggiSalvati() {
+  function leggiSalvatiLocal() {
     try { return JSON.parse(localStorage.getItem(STORAGE_SALVATI)) || {}; }
     catch (e) { return {}; }
   }
-  function scriviSalvati(map) {
+  function scriviSalvatiLocal(map) {
     localStorage.setItem(STORAGE_SALVATI, JSON.stringify(map));
   }
-  function listaSalvate() {
-    return Object.keys(leggiSalvati()).sort((a, b) => a.localeCompare(b));
+
+  async function listaSalvate() {
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { data, error } = await sb
+          .from('strategie')
+          .select('nome')
+          .order('nome', { ascending: true });
+        if (error) throw error;
+        return (data || []).map(r => r.nome);
+      } catch (e) {
+        return Object.keys(leggiSalvatiLocal()).sort((a, b) => a.localeCompare(b));
+      }
+    }
+    return Object.keys(leggiSalvatiLocal()).sort((a, b) => a.localeCompare(b));
   }
-  function renderListaSalvate() {
+
+  async function renderListaSalvate() {
     const sel = el('listaSalvate');
     if (!sel) return;
-    const nomi = listaSalvate();
+    const nomi = await listaSalvate();
     const corrente = el('nomeStrategia') ? el('nomeStrategia').value.trim() : '';
     sel.innerHTML = '';
     if (!nomi.length) {
       const o = document.createElement('option');
-      o.value = ''; o.textContent = '— nessuna strategia salvata —';
+      o.value = '';
+      o.textContent = getSupabase()
+        ? '— nessuna strategia in cloud —'
+        : '— nessuna strategia salvata —';
       sel.appendChild(o);
       return;
     }
@@ -165,37 +176,103 @@
     });
   }
 
-  function salvaConNome(nome) {
+  async function salvaConNome(nome) {
     nome = (nome || '').trim();
     const input = el('nomeStrategia');
     if (!nome) { mostraStatus('Inserisci un nome (es. AMZN)', true); if (input) input.focus(); return; }
-    const map = leggiSalvati();
-    if (map[nome] && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
-    map[nome] = { salvatoIl: new Date().toISOString(), dati: raccogliDati() };
-    try {
-      scriviSalvati(map);
-      renderListaSalvate();
+
+    const dati = raccogliDati();
+    const salvatoIl = new Date().toISOString();
+
+    // Cache locale
+    const map = leggiSalvatiLocal();
+    const esisteLocale = !!(map[nome] && map[nome].dati);
+    let esisteCloud = false;
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { data } = await sb.from('strategie').select('nome').eq('nome', nome).maybeSingle();
+        esisteCloud = !!(data && data.nome);
+      } catch (e) { /* ignore */ }
+    }
+    if ((esisteLocale || esisteCloud) && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
+
+    map[nome] = { salvatoIl: salvatoIl, dati: dati };
+    try { scriviSalvatiLocal(map); }
+    catch (e) { mostraStatus('Errore salvataggio locale', true); return; }
+
+    if (sb) {
+      try {
+        const { error } = await sb
+          .from('strategie')
+          .upsert({ nome: nome, dati: dati, salvato_il: salvatoIl }, { onConflict: 'nome' });
+        if (error) throw error;
+        mostraStatus('✓ "' + nome + '" salvata in cloud');
+      } catch (e) {
+        mostraStatus('Salvata in locale; cloud non raggiungibile', true);
+      }
+    } else {
       mostraStatus('✓ Strategia "' + nome + '" salvata');
-    } catch (e) { mostraStatus('Errore salvataggio', true); }
+    }
+    await renderListaSalvate();
   }
 
-  function caricaSalvato(nome) {
-    const entry = leggiSalvati()[nome];
+  async function caricaSalvato(nome) {
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { data, error } = await sb
+          .from('strategie')
+          .select('nome, dati, salvato_il')
+          .eq('nome', nome)
+          .maybeSingle();
+        if (error) throw error;
+        if (data && data.dati) {
+          applicaDati(data.dati);
+          const map = leggiSalvatiLocal();
+          map[nome] = { salvatoIl: data.salvato_il || new Date().toISOString(), dati: data.dati };
+          scriviSalvatiLocal(map);
+          if (el('nomeStrategia')) el('nomeStrategia').value = nome;
+          renderTabs(); renderScheda();
+          await renderListaSalvate();
+          mostraStatus('✓ "' + nome + '" caricata da cloud');
+          return;
+        }
+      } catch (e) {
+        // fallback locale
+      }
+    }
+
+    const entry = leggiSalvatiLocal()[nome];
     if (!entry || !entry.dati) { mostraStatus('Strategia non trovata', true); return; }
     applicaDati(entry.dati);
     if (el('nomeStrategia')) el('nomeStrategia').value = nome;
-    renderTabs(); renderScheda(); renderListaSalvate();
+    renderTabs(); renderScheda();
+    await renderListaSalvate();
     mostraStatus('✓ "' + nome + '" caricata');
   }
 
-  function eliminaSalvato(nome) {
+  async function eliminaSalvato(nome) {
     if (!nome) return;
     if (!confirm('Eliminare la strategia salvata "' + nome + '"?\n\n(Il lavoro corrente a video non cambia.)')) return;
-    const map = leggiSalvati();
+
+    const map = leggiSalvatiLocal();
     delete map[nome];
-    scriviSalvati(map);
-    renderListaSalvate();
-    mostraStatus('✓ "' + nome + '" eliminata');
+    scriviSalvatiLocal(map);
+
+    const sb = getSupabase();
+    if (sb) {
+      try {
+        const { error } = await sb.from('strategie').delete().eq('nome', nome);
+        if (error) throw error;
+        mostraStatus('✓ "' + nome + '" eliminata da cloud');
+      } catch (e) {
+        mostraStatus('Eliminata in locale; cloud non aggiornato', true);
+      }
+    } else {
+      mostraStatus('✓ "' + nome + '" eliminata');
+    }
+    await renderListaSalvate();
   }
 
   // ============================================================
