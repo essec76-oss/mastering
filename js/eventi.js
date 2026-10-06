@@ -85,8 +85,10 @@
   el('btnSalva').addEventListener('click', () => salva(false));
   el('btnReset').addEventListener('click', reset);
 
-  // Strategie salvate: salvataggio multiplo con nome + export/import file
-  if (el('btnSalvaCome')) el('btnSalvaCome').addEventListener('click', () => salvaConNome(el('nomeStrategia').value));
+  // Strategie salvate: localStorage + cloud Supabase (async)
+  if (el('btnSalvaCome')) el('btnSalvaCome').addEventListener('click', () => {
+    salvaConNome(el('nomeStrategia').value);
+  });
   if (el('btnCaricaSalvato')) el('btnCaricaSalvato').addEventListener('click', () => {
     const v = el('listaSalvate').value;
     if (v) caricaSalvato(v);
