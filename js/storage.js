@@ -58,7 +58,6 @@
 
   // Applica un oggetto dati (corrente, salvato o importato) ai controlli della pagina
   function applicaDati(dati) {
-      const dati = JSON.parse(raw);
       if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
       if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
       if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
