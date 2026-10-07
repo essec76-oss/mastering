@@ -49,7 +49,7 @@
   </div>
   <div class="param-group">
     <span class="label">Cash €</span>
-    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati: premi incassati a scadenza o P&amp;L realizzati di righe opzione cancellate/disattivate. Entra nel TOTALE FUTURES TWS, nei totali AT NOW / A SCADENZA e nel grafico payoff.">
+    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati manualmente: premi incassati a scadenza, P&amp;L realizzati fuori dal tool. Entra nel TOTALE FUTURES TWS, nei totali AT NOW / A SCADENZA e nel grafico payoff.">
     <input type="checkbox" id="cashEscludi" class="toggle-on" title="Spunta per escludere il cash dai conteggi (simulazione)">
     <label for="cashEscludi" class="cash-escludi-label" title="Se spuntato, il cash NON entra nei totali TWS, AT NOW / A SCADENZA e nel grafico payoff (simulazione)">Escludi cash</label>
   </div>
@@ -84,6 +84,7 @@
           <tr>
             <th title="Escludi dai conteggi">☑</th>
             <th></th>
+            <th title="Apri/chiudi la posizione">Stato</th>
             <th>Pos</th>
             <th>Q.tà</th>
             <th>Prezzo</th>
@@ -130,6 +131,7 @@
           <tr>
             <th title="Escludi dai conteggi">☑</th>
             <th></th>
+            <th title="Apri/chiudi la posizione">Stato</th>
             <th>Pos</th>
             <th>Q.tà</th>
             <th>Prezzo</th>
@@ -163,18 +165,18 @@
   <div class="options-header">
     <div class="title-wrap">
       <span class="title">Opzioni</span>
-      <select id="strumentoOpzioni" title="Strumento della scheda opzioni: MES (×5), ES (×50) o AZIONI (×100). Ogni strumento ha le sue righe e la scheda resta dormiente se vuota: non è eliminabile.">
+      <select id="strumentoOpzioni" title="Strumento della scheda opzioni: MES (×5), ES (×50) o AZIONI (×100).">
         <option value="MES" selected>MES</option>
         <option value="ES">ES</option>
         <option value="AZIONI">AZIONI</option>
       </select>
       <div class="param-group">
         <span class="label">Vol ATM %</span>
-        <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP (probabilità di profitto), bande ±1σ/±2σ del grafico e curve Now">
+        <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP, bande ±1σ/±2σ del grafico e curve Now">
       </div>
       <div class="param-group">
         <span class="label">Div %</span>
-        <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato dal modello Black-Scholes con r e q per le opzioni su AZIONI. Per MES/ES (opzioni su futures, Black-76) non si applica.">
+        <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
       </div>
     </div>
     <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
@@ -183,7 +185,7 @@
         <span class="value" id="pnlOpzioni">0,00</span>
       </div>
       <div class="pnl-opz">
-        <span class="label" title="Delta di posizione in contratti (q.tà × delta × segno). Non include il moltiplicatore dello strumento.">Delta tot</span>
+        <span class="label" title="Delta di posizione in contratti (q.tà × delta × segno). Non include il moltiplicatore.">Delta tot</span>
         <span class="value" id="greeksDelta" style="font-size:14px;">—</span>
       </div>
       <div class="pnl-opz">
@@ -219,17 +221,17 @@
           <th>Pos</th><th>Tipo</th><th>Q.tà</th>
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
           <th title="Giorni alla scadenza dalla data analisi">GG</th>
-          <th title="ATM/OTM/ITM + distanza in σ (Vol ATM, DTE)">M/S</th>
+          <th title="ATM/OTM/ITM + distanza in σ">M/S</th>
           <th>Teorico</th>
           <th title="Delta di posizione in contratti (q.tà × Δ × segno). Non include il moltiplicatore.">Delta</th>
           <th title="Gamma di posizione in contratti">Gamma</th>
           <th title="Vega di posizione in contratti">Vega</th>
           <th title="Theta di posizione in contratti">Theta</th>
-          <th title="Valore intrinseco: max(S−K, 0) per call, max(K−S, 0) per put">V. Intr</th>
-          <th title="Valore temporale: teorico − valore intrinseco">V. Temp</th>
-          <th title="Probabilità che il sottostante tocchi lo strike prima della scadenza della gamba (usa la vol della gamba)">P. Tocco</th>
-          <th title="P&amp;L della riga a scadenza della gamba opzioni più corta (metodo calendar: le gambe più lunghe valgono il teorico col tempo residuo)">P&amp;L Scad.</th>
-          <th title="P&amp;L attuale mark-to-market: (teorico − premio) × dir × q.tà × molt.">P&amp;L</th>
+          <th title="Valore intrinseco">V. Intr</th>
+          <th title="Valore temporale">V. Temp</th>
+          <th title="Probabilità di tocco dello strike">P. Tocco</th>
+          <th title="P&amp;L della riga a scadenza della gamba più corta">P&amp;L Scad.</th>
+          <th title="P&amp;L attuale mark-to-market">P&amp;L</th>
           <th title="Debit/Credit: premio × q.tà × moltiplicatore">Deb/Cred</th>
         </tr>
       </thead>
@@ -269,7 +271,7 @@
     <span id="popZoneWrap" style="display:inline-flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted);" title="Probabilità di profitto nelle zone delimitate dai breakeven (lognormale, Vol ATM, orizzonte prima scadenza)"></span>
     <label style="display:inline-flex; gap:5px; align-items:center; cursor:pointer;">
       <input type="checkbox" id="showSigma" title="Spunta per nascondere le deviazioni standard dal grafico"> Dev. std
-      <select id="nSD" class="small" style="width:auto; padding:2px 4px; font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico attorno allo spot: step = spot × Vol ATM × √T del POP">
+      <select id="nSD" class="small" style="width:auto; padding:2px 4px; font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
         <option value="1">1° SD</option>
         <option value="2" selected>2° SD</option>
         <option value="3">3° SD</option>
