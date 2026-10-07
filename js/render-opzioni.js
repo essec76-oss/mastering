@@ -1,4 +1,4 @@
-// render-opzioni.js — render opzioni: greche, colonne extra e P&L combinato
+// render-opzioni.js — render opzioni: greche, colonne extra, riga Totali
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
   // ============================================================
   // OPZIONI RENDER
@@ -7,11 +7,6 @@
     if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
-  // Formato adattivo per le greche di POSIZIONE (in unità di contratto).
-  // I valori ora spaziano tipicamente tra 0 e qualche unità per i futures
-  // (1 lotto = delta unitario × q.tà), fino a centinaia per le AZIONI
-  // (convenzione TWS: 100 azioni = 1,00): decimali min/max evitano sia la
-  // perdita di precisione sia gli zeri in coda inutili.
   function formatGreekAuto(v, minDig, maxDig) {
     if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: minDig, maximumFractionDigits: maxDig });
@@ -31,11 +26,7 @@
     ggCell.style.color = gg < 0 ? 'var(--red)' : (gg <= 7 ? 'var(--yellow)' : 'var(--muted)');
   }
 
-  // Aggiorna le celle aggiuntive della riga opzione (V. Intr, V. Temp,
-  // P. Tocco, P&L Scad., Deb/Cred) — le stesse colonne della gamba opzioni
-  // del Calcolatore Payoff, calcolate col metodo già usato dal file:
-  // intrinseco/teorico dal modello dello strumento (BS per AZIONI, Black-76
-  // per MES/ES), P&L Scad. alla prima scadenza della scheda (metodo calendar).
+  // Aggiorna le celle aggiuntive della riga opzione
   function aggiornaExtraOpzione(tr, opz) {
     const setG = (f, val, dig) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -59,18 +50,15 @@
       return;
     }
 
-    // Valori dal modello (price/intrinsic già calcolati dalle greche)
     const g = calcolaGrecheOpzione(opz);
     setG('intrinseco', g.intrinsic, 2);
     setG('temporale', (isFinite(g.price) && isFinite(g.intrinsic)) ? g.price - g.intrinsic : NaN, 2);
 
-    // Probabilità di tocco dello strike (come nel Calcolatore Payoff)
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const volFrac = (parseFloat(opz.vol) || 0) / 100;
     const T = (g && isFinite(g.T)) ? Math.max(0, g.T) : 0;
     setPct('tocco', touchProbability(spot, opz.strike, volFrac, T));
 
-    // P&L a scadenza della riga (metodo calendar della scheda attiva)
     const sc = tr.querySelector('[data-field="pnlScad"]');
     if (sc) {
       const pnlScad = pnlOpzioneAt(spot, opz, 'expiry', firstExpiryOpzioni(schedaAttiva()));
@@ -79,9 +67,20 @@
       sc.classList.add(pnlScad >= 0 ? 'green' : 'red');
     }
 
-    // Debit/Credit: premio × q.tà × moltiplicatore (senza segno di posizione)
+    // Debit/Credit: premio × q.tà × moltiplicatore (senza segno di posizione).
+    // Se premio vuoto: usa il teorico corrente per coerenza con P&L.
+    const premioEff = premioEffettivo(opz, spot);
     const dc = tr.querySelector('[data-field="debitcredit"]');
-    if (dc) dc.textContent = formatEuro((opz.premio || 0) * (opz.qta || 0) * moltOpz(opz));
+    if (dc) dc.textContent = formatEuro(premioEff * (opz.qta || 0) * moltOpz(opz));
+  }
+
+  // Prezzo di carico effettivo: premio scritto, altrimenti teorico corrente.
+  // Usata per P&L now, P&L Scad., Debit/Credit.
+  function premioEffettivo(opz, spot) {
+    if (opz.premio && opz.premio !== 0) return opz.premio;
+    if (!(spot > 0)) return 0;
+    const g = calcolaGrecheOpzione(opz);
+    return isFinite(g.price) ? g.price : 0;
   }
 
   function aggiornaRigaOpzione(idx) {
@@ -99,7 +98,6 @@
       tdPnl.classList.add(pnl >= 0 ? 'green' : 'red');
     }
 
-    // Giorni residui (dipende da scadenza e data analisi)
     aggiornaGiorniResidui(tr, opz);
     aggiornaMoneyness(tr, opz);
 
@@ -108,7 +106,6 @@
       if (cell) cell.textContent = formatGreek(val, dig);
     };
 
-    // Greche e teorico solo se attiva e aperta (altrimenti '—')
     if (opz.attivo === false || opz.stato === 'CHIUSA') {
       ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
       aggiornaExtraOpzione(tr, opz);
@@ -120,10 +117,7 @@
     const qta = opz.qta || 0;
 
     setG('[data-field="teorico"]', g.price, 2);
-
-    // Greche di posizione in UNITÀ DI CONTRATTO (delta × q.tà × segno).
-    // Il moltiplicatore dello strumento NON viene più applicato: i valori
-    // sono confrontabili con la colonna Delta di TWS (delta per contratto).
+    // Greche di posizione in UNITÀ DI CONTRATTO (mai × moltiplicatore).
     const setPos = (f, v, minD, maxD) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
       if (cell) cell.textContent = formatGreekAuto(v, minD, maxD);
@@ -135,7 +129,6 @@
     aggiornaExtraOpzione(tr, opz);
   }
 
-  // Strumento selezionato nel menu a tendina dell'header (MES / ES / AZIONI)
   function strumentoOpzSelezionato() {
     const sel = el('strumentoOpzioni');
     return sel ? sel.value : 'MES';
@@ -147,15 +140,13 @@
     const strumentoSel = strumentoOpzSelezionato();
     const opzioniScheda = schedaAttiva().opzioni;
     opzioniScheda.forEach((opz, idx) => {
-      // Mostra solo le opzioni dello strumento selezionato:
-      // le altre restano salvate e dormienti, pronte quando le richiami
       if ((opz.strumento || 'MES') !== strumentoSel) return;
       const tr = document.createElement('tr');
       tr.dataset.idx = idx;
       if (opz.attivo === false) tr.classList.add('row-off');
       if (opz.stato === 'CHIUSA') tr.classList.add('row-chiusa');
 
-      // A
+      // A (checkbox)
       const tdA = document.createElement('td');
       tdA.dataset.label = '';
       const inA = document.createElement('input');
@@ -170,14 +161,14 @@
       });
       tdA.appendChild(inA); tr.appendChild(tdA);
 
-      // Stato (APERTA / CHIUSA) — click per commutare
+      // Stato
       const tdStato = document.createElement('td');
       tdStato.dataset.label = 'Stato';
       const btnStato = document.createElement('button');
       const isChiusa = opz.stato === 'CHIUSA';
       btnStato.className = 'btn-stato' + (isChiusa ? ' chiusa' : '');
       btnStato.textContent = isChiusa ? 'CHIUSA' : 'APERTA';
-      btnStato.title = 'Clicca per aprire/chiudere la posizione: se CHIUSA il P&L = 0, il realizzato va annotato nel box Cash in alto';
+      btnStato.title = 'Clicca per aprire/chiudere la posizione';
       btnStato.addEventListener('click', () => {
         opzioniScheda[idx].stato = opzioniScheda[idx].stato === 'CHIUSA' ? 'APERTA' : 'CHIUSA';
         renderOpzioni();
@@ -228,7 +219,7 @@
       });
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
 
-      // K
+      // Strike
       const tdK = document.createElement('td');
       tdK.dataset.label = 'Strike';
       const inK = document.createElement('input');
@@ -245,6 +236,7 @@
       tdPremio.dataset.label = 'Premio';
       const inPremio = document.createElement('input');
       inPremio.type = 'number'; inPremio.step = '0.05'; inPremio.value = opz.premio || '';
+      inPremio.placeholder = '';
       inPremio.addEventListener('input', e => {
         const v = e.target.value;
         opzioniScheda[idx].premio = v === '' ? 0 : (parseFloat(v) || 0);
@@ -277,7 +269,7 @@
       });
       tdScad.appendChild(inScad); tr.appendChild(tdScad);
 
-      // GG residui (data analisi → scadenza)
+      // GG
       const tdGG = document.createElement('td');
       tdGG.dataset.label = 'GG';
       const spanGG = document.createElement('span');
@@ -287,7 +279,7 @@
       tdGG.appendChild(spanGG); tr.appendChild(tdGG);
       aggiornaGiorniResidui(tr, opz);
 
-      // Moneyness: ATM/OTM/ITM + distanza in σ (Vol ATM)
+      // M/S
       const tdMS = document.createElement('td');
       tdMS.dataset.label = 'M/S';
       const wrapMS = document.createElement('div');
@@ -302,7 +294,7 @@
       tdMS.appendChild(wrapMS); tr.appendChild(tdMS);
       aggiornaMoneyness(tr, opz);
 
-      // Teorico (readonly)
+      // Teorico
       const tdTeorico = document.createElement('td');
       tdTeorico.dataset.label = 'Teorico';
       const spanTeorico = document.createElement('span');
@@ -347,7 +339,7 @@
       spanTheta.style.fontVariantNumeric = 'tabular-nums';
       tdTheta.appendChild(spanTheta); tr.appendChild(tdTheta);
 
-      // Valore intrinseco (come la gamba opzioni del Calcolatore Payoff)
+      // V. Intr
       const tdVintr = document.createElement('td');
       tdVintr.dataset.label = 'V. Intr';
       const spanVintr = document.createElement('span');
@@ -356,7 +348,7 @@
       spanVintr.style.fontVariantNumeric = 'tabular-nums';
       tdVintr.appendChild(spanVintr); tr.appendChild(tdVintr);
 
-      // Valore temporale (teorico − intrinseco)
+      // V. Temp
       const tdVtemp = document.createElement('td');
       tdVtemp.dataset.label = 'V. Temp';
       const spanVtemp = document.createElement('span');
@@ -365,7 +357,7 @@
       spanVtemp.style.fontVariantNumeric = 'tabular-nums';
       tdVtemp.appendChild(spanVtemp); tr.appendChild(tdVtemp);
 
-      // Probabilità di tocco dello strike
+      // P. Tocco
       const tdTocco = document.createElement('td');
       tdTocco.dataset.label = 'P. Tocco';
       const spanTocco = document.createElement('span');
@@ -374,7 +366,7 @@
       spanTocco.style.fontVariantNumeric = 'tabular-nums';
       tdTocco.appendChild(spanTocco); tr.appendChild(tdTocco);
 
-      // P&L a scadenza della gamba più corta (metodo calendar)
+      // P&L Scad.
       const tdPnlScad = document.createElement('td');
       tdPnlScad.className = 'pnl-riga td-pnl';
       tdPnlScad.dataset.label = 'P&L Scad.';
@@ -389,7 +381,7 @@
       tdPnl.dataset.label = 'P&L';
       tr.appendChild(tdPnl);
 
-      // Debit/Credit (premio × q.tà × moltiplicatore)
+      // Deb/Cred
       const tdDebCred = document.createElement('td');
       tdDebCred.dataset.label = 'Deb/Cred';
       const spanDebCred = document.createElement('span');
@@ -399,14 +391,93 @@
 
       tbody.appendChild(tr);
     });
+
+    // ───── RIGA "Totali" in fondo alla tabella ─────
+    // Prime 12 celle vuote (☑, Stato, DEL, Pos, Tipo, Q.tà, Strike, Premio,
+    // Vol%, Scadenza, GG, M/S) → l'etichetta "Totali" va nella colonna Teorico.
+    const trTot = document.createElement('tr');
+    trTot.className = 'row-totali-opz';
+    for (let i = 0; i < 12; i++) trTot.appendChild(document.createElement('td'));
+    // Etichetta "Totali" (colonna Teorico)
+    const tdLabel = document.createElement('td');
+    tdLabel.textContent = 'Totali';
+    tdLabel.style.textAlign = 'right';
+    tdLabel.style.fontWeight = '700';
+    tdLabel.style.color = 'var(--purple)';
+    trTot.appendChild(tdLabel);
+    // Delta totale
+    const tdTotDelta = document.createElement('td');
+    const spDelta = document.createElement('span');
+    spDelta.id = 'greeksDelta';
+    spDelta.textContent = '—';
+    spDelta.style.fontVariantNumeric = 'tabular-nums';
+    tdTotDelta.appendChild(spDelta); trTot.appendChild(tdTotDelta);
+    // Gamma totale
+    const tdTotGamma = document.createElement('td');
+    const spGamma = document.createElement('span');
+    spGamma.id = 'greeksGamma';
+    spGamma.textContent = '—';
+    spGamma.style.fontVariantNumeric = 'tabular-nums';
+    tdTotGamma.appendChild(spGamma); trTot.appendChild(tdTotGamma);
+    // Vega totale
+    const tdTotVega = document.createElement('td');
+    const spVega = document.createElement('span');
+    spVega.id = 'greeksVega';
+    spVega.textContent = '—';
+    spVega.style.fontVariantNumeric = 'tabular-nums';
+    tdTotVega.appendChild(spVega); trTot.appendChild(tdTotVega);
+    // Theta totale
+    const tdTotTheta = document.createElement('td');
+    const spTheta = document.createElement('span');
+    spTheta.id = 'greeksTheta';
+    spTheta.textContent = '—';
+    spTheta.style.fontVariantNumeric = 'tabular-nums';
+    tdTotTheta.appendChild(spTheta); trTot.appendChild(tdTotTheta);
+    // V. Intr (vuota)
+    trTot.appendChild(document.createElement('td'));
+    // V. Temp (vuota)
+    trTot.appendChild(document.createElement('td'));
+    // P. Tocco (vuota)
+    trTot.appendChild(document.createElement('td'));
+    // P&L Scad. totale
+    const tdTotPnlScad = document.createElement('td');
+    tdTotPnlScad.className = 'pnl-riga td-pnl';
+    const spPnlScad = document.createElement('span');
+    spPnlScad.id = 'pnlOpzScadTot';
+    spPnlScad.textContent = '—';
+    spPnlScad.style.fontVariantNumeric = 'tabular-nums';
+    tdTotPnlScad.appendChild(spPnlScad); trTot.appendChild(tdTotPnlScad);
+    // P&L now totale (id riusato: pnlOpzioni)
+    const tdTotPnl = document.createElement('td');
+    tdTotPnl.className = 'pnl-riga td-pnl';
+    const spPnl = document.createElement('span');
+    spPnl.id = 'pnlOpzioni';
+    spPnl.textContent = '—';
+    spPnl.style.fontVariantNumeric = 'tabular-nums';
+    tdTotPnl.appendChild(spPnl); trTot.appendChild(tdTotPnl);
+    // Deb/Cred totale
+    const tdTotDebCred = document.createElement('td');
+    const spDebCred = document.createElement('span');
+    spDebCred.id = 'pnlOpzDebCredTot';
+    spDebCred.textContent = '—';
+    spDebCred.style.fontVariantNumeric = 'tabular-nums';
+    tdTotDebCred.appendChild(spDebCred); trTot.appendChild(tdTotDebCred);
+
+    tbody.appendChild(trTot);
+
     aggiornaPnlOpzioni();
   }
 
   function aggiornaPnlOpzioni() {
     const tbody = el('bodyOpzioni');
     let totDelta = 0, totGamma = 0, totVega = 0, totTheta = 0;
+    let totPnlScad = 0, totPnlNow = 0, totDebCred = 0;
+
+    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const firstExp = firstExpiryOpzioni(schedaAttiva());
 
     tbody.querySelectorAll('tr').forEach((tr) => {
+      if (tr.classList.contains('row-totali-opz')) return; // salta la riga Totali
       const idx = Number(tr.dataset.idx);
       const opz = schedaAttiva().opzioni[idx];
       if (!opz) return;
@@ -425,7 +496,6 @@
         }
       }
 
-      // Giorni residui (dipendono dalla data analisi)
       aggiornaGiorniResidui(tr, opz);
       aggiornaMoneyness(tr, opz);
       aggiornaExtraOpzione(tr, opz);
@@ -435,19 +505,23 @@
         if (cell) cell.textContent = formatGreek(val, dig);
       };
 
-      // Greche solo se attiva e aperta
       if (opz.attivo !== false && opz.stato !== 'CHIUSA') {
         const g = calcolaGrecheOpzione(opz);
         const segno = opz.pos === 'SELL' ? -1 : 1;
         const qta = opz.qta || 0;
-        // Greche di posizione in UNITÀ DI CONTRATTO (segno × q.tà × greca).
-        // Il moltiplicatore dello strumento NON viene applicato: i valori
-        // sono per contratto e confrontabili tra MES/ES/AZIONI senza scale.
-        // input incompleti → NaN: esclusi dai totali, '—' a video
+        // Greche di posizione in UNITÀ DI CONTRATTO (mai × moltiplicatore)
         if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
         if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
         if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
         if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
+
+        // Totali P&L Scad., P&L now, Deb/Cred
+        const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
+        if (isFinite(ps)) totPnlScad += ps;
+        const pn = calcolaPnlOpzione(opz);
+        if (isFinite(pn)) totPnlNow += pn;
+        const premioEff = premioEffettivo(opz, spot);
+        totDebCred += Math.abs(premioEff * qta * moltOpz(opz));
 
         setG('[data-field="teorico"]', g.price, 2);
         const setPos = (f, v, minD, maxD) => {
@@ -463,9 +537,12 @@
       }
     });
 
-    // Aggiorna totali greche in header (unità di contratto, senza ×molt)
+    // Scrivi i totali nella riga in fondo (unità di contratto)
     el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
     el('greeksGamma').textContent = formatGreekAuto(totGamma, 2, 4);
     el('greeksVega').textContent  = formatGreekAuto(totVega, 2, 3);
     el('greeksTheta').textContent = formatGreekAuto(totTheta, 2, 3);
+    el('pnlOpzScadTot').textContent = formatEuro(totPnlScad);
+    el('pnlOpzioni').textContent = formatEuro(totPnlNow);
+    el('pnlOpzDebCredTot').textContent = formatEuro(totDebCred);
   }
