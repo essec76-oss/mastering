@@ -1,36 +1,43 @@
 // config.js — costanti, moltiplicatori, stato iniziale e helper DOM
 // Parte di Mastering: l'ordine di caricamento dei moduli è definito in index.html.
 
+// v24 — Commissioni: attive SOLO su NES. Tutti gli altri strumenti
+//   (MES, ES, X e opzioni MES/ES/AZIONI) sono simulati commission-free:
+//   P&L lordo. Obiettivo: isolare il costo commissionale sul Nano E-mini.
 // v23 — futures X (azioni): moltiplicatore ×1 (q.tà 1 = 1 singola azione).
 //   Le OPZIONI AZIONI restano ×100 (MOLTIPLICATORI_OPZ): un contratto di
 //   opzione muove sempre 100 azioni, quindi 100 q.tà di futures X coprono
-//   1 contratto di opzione. Commissioni su azioni rimosse (fee 0).
-//   Il file è stato ricostruito: il canale di download precedente introduceva
-//   interruzioni di riga spurie nel testo (vedi commit che rompevano il CI).
+//   1 contratto di opzione.
 // Changelog precedente (v22 e precedenti): consultare la cronologia git.
 
 // Moltiplicatori futures: X = azioni, q.tà 1 = 1 singola azione (molt. 1).
 const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 1 };
 
-// Commissioni per lato (apertura o chiusura), in $ per contratto.
-const FEE_FUTURES_LATO = 1.205; // NES / MES / ES
-const FEE_STOCK_LATO   = 0;     // X (azioni): nessuna fee
-const FEE_OPTION_LATO  = 1.00;  // opzioni MES / ES / AZIONI
+// Whitelist commissioni futures: solo NES paga fee in questa simulazione.
+const STRUMENTI_CON_COMMISSIONI = ['NES'];
 
-// Moltiplicatori opzioni (retrocompatibilità): un contratto eq. muove 100 azioni.
+// Commissioni per lato (apertura o chiusura), in $ per contratto.
+const FEE_FUTURES_LATO = 1.205; // NES
+const FEE_OPTION_LATO  = 1.00;  // mantenuta per retrocompatibilità, non più usata
+
+// Moltiplicatori opzioni: un contratto eq. muove 100 azioni.
 const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
 function moltOpz(opz) { return MOLTIPLICATORI_OPZ[(opz && opz.strumento) || 'MES']; }
 
 function commissioniAttive() {
   return !!(el('commissioniOn') && el('commissioniOn').checked);
 }
+// Fee futures per lato: 0 se il toggle è spento, 0 se lo strumento non
+// è in whitelist (MES / ES / X), altrimenti FEE_FUTURES_LATO (NES).
 function feeLatoFuture(tipo) {
   if (!commissioniAttive()) return 0;
-  if (tipo === 'X') return FEE_STOCK_LATO;
+  if (!STRUMENTI_CON_COMMISSIONI.includes(tipo)) return 0;
   return FEE_FUTURES_LATO;
 }
+// Fee opzioni per lato: sempre 0 (le opzioni del tool sono MES/ES/AZIONI,
+// mai NES: nessuno strumento opzionabile paga commissioni in questa sim).
 function feeLatoOpzione() {
-  return commissioniAttive() ? FEE_OPTION_LATO : 0;
+  return 0;
 }
 
 const STORAGE_KEY = 'mastering_v20';
