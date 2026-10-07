@@ -18,7 +18,8 @@ const STRUMENTI_CON_COMMISSIONI = ['NES'];
 
 // Commissioni per lato (apertura o chiusura), in $ per contratto.
 const FEE_FUTURES_LATO = 1.205; // NES
-const FEE_OPTION_LATO  = 1.00;  // mantenuta per retrocompatibilità, non più usata
+// FEE_OPTION_LATO non più usata: le opzioni sono commission-free in questa sim.
+// const FEE_OPTION_LATO = 1.00;
 
 // Moltiplicatori opzioni: un contratto eq. muove 100 azioni.
 const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
@@ -33,6 +34,10 @@ function feeLatoFuture(tipo) {
   if (!commissioniAttive()) return 0;
   if (!STRUMENTI_CON_COMMISSIONI.includes(tipo)) return 0;
   return FEE_FUTURES_LATO;
+}
+// Alias usato da futures.js per la whitelist (retrocompatibile).
+function feeLatoFutureAttiva(tipo) {
+  return feeLatoFuture(tipo);
 }
 // Fee opzioni per lato: sempre 0 (le opzioni del tool sono MES/ES/AZIONI,
 // mai NES: nessuno strumento opzionabile paga commissioni in questa sim).
@@ -49,7 +54,7 @@ const SUPABASE_URL = 'https://twulifdttpamrmjvpwia.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_AlJOIOMpTdqBA43Ugcd1Lg_V70uVRXP';
 
 // Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette
-const PALETTE_COMP = ['#f97316', '#22d3ee', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
+const PALETTE_COMP = ['#f97316', '#22d3e8', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
 function coloreScheda(i) { return i === 0 ? '#ffffff' : PALETTE_COMP[(i - 1) % PALETTE_COMP.length]; }
 
 // Una scheda = uno scenario completo (futures NES/MES + opzioni).
