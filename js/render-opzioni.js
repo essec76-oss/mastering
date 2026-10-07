@@ -17,6 +17,17 @@
     return v.toLocaleString('it-IT', { minimumFractionDigits: minDig, maximumFractionDigits: maxDig });
   }
 
+  // Prezzo di carico effettivo di un'opzione:
+  //  - se opz.premio è scritto → usa quello
+  //  - se è vuoto/0 → usa il teorico corrente (fallback "premio auto")
+  // Coerente con pnlOpzioneAt in grafico.js: premio vuoto → prezzo di carico
+  // = valore corrente, quindi P&L = 0 (mark-to-market puro).
+  function premioEffettivo(opz) {
+    if (opz.premio && opz.premio !== 0) return opz.premio;
+    const g = calcolaGrecheOpzione(opz);
+    return isFinite(g.price) ? g.price : 0;
+  }
+
   // Aggiorna la cella GG residui di una riga opzione
   function aggiornaGiorniResidui(tr, opz) {
     const ggCell = tr.querySelector('[data-field="gg"]');
@@ -32,10 +43,7 @@
   }
 
   // Aggiorna le celle aggiuntive della riga opzione (V. Intr, V. Temp,
-  // P. Tocco, P&L Scad., Deb/Cred) — le stesse colonne della gamba opzioni
-  // del Calcolatore Payoff, calcolate col metodo già usato dal file:
-  // intrinseco/teorico dal modello dello strumento (BS per AZIONI, Black-76
-  // per MES/ES), P&L Scad. alla prima scadenza della scheda (metodo calendar).
+  // P. Tocco, P&L Scad., Deb/Cred)
   function aggiornaExtraOpzione(tr, opz) {
     const setG = (f, val, dig) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -79,9 +87,10 @@
       sc.classList.add(pnlScad >= 0 ? 'green' : 'red');
     }
 
-    // Debit/Credit: premio × q.tà × moltiplicatore (senza segno di posizione)
+    // Debit/Credit: premio effettivo × q.tà × moltiplicatore (senza segno di posizione).
+    // Se il premio è vuoto, usa il teorico corrente (coerente con pnlOpzioneAt).
     const dc = tr.querySelector('[data-field="debitcredit"]');
-    if (dc) dc.textContent = formatEuro((opz.premio || 0) * (opz.qta || 0) * moltOpz(opz));
+    if (dc) dc.textContent = formatEuro(premioEffettivo(opz) * (opz.qta || 0) * moltOpz(opz));
   }
 
   function aggiornaRigaOpzione(idx) {
@@ -122,7 +131,7 @@
     setG('[data-field="teorico"]', g.price, 2);
 
     // Greche di posizione in UNITÀ DI CONTRATTO (delta × q.tà × segno).
-    // Il moltiplicatore dello strumento NON viene più applicato: i valori
+    // Il moltiplicatore dello strumento NON viene applicato: i valori
     // sono confrontabili con la colonna Delta di TWS (delta per contratto).
     const setPos = (f, v, minD, maxD) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -405,6 +414,10 @@
   function aggiornaPnlOpzioni() {
     const tbody = el('bodyOpzioni');
     let totDelta = 0, totGamma = 0, totVega = 0, totTheta = 0;
+    let totPnlScad = 0, totPnlNow = 0, totDebCred = 0;
+
+    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const firstExp = firstExpiryOpzioni(schedaAttiva());
 
     tbody.querySelectorAll('tr').forEach((tr) => {
       const idx = Number(tr.dataset.idx);
@@ -449,6 +462,13 @@
         if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
         if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
 
+        // Totali P&L Scad., P&L now, Deb/Cred (al netto del premio effettivo)
+        const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
+        if (isFinite(ps)) totPnlScad += ps;
+        const pn = calcolaPnlOpzione(opz);
+        if (isFinite(pn)) totPnlNow += pn;
+        totDebCred += premioEffettivo(opz) * qta * moltOpz(opz);
+
         setG('[data-field="teorico"]', g.price, 2);
         const setPos = (f, v, minD, maxD) => {
           const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -463,9 +483,12 @@
       }
     });
 
-    // Aggiorna totali greche in header (unità di contratto, senza ×molt)
+    // Aggiorna totali in header (7 blocchi .pnl-opz)
     el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
     el('greeksGamma').textContent = formatGreekAuto(totGamma, 2, 4);
     el('greeksVega').textContent  = formatGreekAuto(totVega, 2, 3);
     el('greeksTheta').textContent = formatGreekAuto(totTheta, 2, 3);
+    el('pnlOpzioni').textContent  = formatEuro(totPnlNow);
+    el('pnlOpzScadTot').textContent = formatEuro(totPnlScad);
+    el('pnlOpzDebCredTot').textContent = formatEuro(totDebCred);
   }
