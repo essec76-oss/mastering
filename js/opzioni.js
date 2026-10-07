@@ -6,8 +6,9 @@
   // P&L di una singola opzione:
   // - disattivata → 0
   // - CHIUSA → 0 (il realizzato va annotato nel box Cash in alto)
-  // - APERTA → mark-to-market: (teorico − premio) × side × qta × 5
-  //   Coerente con la curva "Now" del grafico e con il balance IBKR.
+  // - APERTA → mark-to-market: (teorico − premio) × side × qta × molt
+  //   Se premio vuoto/0: usa il TEORICO CORRENTE come prezzo di carico
+  //   (P&L now = 0 → coerente con "opzione non ancora caricata a prezzo fisso")
   function calcolaPnlOpzione(opz) {
     if (opz.attivo === false) return 0;
     if (opz.stato === 'CHIUSA') return 0;
