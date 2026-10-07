@@ -1,15 +1,15 @@
 // futures.js — calcolo colonna futures: prezzo medio e P&L
 // Modello: ogni riga ha uno stato APERTA / CHIUSA.
 //  - APERTE: formano la posizione netta (delta, P&L aperto, media carico)
-//  - CHIUSE: P&L realizzato congelato (calcolato contro la media di carico
-//    corrente delle APERTE al momento della chiusura), scalano le APERTE.
+//  - CHIUSE: P&L realizzato congelato contro la media di carico corrente
+//    delle APERTE, scalano le APERTE. Il P&L realizzato entra nei totali
+//    e nel grafico (via pnlFutureApertoAt in grafico.js).
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
 //
 // NOTA: STRUMENTI_CON_COMMISSIONI e feeLatoFutureAttiva() sono definiti in
 // config.js e condivisi da tutti i moduli. NON ridichiararli qui.
 
   function calcolaColonna(scheda, col) {
-    // ... (il resto del file è identico)
     const movimenti = scheda[col];
     const tipo = scheda['tipo' + col];
 
@@ -21,18 +21,69 @@
     const molt = MOLTIPLICATORI[tipo];
     const spot = parseFloat(el('prezzoSpot').value) || 0;
 
-    let qtaNetta = 0, sommaPulitaPesata = 0, qtaAssolutaCorrente = 0, pnlRealizzatoTot = 0;
+    let qtaNetta = 0;
+    let sommaPulitaPesata = 0;
+    let qtaAssolutaCorrente = 0;
+    let pnlRealizzatoTot = 0;
 
     const righe = movimenti.map(m => ({
       tipo: 'vuota', qOriginale: m.quantita || 0, prezzo: m.prezzoPulito || 0,
-      direzione: m.direzione, qAperta: 0, qChiusa: 0, mediaIngresso: 0,
+      direzione: m.direzione, stato: m.stato || 'APERTA',
+      qAperta: 0, qChiusa: 0, mediaIngresso: 0,
       pnlRealizzato: 0, pnlAperto: 0, pnlTotale: 0
     }));
 
-    const fifo = [];
+    function mediaCorrente() {
+      if (qtaAssolutaCorrente === 0) return 0;
+      return sommaPulitaPesata / qtaAssolutaCorrente;
+    }
+
+    // Applica una chiusura: P&L realizzato + fee round-trip.
+    // Ritorna il P&L realizzato prodotto dalla parte di chiusura.
+    function applicaChiusura(qta, prezzoUscita) {
+      const media = mediaCorrente();
+      const qChiusa = Math.min(qta, qtaAssolutaCorrente);
+      if (qChiusa === 0) return 0;
+      const segnoAperta = Math.sign(qtaNetta) || 1;
+      const pnlRea = (prezzoUscita - media) * qChiusa * segnoAperta * molt;
+      const feeRt = feeLatoFutureAttiva(tipo) * 2 * qChiusa;
+      return pnlRea - feeRt;
+    }
+
+    // Riduce il pool APERTE di `qta` (in valore assoluto)
+    function riduciPool(qta) {
+      let da = qta;
+      while (da > 0 && qtaAssolutaCorrente > 0) {
+        const qRid = Math.min(da, qtaAssolutaCorrente);
+        const frazione = qRid / qtaAssolutaCorrente;
+        sommaPulitaPesata *= (1 - frazione);
+        qtaAssolutaCorrente -= qRid;
+        qtaNetta = (qtaNetta > 0 ? 1 : -1) * qtaAssolutaCorrente;
+        da -= qRid;
+      }
+    }
+
+    function aggiungiPool(qta, prezzo, segno) {
+      const qtaConSegno = segno * qta;
+      if (qtaNetta === 0 || Math.sign(qtaNetta) === segno) {
+        sommaPulitaPesata += prezzo * qta;
+        qtaAssolutaCorrente += qta;
+        qtaNetta += qtaConSegno;
+      } else {
+        const qChiusa = Math.min(qta, Math.abs(qtaNetta));
+        const pnl = applicaChiusura(qChiusa, prezzo);
+        pnlRealizzatoTot += pnl;
+        riduciPool(qChiusa);
+        const qResidua = qta - qChiusa;
+        if (qResidua > 0) {
+          sommaPulitaPesata = prezzo * qResidua;
+          qtaAssolutaCorrente = qResidua;
+          qtaNetta = segno * qResidua;
+        }
+      }
+    }
 
     movimenti.forEach((m, idx) => {
-      // Riga disattivata: esclusa da FIFO, P&L, media e payoff
       if (m.attivo === false) {
         righe[idx].tipo = 'off';
         return;
@@ -40,77 +91,41 @@
       const q = m.quantita || 0;
       const prezzo = m.prezzoPulito || 0;
       const segno = m.direzione === 'LONG' ? 1 : -1;
-      const qtaConSegno = segno * q;
+      const stato = m.stato || 'APERTA';
+      righe[idx].stato = stato;
       if (q === 0) return;
 
-      const segnoPos = Math.sign(qtaNetta);
-
-      if (segnoPos === 0 || segnoPos === segno) {
-        // APERTURA
+      if (stato === 'CHIUSA') {
+        righe[idx].tipo = 'chiusura';
+        const media = mediaCorrente();
+        righe[idx].mediaIngresso = media;
+        const qChiusa = Math.min(q, qtaAssolutaCorrente);
+        const qResidua = q - qChiusa;
+        if (qChiusa > 0) {
+          const pnlRea = applicaChiusura(qChiusa, prezzo);
+          righe[idx].pnlRealizzato = pnlRea;
+          righe[idx].qChiusa = qChiusa;
+          pnlRealizzatoTot += pnlRea;
+          riduciPool(qChiusa);
+        }
+        if (qResidua > 0) {
+          righe[idx].tipo = 'mista';
+          righe[idx].qAperta = qResidua;
+          aggiungiPool(qResidua, prezzo, segno);
+        }
+      } else {
         righe[idx].tipo = 'apertura';
         righe[idx].qAperta = q;
-        fifo.push({ rowIdx: idx, qta: q, prezzo, segno });
-
-        qtaNetta += qtaConSegno;
-        sommaPulitaPesata += prezzo * q;
-        qtaAssolutaCorrente += q;
-      } else {
-        // CHIUSURA
-        righe[idx].tipo = 'chiusura';
-        const mediaIngresso = qtaAssolutaCorrente > 0
-          ? sommaPulitaPesata / qtaAssolutaCorrente : 0;
-        const qtaChiusa = Math.min(Math.abs(qtaConSegno), Math.abs(qtaNetta));
-        const qtaApre = q - qtaChiusa;
-
-        // Commissione round-trip sulla quantità chiusa (apertura + chiusura)
-        const feeRt = feeLatoFuture(tipo) * 2;
-        const pnlRea = (prezzo - mediaIngresso) * qtaChiusa * segnoPos * molt
-                     - feeRt * qtaChiusa;
-        righe[idx].pnlRealizzato = pnlRea;
-        righe[idx].qChiusa = qtaChiusa;
-        righe[idx].mediaIngresso = mediaIngresso;
-
-        pnlRealizzatoTot += pnlRea;
-
-        let daChiudere = qtaChiusa;
-        while (daChiudere > 0 && fifo.length > 0) {
-          const f = fifo[0];
-          const qc = Math.min(daChiudere, f.qta);
-          f.qta -= qc;
-          righe[f.rowIdx].qAperta -= qc;
-          righe[f.rowIdx].qChiusa += qc;
-          daChiudere -= qc;
-          if (f.qta === 0) fifo.shift();
-        }
-
-        if (qtaApre > 0) {
-          righe[idx].qAperta = qtaApre;
-          righe[idx].tipo = 'mista';
-          fifo.push({ rowIdx: idx, qta: qtaApre, prezzo, segno });
-        }
-
-        const vecchioSegno = segnoPos;
-        qtaNetta += qtaConSegno;
-        if (qtaNetta === 0) { sommaPulitaPesata = 0; qtaAssolutaCorrente = 0; }
-        else if (Math.sign(qtaNetta) !== vecchioSegno) {
-          sommaPulitaPesata = prezzo * Math.abs(qtaNetta);
-          qtaAssolutaCorrente = Math.abs(qtaNetta);
-        } else {
-          const frazione = Math.abs(qtaNetta) / qtaAssolutaCorrente;
-          sommaPulitaPesata *= frazione;
-          qtaAssolutaCorrente = Math.abs(qtaNetta);
-        }
+        aggiungiPool(q, prezzo, segno);
       }
     });
 
-    // Posizioni aperte: commissione di apertura già pagata (1 lato)
-    const feeAperto = feeLatoFuture(tipo);
+    const feeAperto = feeLatoFutureAttiva(tipo);
     let pnlApertoTot = 0;
     righe.forEach(r => {
       if (r.qAperta > 0) {
         const segno = r.direzione === 'LONG' ? 1 : -1;
-        const pnlLive = (spot - r.prezzo) * r.qAperta * segno * molt
-                      - feeAperto * r.qAperta;
+        const pnlLive = (spot - r.prezzo) * r.qAperta * segno * molt - feeAperto * r.qAperta;
         r.pnlAperto = pnlLive;
         pnlApertoTot += pnlLive;
       }
