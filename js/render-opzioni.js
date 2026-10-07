@@ -7,28 +7,21 @@
     if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
-  // Formato adattivo per le greche di POSIZIONE (in unità di contratto).
-  // I valori ora spaziano tipicamente tra 0 e qualche unità per i futures
-  // (1 lotto = delta unitario × q.tà), fino a centinaia per le AZIONI
-  // (convenzione TWS: 100 azioni = 1,00): decimali min/max evitano sia la
-  // perdita di precisione sia gli zeri in coda inutili.
   function formatGreekAuto(v, minDig, maxDig) {
     if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: minDig, maximumFractionDigits: maxDig });
   }
 
-  // Prezzo di carico effettivo di un'opzione:
-  //  - se opz.premio è scritto → usa quello
-  //  - se è vuoto/0 → usa il teorico corrente (fallback "premio auto")
-  // Coerente con pnlOpzioneAt in grafico.js: premio vuoto → prezzo di carico
-  // = valore corrente, quindi P&L = 0 (mark-to-market puro).
+  // Prezzo di carico effettivo: premio scritto, altrimenti teorico allo spot
+  // corrente (fotografato). Coerente con premioCarico() in grafico.js.
   function premioEffettivo(opz) {
     if (opz.premio && opz.premio !== 0) return opz.premio;
+    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    if (!(spot > 0)) return 0;
     const g = calcolaGrecheOpzione(opz);
     return isFinite(g.price) ? g.price : 0;
   }
 
-  // Aggiorna la cella GG residui di una riga opzione
   function aggiornaGiorniResidui(tr, opz) {
     const ggCell = tr.querySelector('[data-field="gg"]');
     if (!ggCell) return;
@@ -42,8 +35,6 @@
     ggCell.style.color = gg < 0 ? 'var(--red)' : (gg <= 7 ? 'var(--yellow)' : 'var(--muted)');
   }
 
-  // Aggiorna le celle aggiuntive della riga opzione (V. Intr, V. Temp,
-  // P. Tocco, P&L Scad., Deb/Cred)
   function aggiornaExtraOpzione(tr, opz) {
     const setG = (f, val, dig) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -67,18 +58,15 @@
       return;
     }
 
-    // Valori dal modello (price/intrinsic già calcolati dalle greche)
     const g = calcolaGrecheOpzione(opz);
     setG('intrinseco', g.intrinsic, 2);
     setG('temporale', (isFinite(g.price) && isFinite(g.intrinsic)) ? g.price - g.intrinsic : NaN, 2);
 
-    // Probabilità di tocco dello strike (come nel Calcolatore Payoff)
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const volFrac = (parseFloat(opz.vol) || 0) / 100;
     const T = (g && isFinite(g.T)) ? Math.max(0, g.T) : 0;
     setPct('tocco', touchProbability(spot, opz.strike, volFrac, T));
 
-    // P&L a scadenza della riga (metodo calendar della scheda attiva)
     const sc = tr.querySelector('[data-field="pnlScad"]');
     if (sc) {
       const pnlScad = pnlOpzioneAt(spot, opz, 'expiry', firstExpiryOpzioni(schedaAttiva()));
@@ -87,8 +75,6 @@
       sc.classList.add(pnlScad >= 0 ? 'green' : 'red');
     }
 
-    // Debit/Credit: premio effettivo × q.tà × moltiplicatore (senza segno di posizione).
-    // Se il premio è vuoto, usa il teorico corrente (coerente con pnlOpzioneAt).
     const dc = tr.querySelector('[data-field="debitcredit"]');
     if (dc) dc.textContent = formatEuro(premioEffettivo(opz) * (opz.qta || 0) * moltOpz(opz));
   }
@@ -108,7 +94,6 @@
       tdPnl.classList.add(pnl >= 0 ? 'green' : 'red');
     }
 
-    // Giorni residui (dipende da scadenza e data analisi)
     aggiornaGiorniResidui(tr, opz);
     aggiornaMoneyness(tr, opz);
 
@@ -117,7 +102,6 @@
       if (cell) cell.textContent = formatGreek(val, dig);
     };
 
-    // Greche e teorico solo se attiva e aperta (altrimenti '—')
     if (opz.attivo === false || opz.stato === 'CHIUSA') {
       ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
       aggiornaExtraOpzione(tr, opz);
@@ -130,9 +114,6 @@
 
     setG('[data-field="teorico"]', g.price, 2);
 
-    // Greche di posizione in UNITÀ DI CONTRATTO (delta × q.tà × segno).
-    // Il moltiplicatore dello strumento NON viene applicato: i valori
-    // sono confrontabili con la colonna Delta di TWS (delta per contratto).
     const setPos = (f, v, minD, maxD) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
       if (cell) cell.textContent = formatGreekAuto(v, minD, maxD);
@@ -144,7 +125,6 @@
     aggiornaExtraOpzione(tr, opz);
   }
 
-  // Strumento selezionato nel menu a tendina dell'header (MES / ES / AZIONI)
   function strumentoOpzSelezionato() {
     const sel = el('strumentoOpzioni');
     return sel ? sel.value : 'MES';
@@ -156,8 +136,6 @@
     const strumentoSel = strumentoOpzSelezionato();
     const opzioniScheda = schedaAttiva().opzioni;
     opzioniScheda.forEach((opz, idx) => {
-      // Mostra solo le opzioni dello strumento selezionato:
-      // le altre restano salvate e dormienti, pronte quando le richiami
       if ((opz.strumento || 'MES') !== strumentoSel) return;
       const tr = document.createElement('tr');
       tr.dataset.idx = idx;
@@ -179,7 +157,7 @@
       });
       tdA.appendChild(inA); tr.appendChild(tdA);
 
-      // Stato (APERTA / CHIUSA) — click per commutare
+      // Stato
       const tdStato = document.createElement('td');
       tdStato.dataset.label = 'Stato';
       const btnStato = document.createElement('button');
@@ -286,7 +264,7 @@
       });
       tdScad.appendChild(inScad); tr.appendChild(tdScad);
 
-      // GG residui (data analisi → scadenza)
+      // GG
       const tdGG = document.createElement('td');
       tdGG.dataset.label = 'GG';
       const spanGG = document.createElement('span');
@@ -296,7 +274,7 @@
       tdGG.appendChild(spanGG); tr.appendChild(tdGG);
       aggiornaGiorniResidui(tr, opz);
 
-      // Moneyness: ATM/OTM/ITM + distanza in σ (Vol ATM)
+      // M/S
       const tdMS = document.createElement('td');
       tdMS.dataset.label = 'M/S';
       const wrapMS = document.createElement('div');
@@ -311,7 +289,7 @@
       tdMS.appendChild(wrapMS); tr.appendChild(tdMS);
       aggiornaMoneyness(tr, opz);
 
-      // Teorico (readonly)
+      // Teorico
       const tdTeorico = document.createElement('td');
       tdTeorico.dataset.label = 'Teorico';
       const spanTeorico = document.createElement('span');
@@ -356,7 +334,7 @@
       spanTheta.style.fontVariantNumeric = 'tabular-nums';
       tdTheta.appendChild(spanTheta); tr.appendChild(tdTheta);
 
-      // Valore intrinseco (come la gamba opzioni del Calcolatore Payoff)
+      // V. Intr
       const tdVintr = document.createElement('td');
       tdVintr.dataset.label = 'V. Intr';
       const spanVintr = document.createElement('span');
@@ -365,7 +343,7 @@
       spanVintr.style.fontVariantNumeric = 'tabular-nums';
       tdVintr.appendChild(spanVintr); tr.appendChild(tdVintr);
 
-      // Valore temporale (teorico − intrinseco)
+      // V. Temp
       const tdVtemp = document.createElement('td');
       tdVtemp.dataset.label = 'V. Temp';
       const spanVtemp = document.createElement('span');
@@ -374,7 +352,7 @@
       spanVtemp.style.fontVariantNumeric = 'tabular-nums';
       tdVtemp.appendChild(spanVtemp); tr.appendChild(tdVtemp);
 
-      // Probabilità di tocco dello strike
+      // P. Tocco
       const tdTocco = document.createElement('td');
       tdTocco.dataset.label = 'P. Tocco';
       const spanTocco = document.createElement('span');
@@ -383,7 +361,7 @@
       spanTocco.style.fontVariantNumeric = 'tabular-nums';
       tdTocco.appendChild(spanTocco); tr.appendChild(tdTocco);
 
-      // P&L a scadenza della gamba più corta (metodo calendar)
+      // P&L Scad.
       const tdPnlScad = document.createElement('td');
       tdPnlScad.className = 'pnl-riga td-pnl';
       tdPnlScad.dataset.label = 'P&L Scad.';
@@ -398,7 +376,7 @@
       tdPnl.dataset.label = 'P&L';
       tr.appendChild(tdPnl);
 
-      // Debit/Credit (premio × q.tà × moltiplicatore)
+      // Deb/Cred
       const tdDebCred = document.createElement('td');
       tdDebCred.dataset.label = 'Deb/Cred';
       const spanDebCred = document.createElement('span');
@@ -438,7 +416,6 @@
         }
       }
 
-      // Giorni residui (dipendono dalla data analisi)
       aggiornaGiorniResidui(tr, opz);
       aggiornaMoneyness(tr, opz);
       aggiornaExtraOpzione(tr, opz);
@@ -448,21 +425,15 @@
         if (cell) cell.textContent = formatGreek(val, dig);
       };
 
-      // Greche solo se attiva e aperta
       if (opz.attivo !== false && opz.stato !== 'CHIUSA') {
         const g = calcolaGrecheOpzione(opz);
         const segno = opz.pos === 'SELL' ? -1 : 1;
         const qta = opz.qta || 0;
-        // Greche di posizione in UNITÀ DI CONTRATTO (segno × q.tà × greca).
-        // Il moltiplicatore dello strumento NON viene applicato: i valori
-        // sono per contratto e confrontabili tra MES/ES/AZIONI senza scale.
-        // input incompleti → NaN: esclusi dai totali, '—' a video
         if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
         if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
         if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
         if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
 
-        // Totali P&L Scad., P&L now, Deb/Cred (al netto del premio effettivo)
         const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
         if (isFinite(ps)) totPnlScad += ps;
         const pn = calcolaPnlOpzione(opz);
@@ -483,7 +454,6 @@
       }
     });
 
-    // Aggiorna totali in header (7 blocchi .pnl-opz)
     el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
     el('greeksGamma').textContent = formatGreekAuto(totGamma, 2, 4);
     el('greeksVega').textContent  = formatGreekAuto(totVega, 2, 3);
