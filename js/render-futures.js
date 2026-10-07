@@ -1,24 +1,12 @@
-// render-futures.js — render righe futures/azioni: come le opzioni
-// Ogni riga: nascondi, DEL, BUY/SELL, Q.tà, Prezzo, Delta, P&L.
-// Header compatto: solo @ prezzo medio (la q.tà netta sta nel footer).
-// Footer sotto le righe: Q.tà netta + Delta (dinamico sul tipo) + P&L.
+// render-futures.js — render righe futures/azioni con stato APERTA/CHIUSA
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
 
-  // ============================================================
-  // RENDER
-  // ============================================================
-  // Etichetta leggibile del tipo colonna: X → AZIONI, altrimenti il tipo
-  // (NES / MES / ES) oppure il nome della colonna se il tipo è '-'.
   function _tipoLabelCol(tipo, col) {
     if (tipo === 'X') return 'AZIONI';
     if (!tipo || tipo === '-') return col;
     return tipo;
   }
 
-  // Delta di posizione della singola riga, in unità del tipo selezionato.
-  //  - futures (NES/MES/ES): valore in "MES-equivalenti" per uniformare
-  //    il confronto (1 MES = 1.0; 1 ES = 10; 1 NES = 0.1).
-  //  - azioni (X): NaN, gestito a parte dal footer (convenzione TWS).
   function deltaRiga(info, tipo) {
     if (!info || !(info.qAperta > 0)) return NaN;
     if (tipo === 'X') return NaN;
@@ -28,16 +16,12 @@
     return segno * info.qAperta * (molt / MOLTIPLICATORI.MES);
   }
 
-  // Riepilogo in header (solo @ prezzo) e footer (q.tà netta + delta + P&L).
-  // Manteniamo la firma renderRigaTotale(col, res) usata da calcola-tutto.js.
   function renderRigaTotale(col, res) {
-    // --- Header: solo @ prezzo medio (q.tà netta rimossa: sta nel footer) ---
     const prezzoEl = el('csPrezzo' + col);
     if (prezzoEl) {
       prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
     }
 
-    // --- Footer: Q.tà netta residua ---
     const qnEl = el('qtaNetta' + col);
     if (qnEl) {
       if (!res.qtaNetta) {
@@ -50,9 +34,6 @@
       }
     }
 
-    // --- Footer: Delta con etichetta dinamica sul tipo selezionato ---
-    //  - X (AZIONI):  delta in convenzione TWS (100 az = 1.00) → "Delta azioni"
-    //  - NES/MES/ES:  delta in MES-equivalenti                   → "Delta NES/MES/ES"
     const dEl = el('deltaAzCol' + col);
     const dLabelEl = el('deltaLabel' + col);
     if (dEl) {
@@ -81,7 +62,6 @@
       }
     }
 
-    // --- Footer: P&L (spostato dall'header) ---
     const pnlEl = el('csPnl' + col);
     if (pnlEl) {
       const p = res.pnlTotale || 0;
@@ -90,8 +70,6 @@
     }
   }
 
-  // Aggiorna le celle Delta e P&L delle righe e il riepilogo (senza
-  // re-render, per non perdere il focus sugli input mentre si digita)
   function aggiornaCalcolati(col) {
     const scheda = schedaAttiva();
     const res = calcolaColonna(scheda, col);
@@ -146,11 +124,12 @@
     scheda[col].forEach((mov, idx) => {
       const info = res.righe[idx] || { tipo: 'vuota', qAperta: 0, qChiusa: 0, pnlTotale: 0 };
       const tr = document.createElement('tr');
-      if (info.tipo === 'chiusura') tr.classList.add('row-chiusura');
+      const isChiusa = (mov.stato || 'APERTA') === 'CHIUSA';
+      if (isChiusa) tr.classList.add('row-chiusa');
       const isOn = mov.attivo !== false;
       if (!isOn) tr.classList.add('row-off');
 
-      // Nascondi (toggle): esclude la riga dai conteggi
+      // Nascondi (toggle)
       const tdAtt = document.createElement('td');
       tdAtt.dataset.label = 'Nascondi';
       const inAtt = document.createElement('input');
@@ -179,7 +158,21 @@
       });
       tdDel.appendChild(btnDel); tr.appendChild(tdDel);
 
-      // Pos (BUY / SELL) — internamente resta LONG/SHORT
+      // Stato: bottone APERTA / CHIUSA
+      const tdStato = document.createElement('td');
+      tdStato.dataset.label = 'Stato';
+      const btnStato = document.createElement('button');
+      btnStato.className = 'btn-stato' + (isChiusa ? ' chiusa' : '');
+      btnStato.textContent = isChiusa ? 'CHIUSA' : 'APERTA';
+      btnStato.title = 'Clicca per aprire/chiudere: se CHIUSA il P&L realizzato viene congelato e la riga non partecipa più al delta';
+      btnStato.addEventListener('click', () => {
+        scheda[col][idx].stato = scheda[col][idx].stato === 'CHIUSA' ? 'APERTA' : 'CHIUSA';
+        renderMovimenti(col);
+        calcolaTutto();
+      });
+      tdStato.appendChild(btnStato); tr.appendChild(tdStato);
+
+      // Pos
       const tdPos = document.createElement('td');
       tdPos.dataset.label = 'Pos';
       const selPos = document.createElement('select');
@@ -204,7 +197,7 @@
       });
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
 
-      // Prezzo nominale
+      // Prezzo
       const tdPrezzo = document.createElement('td');
       tdPrezzo.dataset.label = 'Prezzo';
       const inPrezzo = document.createElement('input');
@@ -219,11 +212,11 @@
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
-      // Delta (in MES-eq. per futures, azioni per X)
+      // Delta
       const tdDelta = document.createElement('td');
       tdDelta.className = 'delta-riga td-delta';
       tdDelta.dataset.label = 'Delta';
-      tdDelta.title = 'Delta di posizione: contratti MES equivalenti (futures: 1 MES = 1.0; 1 ES = 10; 1 NES = 0.1) oppure convenzione TWS (azioni: 100 az = 1,00)';
+      tdDelta.title = 'Delta di posizione (futures: MES-equivalenti; azioni: TWS)';
       if (!isOn) {
         tdDelta.textContent = '—';
         tdDelta.classList.add('muted');
@@ -239,7 +232,7 @@
       }
       tr.appendChild(tdDelta);
 
-      // P&L di riga (aperto + realizzato, commissioni incluse)
+      // P&L
       const tdPnl = document.createElement('td');
       tdPnl.className = 'pnl-riga td-pnl';
       tdPnl.dataset.label = 'P&L';
