@@ -7,10 +7,11 @@
     if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
-  // Formato adattivo per le greche di POSIZIONE (scalate col moltiplicatore
-  // dello strumento): i valori spaziano da frazioni (1 lotto MES ×5) a
-  // centinaia (lotti AZIONI ×100); decimali min/max evitano sia la perdita
-  // di precisione sia gli zeri in coda inutili.
+  // Formato adattivo per le greche di POSIZIONE (in unità di contratto).
+  // I valori ora spaziano tipicamente tra 0 e qualche unità per i futures
+  // (1 lotto = delta unitario × q.tà), fino a centinaia per le AZIONI
+  // (convenzione TWS: 100 azioni = 1,00): decimali min/max evitano sia la
+  // perdita di precisione sia gli zeri in coda inutili.
   function formatGreekAuto(v, minDig, maxDig) {
     if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: minDig, maximumFractionDigits: maxDig });
@@ -119,16 +120,18 @@
     const qta = opz.qta || 0;
 
     setG('[data-field="teorico"]', g.price, 2);
-    // Greche di posizione scalate col moltiplicatore ($/pt, $/pt², $/1% IV, $/gg)
-    const molt = moltOpz(opz);
+
+    // Greche di posizione in UNITÀ DI CONTRATTO (delta × q.tà × segno).
+    // Il moltiplicatore dello strumento NON viene più applicato: i valori
+    // sono confrontabili con la colonna Delta di TWS (delta per contratto).
     const setPos = (f, v, minD, maxD) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
       if (cell) cell.textContent = formatGreekAuto(v, minD, maxD);
     };
-    setPos('delta', segno * qta * g.delta * molt, 2, 3);
-    setPos('gamma', segno * qta * g.gamma * molt, 2, 4);
-    setPos('vega', segno * qta * g.vega * molt, 2, 3);
-    setPos('theta', segno * qta * g.theta * molt, 2, 3);
+    setPos('delta', segno * qta * g.delta, 2, 3);
+    setPos('gamma', segno * qta * g.gamma, 2, 4);
+    setPos('vega',  segno * qta * g.vega,  2, 3);
+    setPos('theta', segno * qta * g.theta, 2, 3);
     aggiornaExtraOpzione(tr, opz);
   }
 
@@ -154,7 +157,7 @@
 
       // A
       const tdA = document.createElement('td');
-      tdA.dataset.label = '';
+      tdA.dataset.label = '';
       const inA = document.createElement('input');
       inA.type = 'checkbox';
       inA.className = 'toggle-on';
@@ -437,35 +440,32 @@
         const g = calcolaGrecheOpzione(opz);
         const segno = opz.pos === 'SELL' ? -1 : 1;
         const qta = opz.qta || 0;
-        // Greche di posizione SCALATE COL MOLTIPLICATORE dello strumento
-        // (MES ×5, ES ×50, AZIONI ×100): sono dollari per punto di movimento
-        // del sottostante, omogenee e sommabili tra strumenti diversi.
-        // Prima si sommavano greche per unità mescolando strumenti non
-        // confrontabili: il totale non aveva unità di senso.
-        const molt = moltOpz(opz);
+        // Greche di posizione in UNITÀ DI CONTRATTO (segno × q.tà × greca).
+        // Il moltiplicatore dello strumento NON viene applicato: i valori
+        // sono per contratto e confrontabili tra MES/ES/AZIONI senza scale.
         // input incompleti → NaN: esclusi dai totali, '—' a video
-        if (isFinite(g.delta)) totDelta += segno * qta * g.delta * molt;
-        if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma * molt;
-        if (isFinite(g.vega)) totVega += segno * qta * g.vega * molt;
-        if (isFinite(g.theta)) totTheta += segno * qta * g.theta * molt;
+        if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
+        if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
+        if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
+        if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
 
         setG('[data-field="teorico"]', g.price, 2);
         const setPos = (f, v, minD, maxD) => {
           const cell = tr.querySelector(`[data-field="${f}"]`);
           if (cell) cell.textContent = formatGreekAuto(v, minD, maxD);
         };
-        setPos('delta', segno * qta * g.delta * molt, 2, 3);
-        setPos('gamma', segno * qta * g.gamma * molt, 2, 4);
-        setPos('vega', segno * qta * g.vega * molt, 2, 3);
-        setPos('theta', segno * qta * g.theta * molt, 2, 3);
+        setPos('delta', segno * qta * g.delta, 2, 3);
+        setPos('gamma', segno * qta * g.gamma, 2, 4);
+        setPos('vega',  segno * qta * g.vega,  2, 3);
+        setPos('theta', segno * qta * g.theta, 2, 3);
       } else {
         ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
       }
     });
 
-    // Aggiorna totali greche in header (Δ $/pt, Γ $/pt², Vega $/1% IV, Θ $/gg)
+    // Aggiorna totali greche in header (unità di contratto, senza ×molt)
     el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
     el('greeksGamma').textContent = formatGreekAuto(totGamma, 2, 4);
-    el('greeksVega').textContent = formatGreekAuto(totVega, 2, 3);
+    el('greeksVega').textContent  = formatGreekAuto(totVega, 2, 3);
     el('greeksTheta').textContent = formatGreekAuto(totTheta, 2, 3);
   }
