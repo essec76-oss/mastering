@@ -3,18 +3,27 @@
   // ============================================================
   // PAYOFF COMBINATO
   // ============================================================
-  // Restituisce il P&L di un singolo future aperto a un prezzo S
+  // P&L di una gamba futures/azioni a un prezzo S: somma del P&L realizzato
+  // (chiusure, già incassato, non dipende da S) e del P&L aperto (mark-to-market
+  // sulla posizione residua). Il realizzato è una traslazione verticale.
   function pnlFutureApertoAt(S, col, res) {
-    if (!res || res.qtaNetta === 0 || isNaN(res.mediaPulita)) return 0;
+    if (!res) return 0;
     const tipo = res.tipo;
     if (!tipo || tipo === '-') return 0;
     const molt = MOLTIPLICATORI[tipo] || 0;
-    const segno = res.qtaNetta > 0 ? 1 : -1;
-    const q = Math.abs(res.qtaNetta);
-    return (S - res.mediaPulita) * q * segno * molt - feeLatoFuture(tipo) * q;
+
+    const pnlRealizzato = res.pnlRealizzato || 0;
+
+    let pnlAperto = 0;
+    if (res.qtaNetta !== 0 && !isNaN(res.mediaPulita)) {
+      const segno = res.qtaNetta > 0 ? 1 : -1;
+      const q = Math.abs(res.qtaNetta);
+      pnlAperto = (S - res.mediaPulita) * q * segno * molt - feeLatoFuture(tipo) * q;
+    }
+
+    return pnlRealizzato + pnlAperto;
   }
 
-  // Prima scadenza (ISO) tra le opzioni ATTIVE e non CHIUSE della scheda.
   function firstExpiryOpzioni(scheda) {
     const today = dataAnalisiDate();
     let minScad = null;
@@ -28,11 +37,7 @@
     return minScad;
   }
 
-  // Prezzo di carico effettivo di un'opzione:
-  //  - se opz.premio è scritto → usa quello (fisso, comanda l'utente)
-  //  - se è vuoto/0 → usa il TEORICO ALLO SPOT CORRENTE (fotografato):
-  //    questo rende il P&L puntuale allo spot = 0, ma la curva del grafico
-  //    (che valuta S variabile) ha forma a V perché il premio resta fisso.
+  // Prezzo di carico effettivo di un'opzione: se premio vuoto → teorico allo spot.
   function premioCarico(opz) {
     if (opz.premio && opz.premio !== 0) return opz.premio;
     const spot = parseFloat(el('prezzoSpot').value) || 0;
@@ -44,11 +49,6 @@
     return teoSpot === null ? 0 : teoSpot;
   }
 
-  // P&L di una singola opzione a un prezzo S
-  // mode = 'expiry' → alla prima scadenza della scheda: le gambe che scadono
-  //   in quella data valgono l'intrinseco; le gambe con scadenza più lunga
-  //   (strategie calendar) valgono il teorico col tempo residuo
-  // mode = 'now'    → prezzo teorico (BS per AZIONI, Black-76 per futures)
   function pnlOpzioneAt(S, opz, mode, firstExpiry) {
     if (opz.attivo === false || opz.stato === 'CHIUSA') return 0;
     const qta = opz.qta || 0;
@@ -88,11 +88,13 @@
     else if (v < 0) inp.classList.add('neg');
   }
 
+  // Cash manuale (annotato dall'utente): entra se non escluso.
   function cashAttivo() {
     const c = (typeof stato.cash === 'number') ? stato.cash : 0;
     return stato.cashEscluso ? 0 : c;
   }
 
+  // P&L combinato a un prezzo S: cash + futures/azioni (realizzato + aperto) + opzioni.
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
     let tot = cashAttivo();
     tot += pnlFutureApertoAt(S, 'NES', resNES);
@@ -125,7 +127,6 @@
     return d;
   }
 
-  // Stato vista grafico (zoom / pan)
   let chartView = {
     xMin: null, xMax: null,
     baseMin: null, baseMax: null,
@@ -452,9 +453,9 @@
     const scheda = schedaAttiva();
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(scheda, col);
-      parts.push(`${res.qtaNetta}:${res.mediaPulita || 0}`);
+      parts.push(`${res.qtaNetta}:${res.mediaPulita || 0}:${res.pnlRealizzato || 0}`);
       (scheda[col] || []).forEach(m => {
-        parts.push(`${m.attivo !== false ? 1 : 0}:${m.direzione}:${m.quantita}:${m.prezzoPulito}`);
+        parts.push(`${m.attivo !== false ? 1 : 0}:${m.direzione}:${m.quantita}:${m.prezzoPulito}:${m.stato || 'APERTA'}`);
       });
     });
     (scheda.opzioni || []).forEach(o => {
