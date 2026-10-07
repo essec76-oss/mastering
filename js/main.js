@@ -6,7 +6,7 @@
   // Mondo FUTURES: delta in unità MES (1 MES = 1.0; 1 ES = 10; 1 NES = 0.1;
   //   opzioni MES/ES contribuiscono col proprio delta × moltiplicatore/5).
   // Mondo AZIONI: convenzione TWS (100 azioni = 1.00; 50 azioni = 0.50;
-  //   1 contratto di opzione = 100 azioni, quindi un opzione con delta 0.50
+  //   1 contratto di opzione = 100 azioni, quindi un'opzione con delta 0.50
   //   conta 0.50). Mai sommato al delta futures: metriche diverse.
   // Nota CI: gli id del display dinamico sono letti con
   // document.getElementById (creati via innerHTML nel wrapper, non in
@@ -15,13 +15,6 @@
   // Versione visibile (verifica deploy): titolo del tab del browser
   function _appVersion() { return 'v24.2'; }
   document.title = 'Mastering — ' + _appVersion();
-
-  // Etichetta leggibile del tipo colonna: X → AZIONI, - → nome colonna
-  function _tipoLabel(tipo, col) {
-    if (tipo === 'X') return 'AZIONI';
-    if (!tipo || tipo === '-') return col;
-    return tipo;
-  }
 
   // Crea (una sola volta) il display "Delta azioni" accanto a "Delta netto".
   // Sempre visibile: 0,00 quando il mondo azioni è piatto, mai nascosto.
@@ -34,8 +27,6 @@
     wrap.id = 'deltaAzioniWrap';
     wrap.style.marginLeft = '8px';
     wrap.innerHTML = 'Delta azioni: <strong id="payoffDeltaAzioni" style="color:var(--text);">—</strong>';
-    // insertBefore con nextSibling del parent è invalido (non è figlio del parent).
-    // Usare Element.after() che inserisce correttamente dopo l'elemento.
     dn.parentElement.after(wrap);
     return wrap;
   }
@@ -70,30 +61,8 @@
     return d;
   }
 
-  // Delta netto del SOLO mondo futures, in unità MES (1 MES = 1.0).
-  // Le azioni (futures X e opzioni AZIONI) sono escluse: mondo separato.
-  function deltaNettoTotale(scheda, resNES, resMES) {
-    let d = 0;
-    if (resNES && resNES.qtaNetta !== 0 && resNES.tipo !== 'X') {
-      const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
-      d += resNES.qtaNetta * (molt / 5); // es. 10 NES long → +1.0 delta MES-eq
-    }
-    if (resMES && resMES.qtaNetta !== 0 && resMES.tipo !== 'X') {
-      const molt = MOLTIPLICATORI[resMES.tipo] || 5;
-      d += resMES.qtaNetta * (molt / 5);
-    }
-    (scheda.opzioni || []).forEach(opz => {
-      if (opz.attivo === false || opz.stato === 'CHIUSA') return;
-      if ((opz.strumento || 'MES') === 'AZIONI') return; // mondo azioni separato
-      const g = calcolaGrecheOpzione(opz);
-      if (!isFinite(g.delta)) return; // input incompleti: nessun contributo
-      const segno = opz.pos === 'SELL' ? -1 : 1;
-      d += segno * (opz.qta || 0) * g.delta * (moltOpz(opz) / 5); // MES-equivalenti
-    });
-    // Aggiorna anche il display separato del delta azioni (stesso punto)
-    _renderDeltaAzioni(deltaAzioniTotale(scheda, resNES, resMES));
-    return d;
-  }
+  // NOTA: deltaNettoTotale() è definita in grafico.js (unica fonte di verità).
+  // Il wrapper aggiorna anche il display separato del delta azioni.
 
   // Wrapper di aggiornaPayoffPreview: reset delta azioni se spot <= 0
   var _origAggiornaPayoffPreview = aggiornaPayoffPreview;
@@ -134,8 +103,8 @@
   const caricato = carica();
   if (!caricato) {
     const spotIniziale = parseFloat(el('prezzoSpot').value) || 7700;
-    stato.schede[0].NES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true });
-    stato.schede[0].MES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true });
+    stato.schede[0].NES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true, stato: 'APERTA' });
+    stato.schede[0].MES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true, stato: 'APERTA' });
   }
 
   renderTabs();
