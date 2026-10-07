@@ -130,4 +130,4 @@
     font-family: var(--font); transition: all 0.15s; white-space: nowrap; }
   .movimenti .btn-stato:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
   .movimenti .btn-stato.chiusa {
-    background: rgba(168, 85, 247, 0
+
