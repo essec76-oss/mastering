@@ -58,8 +58,8 @@
     <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui. Default: data odierna.">
   </div>
   <div class="param-group">
-    <input type="checkbox" id="commissioniOn" class="toggle-on" checked title="Se attivo, le commissioni entrano nei P&amp;L futures/opzioni, nei totali e nel grafico payoff (quindi anche nei BE)">
-    <label for="commissioniOn" class="cash-escludi-label" title="Futures/X: ~1,20 $/contratto per lato. Opzioni: ~1,00 $/contratto per lato. Round-trip sulle chiusure.">Commissioni</label>
+    <input type="checkbox" id="commissioniOn" class="toggle-on" checked title="Se attivo, le commissioni entrano nei P&amp;L futures, nei totali e nel grafico payoff (quindi anche nei BE). Attive solo su NES: MES, ES, X e tutte le opzioni sono commission-free in questa simulazione.">
+    <label for="commissioniOn" class="cash-escludi-label" title="Attive solo su NES: ~1,20 $/contratto per lato, round-trip sulle chiusure. MES, ES, X e opzioni MES/ES/AZIONI: nessuna commissione.">Commissioni (solo NES)</label>
   </div>
 </div>
 
@@ -75,9 +75,7 @@
         <option value="X">AZIONI</option>
       </select>
       <div class="col-summary" id="summaryNES">
-        <span class="cs-qta" id="csQtaNES"><span class="dir-flat">—</span></span>
         <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
-        <span class="cs-pnl muted" id="csPnlNES">0,00</span>
       </div>
     </div>
     <div class="movimenti">
@@ -89,20 +87,24 @@
             <th>Pos</th>
             <th>Q.tà</th>
             <th>Prezzo</th>
-            <th>Delta</th>
+            <th title="Contratti MES equivalenti (1 MES = 1.0; 1 ES = 10; 1 NES = 0.1)">Delta</th>
             <th>P&amp;L</th>
           </tr>
         </thead>
         <tbody id="bodyNES"></tbody>
       </table>
-      <div class="col-footer" title="Quantità netta residua e Delta azioni (convenzione TWS: 100 azioni = 1,00). Il Delta azioni è valorizzato solo se la colonna è impostata su AZIONI.">
-        <div class="cf-item">
+      <div class="col-footer">
+        <div class="cf-item cf-qta">
           <span class="label">Q.tà netta</span>
           <span class="value muted" id="qtaNettaNES">—</span>
         </div>
-        <div class="cf-item">
-          <span class="label">Delta azioni</span>
+        <div class="cf-item cf-delta">
+          <span class="label" id="deltaLabelNES">Delta MES eq.</span>
           <span class="value muted" id="deltaAzColNES">—</span>
+        </div>
+        <div class="cf-item cf-pnl">
+          <span class="label">P&amp;L</span>
+          <span class="value muted" id="csPnlNES">0,00</span>
         </div>
       </div>
       <button class="btn-add" data-col="NES">+ Aggiungi movimento</button>
@@ -119,9 +121,7 @@
         <option value="X">AZIONI</option>
       </select>
       <div class="col-summary" id="summaryMES">
-        <span class="cs-qta" id="csQtaMES"><span class="dir-flat">—</span></span>
         <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
-        <span class="cs-pnl muted" id="csPnlMES">0,00</span>
       </div>
     </div>
     <div class="movimenti">
@@ -133,20 +133,24 @@
             <th>Pos</th>
             <th>Q.tà</th>
             <th>Prezzo</th>
-            <th>Delta</th>
+            <th title="Contratti MES equivalenti (1 MES = 1.0; 1 ES = 10; 1 NES = 0.1)">Delta</th>
             <th>P&amp;L</th>
           </tr>
         </thead>
         <tbody id="bodyMES"></tbody>
       </table>
-      <div class="col-footer" title="Quantità netta residua e Delta azioni (convenzione TWS: 100 azioni = 1,00). Il Delta azioni è valorizzato solo se la colonna è impostata su AZIONI.">
-        <div class="cf-item">
+      <div class="col-footer">
+        <div class="cf-item cf-qta">
           <span class="label">Q.tà netta</span>
           <span class="value muted" id="qtaNettaMES">—</span>
         </div>
-        <div class="cf-item">
-          <span class="label">Delta azioni</span>
+        <div class="cf-item cf-delta">
+          <span class="label" id="deltaLabelMES">Delta MES eq.</span>
           <span class="value muted" id="deltaAzColMES">—</span>
+        </div>
+        <div class="cf-item cf-pnl">
+          <span class="label">P&amp;L</span>
+          <span class="value muted" id="csPnlMES">0,00</span>
         </div>
       </div>
       <button class="btn-add" data-col="MES">+ Aggiungi movimento</button>
@@ -179,19 +183,19 @@
         <span class="value" id="pnlOpzioni">0,00</span>
       </div>
       <div class="pnl-opz">
-        <span class="label" title="Delta di posizione: $ per punto di movimento del sottostante (q.tà × delta × moltiplicatore strumento). Sommabile tra MES, ES e AZIONI.">Delta tot $/pt</span>
+        <span class="label" title="Delta di posizione in contratti (q.tà × delta × segno). Non include il moltiplicatore dello strumento.">Delta tot</span>
         <span class="value" id="greeksDelta" style="font-size:14px;">—</span>
       </div>
       <div class="pnl-opz">
-        <span class="label" title="Gamma di posizione: $ per punto² (q.tà × gamma × moltiplicatore strumento)">Gamma tot $/pt²</span>
+        <span class="label" title="Gamma di posizione in contratti (q.tà × gamma × segno)">Gamma tot</span>
         <span class="value" id="greeksGamma" style="font-size:14px;">—</span>
       </div>
       <div class="pnl-opz">
-        <span class="label" title="Vega di posizione: $ per 1% di volatilità implicita (q.tà × vega × moltiplicatore strumento)">Vega tot $/1%</span>
+        <span class="label" title="Vega di posizione in contratti (q.tà × vega × segno)">Vega tot</span>
         <span class="value" id="greeksVega" style="font-size:14px;">—</span>
       </div>
       <div class="pnl-opz">
-        <span class="label" title="Theta di posizione: $ al giorno (q.tà × theta × moltiplicatore strumento)">Theta tot $/gg</span>
+        <span class="label" title="Theta di posizione in contratti (q.tà × theta × segno)">Theta tot</span>
         <span class="value" id="greeksTheta" style="font-size:14px;">—</span>
       </div>
     </div>
@@ -208,7 +212,11 @@
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
           <th title="Giorni alla scadenza dalla data analisi">GG</th>
           <th title="ATM/OTM/ITM + distanza in σ (Vol ATM, DTE)">M/S</th>
-          <th>Teorico</th><th title="Delta di posizione: $ per punto di movimento del sottostante (q.tà × Δ × moltiplicatore)">Delta</th><th title="Gamma di posizione: $ per punto²">Gamma</th><th title="Vega di posizione: $ per 1% di volatilità implicita">Vega</th><th title="Theta di posizione: $ al giorno">Theta</th>
+          <th>Teorico</th>
+          <th title="Delta di posizione in contratti (q.tà × Δ × segno). Non include il moltiplicatore.">Delta</th>
+          <th title="Gamma di posizione in contratti">Gamma</th>
+          <th title="Vega di posizione in contratti">Vega</th>
+          <th title="Theta di posizione in contratti">Theta</th>
           <th title="Valore intrinseco: max(S−K, 0) per call, max(K−S, 0) per put">V. Intr</th>
           <th title="Valore temporale: teorico − valore intrinseco">V. Temp</th>
           <th title="Probabilità che il sottostante tocchi lo strike prima della scadenza della gamba (usa la vol della gamba)">P. Tocco</th>
@@ -281,7 +289,7 @@
     <span><i style="background:var(--accent);"></i> Spot</span>
     <span><i style="background:#f1c40f;"></i> Breakeven</span>
     <span><i style="background:#2ecc71; opacity:0.4;"></i> Dev. standard</span>
-    <span style="color:var(--muted); font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo</span>
+    <span style="color:var(--muted); font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo (e solo per il NES)</span>
   </div>
 </div>
 
