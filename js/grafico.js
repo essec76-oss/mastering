@@ -4,7 +4,6 @@
   // PAYOFF COMBINATO
   // ============================================================
   // Restituisce il P&L di un singolo future aperto a un prezzo S
-  // Usa media carico e quantità netta (come nel Mastering)
   function pnlFutureApertoAt(S, col, res) {
     if (!res || res.qtaNetta === 0 || isNaN(res.mediaPulita)) return 0;
     const tipo = res.tipo;
@@ -12,15 +11,10 @@
     const molt = MOLTIPLICATORI[tipo] || 0;
     const segno = res.qtaNetta > 0 ? 1 : -1;
     const q = Math.abs(res.qtaNetta);
-    // Mark-to-market lineare + commissione di apertura (se toggle attivo)
     return (S - res.mediaPulita) * q * segno * molt - feeLatoFuture(tipo) * q;
   }
 
   // Prima scadenza (ISO) tra le opzioni ATTIVE e non CHIUSE della scheda.
-  // Usata dal metodo "calendar": la curva A SCADENZA viene calcolata alla
-  // scadenza della gamba più corta; le gambe più lunghe sono valutate al
-  // loro prezzo teorico (BS per AZIONI, Black-76 per futures) col tempo
-  // residuo a quella data.
   function firstExpiryOpzioni(scheda) {
     const today = dataAnalisiDate();
     let minScad = null;
@@ -28,10 +22,26 @@
       if (o.attivo === false || o.stato === 'CHIUSA') return;
       if (!o.scadenza) return;
       const T = yearsBetween(today, o.scadenza);
-      if (T == null || T < 0) return; // già scaduta: resta all'intrinseco
+      if (T == null || T < 0) return;
       if (minScad === null || o.scadenza < minScad) minScad = o.scadenza;
     });
     return minScad;
+  }
+
+  // Prezzo di carico effettivo di un'opzione:
+  //  - se opz.premio è scritto → usa quello (fisso, comanda l'utente)
+  //  - se è vuoto/0 → usa il TEORICO ALLO SPOT CORRENTE (fotografato):
+  //    questo rende il P&L puntuale allo spot = 0, ma la curva del grafico
+  //    (che valuta S variabile) ha forma a V perché il premio resta fisso.
+  function premioCarico(opz) {
+    if (opz.premio && opz.premio !== 0) return opz.premio;
+    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    if (!(spot > 0)) return 0;
+    const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
+    const today = dataAnalisiDate();
+    const T = opz.scadenza ? yearsBetween(today, opz.scadenza) : 0;
+    const teoSpot = modelPrice(spot, opz, T, tipo);
+    return teoSpot === null ? 0 : teoSpot;
   }
 
   // P&L di una singola opzione a un prezzo S
@@ -39,11 +49,6 @@
   //   in quella data valgono l'intrinseco; le gambe con scadenza più lunga
   //   (strategie calendar) valgono il teorico col tempo residuo
   // mode = 'now'    → prezzo teorico (BS per AZIONI, Black-76 per futures)
-  //
-  // Premio effettivo: se opz.premio è vuoto/0, il tool usa il "valoreOpzione"
-  // corrente come prezzo di carico (mark-to-market puro → P&L = 0). Se invece
-  // l'utente scrive un premio, quel valore diventa il prezzo di carico fisso
-  // e il P&L diventa significativo.
   function pnlOpzioneAt(S, opz, mode, firstExpiry) {
     if (opz.attivo === false || opz.stato === 'CHIUSA') return 0;
     const qta = opz.qta || 0;
@@ -55,7 +60,6 @@
     let valoreOpzione = 0;
     if (mode === 'expiry') {
       if (firstExpiry && opz.scadenza && opz.scadenza > firstExpiry) {
-        // Gamba con scadenza più lunga: valutata al teorico alla prima scadenza
         const Tres = yearsBetween(firstExpiry, opz.scadenza);
         const teo = modelPrice(S, opz, Tres, tipo);
         valoreOpzione = teo === null ? intrinseco : teo;
@@ -63,27 +67,18 @@
         valoreOpzione = intrinseco;
       }
     } else {
-      // now: teorico col modello dello strumento (BS per AZIONI, B76 per futures)
       const today = dataAnalisiDate();
       const T = opz.scadenza ? yearsBetween(today, opz.scadenza) : 0;
       const teo = modelPrice(S, opz, T, tipo);
       valoreOpzione = teo === null ? intrinseco : teo;
     }
 
-    // Premio effettivo: scritto dall'utente se presente, altrimenti il
-    // teorico corrente (fallback "premio auto" → P&L = 0 finché non carichi
-    // esplicitamente un prezzo di carico).
-    const premio = (opz.premio && opz.premio !== 0) ? opz.premio : valoreOpzione;
-
-    // P&L = (valore attuale - premio) * segno_posizione * qta * moltiplicatore
-    // Per SELL (side=-1): se l'opzione vale meno del premio → profitto
-    // Per BUY  (side=+1): se l'opzione vale più del premio → profitto
+    const premio = premioCarico(opz);
     const side = opz.pos === 'SELL' ? -1 : 1;
     const fee = feeLatoOpzione() * qta;
     return (valoreOpzione - premio) * side * qta * moltOpz(opz) - fee;
   }
 
-  // Casella Cash: sfondo verde se il valore è positivo, rosso se negativo
   function aggiornaStileCash() {
     const inp = el('cash');
     if (!inp) return;
@@ -93,16 +88,11 @@
     else if (v < 0) inp.classList.add('neg');
   }
 
-  // Cash annotato: entra nei conteggi se non escluso con il box di simulazione
   function cashAttivo() {
     const c = (typeof stato.cash === 'number') ? stato.cash : 0;
     return stato.cashEscluso ? 0 : c;
   }
 
-  // P&L totale della posizione combinata a un generico prezzo S
-  // (include il cash annotato: sposta tutta la curva e i breakeven)
-  // In mode 'expiry' la valutazione è fatta alla prima scadenza opzioni
-  // (metodo calendar: le gambe più lunghe al teorico col tempo residuo).
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
     let tot = cashAttivo();
     tot += pnlFutureApertoAt(S, 'NES', resNES);
@@ -114,34 +104,31 @@
     return tot;
   }
 
-  // Delta netto totale (futures + opzioni), in "unità MES" (1 MES = 1.0)
   function deltaNettoTotale(scheda, resNES, resMES) {
     let d = 0;
-    // Futures: convertiamo tutto in equivalenti MES (moltiplicatore 5)
     if (resNES && resNES.qtaNetta !== 0) {
       const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
-      d += resNES.qtaNetta * (molt / 5); // es. 10 NES long → +1.0 delta MES-eq
+      d += resNES.qtaNetta * (molt / 5);
     }
     if (resMES && resMES.qtaNetta !== 0) {
       const molt = MOLTIPLICATORI[resMES.tipo] || 5;
       d += resMES.qtaNetta * (molt / 5);
     }
-    // Opzioni
     (scheda.opzioni || []).forEach(opz => {
       if (opz.attivo === false || opz.stato === 'CHIUSA') return;
       const g = calcolaGrecheOpzione(opz);
-      if (!isFinite(g.delta)) return; // input incompleti: nessun contributo
+      if (!isFinite(g.delta)) return;
       const segno = opz.pos === 'SELL' ? -1 : 1;
       const qta = opz.qta || 0;
-      d += segno * qta * g.delta * (moltOpz(opz) / 5); // in unità MES-equivalenti
+      d += segno * qta * g.delta * (moltOpz(opz) / 5);
     });
     return d;
   }
 
   // Stato vista grafico (zoom / pan)
   let chartView = {
-    xMin: null, xMax: null,   // range corrente
-    baseMin: null, baseMax: null, // range di default
+    xMin: null, xMax: null,
+    baseMin: null, baseMax: null,
     lastResNES: null, lastResMES: null, lastSpot: 0,
     breakevens: []
   };
@@ -155,7 +142,6 @@
   let touchGesture = null;
   let chartRedrawScheduled = false;
 
-  // Redraw throttled: massimo un ridisegno per frame anche durante pan/zoom
   function scheduleChartRedraw() {
     if (chartRedrawScheduled) return;
     chartRedrawScheduled = true;
@@ -177,8 +163,6 @@
     return { minS: Math.max(1, minS), maxS };
   }
 
-  // Raccoglie punti chiave della struttura di TUTTE le schede
-  // (strike, ingressi futures attivi): il grafico deve inquadrarle tutte
   function collectStructureAnchors(spot) {
     const pts = [spot];
     stato.schede.forEach(scheda => {
@@ -199,8 +183,6 @@
     return pts.filter(p => isFinite(p) && p > 0);
   }
 
-  // Range di scansione BE/POP: parte da spot±45% ma si estende per
-  // includere tutti i punti della struttura (ingressi/strike) ±30%.
   function scanRangeForBE(spot) {
     let minS = Math.max(1, spot * 0.55);
     let maxS = spot * 1.45;
@@ -211,7 +193,6 @@
     return { minS, maxS };
   }
 
-  // Vista "smart": inquadra BE e struttura (sell put → BE a sx, sell call → a dx, due BE → entrambi)
   function computeSmartChartRange(spot, breakevens) {
     const anchors = collectStructureAnchors(spot);
     const bes = (breakevens || []).filter(b => isFinite(b) && b > 0);
@@ -219,32 +200,26 @@
     let minS, maxS;
 
     if (bes.length >= 2) {
-      // Struttura con due (o più) BE: inquadra tra il minimo e il massimo BE + padding
       const lo = Math.min(...bes);
       const hi = Math.max(...bes);
       const span = Math.max(hi - lo, 40);
       const pad = span * 0.35;
       minS = lo - pad;
       maxS = hi + pad;
-      // includi sempre lo spot se vicino
       if (spot < minS) minS = spot - span * 0.15;
       if (spot > maxS) maxS = spot + span * 0.15;
     } else if (bes.length === 1) {
-      // Un solo BE (tipico short put / short call / future sbilanciato)
       const be = bes[0];
       const dist = Math.abs(be - spot);
       const pad = Math.max(dist * 0.45, 50);
       if (be < spot) {
-        // BE a sinistra (es. sell put): inquadra da BE-pad fino a spot+pad
         minS = be - pad;
         maxS = spot + Math.max(pad * 0.7, 40);
       } else {
-        // BE a destra (es. sell call)
         minS = spot - Math.max(pad * 0.7, 40);
         maxS = be + pad;
       }
     } else {
-      // Solo futures / linea piatta: centrato sullo spot, allarga se ci sono ingressi lontani
       const def = defaultChartRange(spot);
       minS = def.minS;
       maxS = def.maxS;
@@ -257,7 +232,6 @@
       }
     }
 
-    // Garantisce un'ampiezza minima leggibile
     const minWidth = Math.max(60, spot * 0.04);
     if (maxS - minS < minWidth) {
       const mid = (minS + maxS) / 2;
@@ -288,7 +262,6 @@
 
   function fitChartToStructure() {
     if (!(chartView.lastSpot > 0)) return;
-    // Ricalcola BE su range ampio (adattivo) e applica smart frame
     const spot = chartView.lastSpot;
     const scheda = schedaAttiva();
     const resNES = calcolaColonna(scheda, 'NES');
@@ -301,16 +274,12 @@
     const smart = computeSmartChartRange(spot, bes);
     chartView.xMin = smart.minS;
     chartView.xMax = smart.maxS;
-    // Aggiorna anche base così Reset torna a questa inquadratura operativa
     chartView.baseMin = smart.minS;
     chartView.baseMax = smart.maxS;
     redrawChartFromView();
   }
 
   function buildPayoffPoints(scheda, minS, maxS, resNES, resMES) {
-    // Griglia uniforme + punti esatti sugli strike e sugli ingressi futures:
-    // senza i vertici esatti la polilinea SVG taglia le cuspidi del payoff
-    // a scadenza e la curva appare morbida invece dello spigolo vivo.
     const n = 220;
     const events = new Set([minS, maxS]);
     (scheda.opzioni || []).forEach(o => {
@@ -338,7 +307,6 @@
     }));
   }
 
-  // Curve di payoff di TUTTE le schede (Matrice + comparazioni) per il grafico
   function buildCurveSets(minS, maxS) {
     return stato.schede.map((scheda, i) => ({
       nome: scheda.nome,
@@ -348,13 +316,6 @@
     }));
   }
 
-  // Trova i punti in cui pnlExpiry attraversa lo zero (interpolazione lineare).
-  // Oltre agli attraversamenti veri e propri gestisce anche i casi limite:
-  //   - tangenza: la curva TOCCA lo zero senza attraversarlo (radice doppia);
-  //   - tratti piatti esattamente a zero (es. ratio spread a credito pari):
-  //     il cambio di segno 0→+/− rileva il bordo del tratto, che è il BE
-  //     significativo (il punto in cui il P&L smette di essere zero);
-  //   - primo campione già a zero col successivo positivo (bordo sinistro).
   function findBreakevens(pts) {
     const out = [];
     for (let i = 1; i < pts.length; i++) {
@@ -365,7 +326,6 @@
         const frac = a === b ? 0 : (0 - a) / (b - a);
         out.push(pts[i - 1].S + frac * (pts[i].S - pts[i - 1].S));
       }
-      // tangenza: valore esattamente 0 con lo stesso segno prima e dopo
       if (b === 0 && i + 1 < pts.length) {
         const c = pts[i + 1].pnlExpiry;
         if (isFinite(c) && ((a > 0 && c > 0) || (a < 0 && c < 0))) out.push(pts[i].S);
@@ -377,14 +337,6 @@
     return out;
   }
 
-  // Campionamento DENSO per la ricerca dei breakeven: alla solita griglia
-  // uniforme aggiunge i punti esatti sugli strike, sulla media carico e
-  // sugli ingressi futures attivi (le cuspidi del payoff a scadenza), con un
-  // piccolo intorno ±ε. Motivazione: con la sola griglia a 180 punti, quando
-  // il range di scansione è molto più ampio della struttura (es. opzioni su
-  // AZIONI con strike ~100 mentre lo spot resta sui valori dei futures
-  // ~7700) l'intera struttura cade tra due campioni lontani e gli
-  // attraversamenti venivano persi o stimati grossolanamente.
   function buildPayoffPointsDense(scheda, minS, maxS, resNES, resMES) {
     const n = 200;
     const events = new Set([minS, maxS]);
@@ -411,16 +363,6 @@
     return xs.map(S => ({ S, pnlExpiry: pnlCombinatoAt(scheda, S, 'expiry', resNES, resMES) }));
   }
 
-  // Ricerca breakeven ROBUSTA. Difetti storici della vecchia scansione:
-  //   1) il range [spot±45% ∪ struttura±30%] non copriva i BE che cadono
-  //      più lontano (premi pesanti, strutture sbilanciate) → BE mai rilevati
-  //      anche se la curva li mostrava a grafico;
-  //   2) il campionamento uniforme perdeva attraversamenti quando la
-  //      struttura occupava una fetta minima del range (vedi sopra).
-  // Qui si scandisce col campionamento denso e, se alle estremità la coda
-  // del payoff (rettilinea oltre ogni strike/ingresso) punta a uno zero
-  // fuori range, il range viene esteso fino a intercettarlo (max 6 giri).
-  // Così un BE viene individuato in ogni caso: se esiste, lo si trova.
   function findBreakevensRobust(scheda, spot, minS, maxS, resNES, resMES) {
     let lo = Math.max(0.01, Math.min(minS, spot * 0.55));
     let hi = Math.max(maxS, spot * 1.45);
@@ -429,7 +371,6 @@
     for (let iter = 0; iter < 6; iter++) {
       const pts = buildPayoffPointsDense(scheda, lo, hi, resNES, resMES);
       bes = findBreakevens(pts);
-      // pendenza asintotica ai bordi: zero estrapolato fuori range → estendi
       const p0 = pts[0], p1 = pts[1], pN = pts[pts.length - 1], pN1 = pts[pts.length - 2];
       let expLo = false, expHi = false, newLo = lo, newHi = hi;
       if (p0 && p1 && isFinite(p0.pnlExpiry) && isFinite(p1.pnlExpiry) && p1.S > p0.S) {
@@ -449,7 +390,6 @@
       if (!expLo && !expHi) break;
       lo = newLo; hi = newHi;
     }
-    // filtra, ordina e dedup (tolleranza relativa allo spot)
     bes = bes.filter(b => isFinite(b) && b > 0).sort((a, b) => a - b);
     const out = [];
     bes.forEach(b => {
@@ -459,7 +399,7 @@
     return out;
   }
 
-    function updateBreakevenLabels(bes, spot) {
+  function updateBreakevenLabels(bes, spot) {
     const beInfEl = el('beInf');
     const beSupEl = el('beSup');
     if (!beInfEl || !beSupEl) return;
@@ -479,7 +419,6 @@
       return `${v.toFixed(1)} (${sign}${dist.toFixed(1)})`;
     };
 
-    // Caso 1 BE solo
     if (sorted.length === 1) {
       if (sorted[0] < spot) {
         beInfEl.textContent = fmtBe(sorted[0]);
@@ -491,7 +430,6 @@
       return;
     }
 
-    // Caso ≥ 2 BE → sempre estremi assoluti della struttura
     beInfEl.textContent = fmtBe(sorted[0]);
     beSupEl.textContent = fmtBe(sorted[sorted.length - 1]);
   }
@@ -506,12 +444,10 @@
   }
 
   function resetChartZoom() {
-    // Reset = ri-applica inquadratura smart (non solo il vecchio ±12%)
     fitChartToStructure();
   }
 
   function structureSignature() {
-    // firma leggera per capire se la struttura è cambiata (non solo lo spot)
     const parts = [`${stato.schede.length}:${stato.attiva}`];
     const scheda = schedaAttiva();
     ['NES', 'MES'].forEach(col => {
@@ -550,11 +486,6 @@
     chartView.lastResMES = resMES;
     chartView.lastSpot = spot;
 
-    // BE su range di scansione ampio (adattivo alla struttura) con ricerca
-    // ROBUSTA: campionamento denso sugli strike/ingressi + estensione
-    // automatica del range se il BE cade oltre i confini. Il range include
-    // anche la porzione di grafico attualmente visibile: un BE che si vede
-    // a video non può più restare non rilevato.
     const scan = scanRangeForBE(spot);
     let scanMin = scan.minS, scanMax = scan.maxS;
     if (chartView.xMin != null && chartView.xMax != null && chartView.xMax > chartView.xMin) {
@@ -569,8 +500,6 @@
     const structureChanged = sig !== chartView._sig;
     chartView._sig = sig;
 
-    // Prima volta o struttura cambiata → inquadratura smart automatica
-    // (cambio solo spot: mantiene lo zoom utente)
     if (chartView.xMin == null || structureChanged) {
       const smart = computeSmartChartRange(spot, chartView.breakevens);
       chartView.xMin = smart.minS;
@@ -597,7 +526,6 @@
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
-    // Curva della scheda attiva (tooltip, area colorata, BE)
     const attiva = curveSets[attivaIdx] || curveSets[0] || null;
     const pts = attiva ? attiva.pts : [];
 
@@ -629,7 +557,6 @@
 
     let svgContent = '';
 
-    // Griglia Y
     const nGridY = 6;
     for (let i = 0; i <= nGridY; i++) {
       const y = yMin + (i / nGridY) * (yMax - yMin);
@@ -638,7 +565,6 @@
       svgContent += `<text x="${padL - 6}" y="${py + 3}" fill="#8b93a7" font-size="10" text-anchor="end">${y.toFixed(0)}</text>`;
     }
 
-    // Griglia X
     const nGridX = 8;
     for (let i = 0; i <= nGridX; i++) {
       const x = xMin + (i / nGridX) * (xMax - xMin);
@@ -646,10 +572,6 @@
       svgContent += `<text x="${px}" y="${H - padB + 16}" fill="#8b93a7" font-size="10" text-anchor="middle">${Math.round(x)}</text>`;
     }
 
-    // Deviazioni standard verticali (Vol ATM, orizzonte POP): linee ±k·σ attorno
-    // allo spot, k = 1..N scelto dal menu a tendina. Colore verde per non
-    // confonderle con la linea spot (azzurra). Logica come il resto del file:
-    // box "Dev. std" spuntato = nascoste, non spuntato = visibili.
     const nSDsel = el('nSD');
     const nSD = nSDsel ? Math.max(1, Math.min(10, parseInt(nSDsel.value) || 2)) : 2;
     const nascondiSigma = !!(el('showSigma') && el('showSigma').checked);
@@ -666,11 +588,9 @@
       }
     }
 
-    // Linea zero
     const zeroY = yPix(0);
     svgContent += `<line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="#8b93a7" stroke-width="1"/>`;
 
-    // Area colorata sotto la curva a scadenza (solo della scheda attiva)
     if (showExpiry) {
       const areaPath = `${pathFrom(attiva.pts, 'pnlExpiry')} L ${xPix(xMax)} ${zeroY} L ${xPix(xMin)} ${zeroY} Z`;
       const clipPosH = Math.max(0, zeroY - padT);
@@ -685,8 +605,6 @@
       `;
     }
 
-    // Curve: una per scheda (Matrice + comparazioni). Prima le non attive,
-    // poi l'attiva sopra le altre. Linea piena = a scadenza, tratteggiata = Now.
     curveSets.map((cs, i) => i)
       .filter(i => i !== attivaIdx)
       .concat([attivaIdx])
@@ -702,7 +620,6 @@
         }
       });
 
-    // Marker Breakeven (solo quelli nel range visibile; on/off col box "Breakeven")
     const showBEFlag = el('showBE') ? el('showBE').checked : true;
     if (showBEFlag) breakevens.forEach((be) => {
       if (be < xMin || be > xMax) return;
@@ -711,17 +628,14 @@
       svgContent += `<text x="${bx + 3}" y="${H - padB - 6}" fill="#f1c40f" font-size="10" text-anchor="start">BE ${be.toFixed(0)}</text>`;
     });
 
-    // Marker Spot
     if (spot >= xMin && spot <= xMax) {
       const sx = xPix(spot);
       svgContent += `<line x1="${sx}" y1="${padT}" x2="${sx}" y2="${H - padB}" stroke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
       svgContent += `<text x="${sx}" y="${padT - 8}" fill="#4f8cff" font-size="11" text-anchor="middle">Spot ${Math.round(spot)}</text>`;
     }
 
-    // Bordo
     svgContent += `<rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="none" stroke="#2a2f3a"/>`;
 
-    // Layer hover (crosshair + tooltip)
     svgContent += `
       <g id="hoverLayer" style="pointer-events:none;">
         <line id="hoverLine" x1="0" y1="${padT}" x2="0" y2="${H - padB}" stroke="#7d8590" stroke-width="1" stroke-dasharray="3,3" style="display:none"/>
@@ -773,7 +687,6 @@
 
     const S = xMin + ((svgPt.x - padL) / (W - padL - padR)) * (xMax - xMin);
 
-    // punto più vicino nella curva
     let nearest = pts[0];
     let best = Infinity;
     for (const p of pts) {
@@ -820,7 +733,6 @@
     let boxX = px + 12;
     if (boxX + boxW > W - padR) boxX = px - boxW - 12;
     let boxY = padT + 8;
-    // posiziona vicino al punto principale
     const refY = showExpiry ? yPix(nearest.pnlExpiry) : yPix(nearest.pnlNow);
     boxY = Math.max(padT + 4, Math.min(refY - boxH - 8, H - padB - boxH - 4));
 
@@ -837,7 +749,6 @@
       texts[i].setAttribute('y', boxY + 16 + i * 15);
       texts[i].textContent = txt;
       texts[i].style.display = '';
-      // colori: prezzo muted, scadenza bianco, now grigio chiaro
       if (i === 0) texts[i].setAttribute('fill', '#a8b0c0');
       else if (txt.startsWith('Scadenza')) texts[i].setAttribute('fill', '#ffffff');
       else texts[i].setAttribute('fill', '#c8d0dc');
@@ -847,7 +758,6 @@
     }
   }
 
-  // Frazione (0..1) della larghezza plot sotto il centro di due dita
   function touchPointFrac(svg, t0, t1) {
     if (!chartGeom) return null;
     const pt = svg.createSVGPoint();
@@ -860,8 +770,6 @@
     return Math.max(0, Math.min(1, (sp.x - chartGeom.padL) / plotW));
   }
 
-  // Gesture a due dita: pan + pinch combinati.
-  // Memorizza la distanza iniziale e il prezzo ("ancora") sotto il centro dita.
   function buildTwoFingerGesture(svg, touches) {
     const t0 = touches[0], t1 = touches[1];
     if (chartView.xMin == null) return { mode: 'hover' };
@@ -896,7 +804,6 @@
     }
 
     if (!chartInteractBound) {
-      // Zoom con rotella (centrato sul cursore)
       svg.addEventListener('wheel', (e) => {
         e.preventDefault();
         if (!chartGeom || chartView.xMin == null) return;
@@ -909,13 +816,11 @@
 
         const { padL, W, padR } = chartGeom;
         const plotW = W - padL - padR;
-        // prezzo sotto il cursore
         const frac = Math.max(0, Math.min(1, (svgPt.x - padL) / plotW));
         const cursorS = chartView.xMin + frac * (chartView.xMax - chartView.xMin);
 
-        const factor = e.deltaY < 0 ? 0.85 : 1.18; // zoom in / out
+        const factor = e.deltaY < 0 ? 0.85 : 1.18;
         let newWidth = (chartView.xMax - chartView.xMin) * factor;
-        // limiti: non troppo stretto, non troppo largo rispetto alla base
         const baseW = (chartView.baseMax - chartView.baseMin) || newWidth;
         newWidth = Math.max(baseW * 0.05, Math.min(baseW * 4, newWidth));
 
@@ -929,7 +834,6 @@
         scheduleChartRedraw();
       }, { passive: false });
 
-      // Pan: trascina (desktop)
       svg.addEventListener('mousedown', (e) => {
         if (e.button !== 0 || !chartGeom) return;
         isPanning = true;
@@ -966,7 +870,6 @@
         if (svgEl) svgEl.style.cursor = 'crosshair';
       });
 
-      // ---- Touch: un dito = cursore prezzo/tooltip, due dita = sposta + pinch zoom ----
       svg.addEventListener('touchstart', (e) => {
         if (!chartGeom || chartView.xMin == null) return;
         if (e.touches.length === 1) {
@@ -978,14 +881,13 @@
       }, { passive: true });
 
       svg.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // niente scroll pagina: il dito controlla il grafico
+        e.preventDefault();
         if (!touchGesture || !chartGeom) return;
 
         if (touchGesture.mode === 'hover') {
           if (e.touches.length === 1) {
             handleChartHover(e.touches[0]);
           } else if (e.touches.length >= 2) {
-            // da cursore a due dita: passa a pan/zoom
             touchGesture = buildTwoFingerGesture(svg, e.touches);
           }
           return;
@@ -995,11 +897,9 @@
           const t0 = e.touches[0], t1 = e.touches[1];
           const curDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
           if (!(curDist > 0) || !(touchGesture.startDist > 0)) return;
-          // zoom dal rapporto delle distanze
           let newW = touchGesture.startW * (touchGesture.startDist / curDist);
           const baseW = (chartView.baseMax - chartView.baseMin) || touchGesture.startW;
           newW = Math.max(baseW * 0.05, Math.min(baseW * 4, newW));
-          // pan: l'ancora iniziale segue la posizione corrente del centro dita
           const frac = touchPointFrac(svg, t0, t1);
           if (frac == null) return;
           let newMin = touchGesture.anchorS - frac * newW;
@@ -1016,14 +916,12 @@
           touchGesture = null;
           clearChartHover();
         } else if (e.touches.length === 1 && chartView.xMin != null) {
-          // da due dita a una: passa alla modalità cursore
           touchGesture = { mode: 'hover' };
           handleChartHover(e.touches[0]);
         }
       }, { passive: true });
       svg.addEventListener('touchcancel', () => { touchGesture = null; clearChartHover(); }, { passive: true });
 
-      // Doppio click = reset
       svg.addEventListener('dblclick', (e) => {
         e.preventDefault();
         resetChartZoom();
