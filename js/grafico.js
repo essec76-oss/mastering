@@ -39,11 +39,15 @@
   //   in quella data valgono l'intrinseco; le gambe con scadenza più lunga
   //   (strategie calendar) valgono il teorico col tempo residuo
   // mode = 'now'    → prezzo teorico (BS per AZIONI, Black-76 per futures)
+  //
+  // Premio effettivo: se opz.premio è vuoto/0, il tool usa il "valoreOpzione"
+  // corrente come prezzo di carico (mark-to-market puro → P&L = 0). Se invece
+  // l'utente scrive un premio, quel valore diventa il prezzo di carico fisso
+  // e il P&L diventa significativo.
   function pnlOpzioneAt(S, opz, mode, firstExpiry) {
     if (opz.attivo === false || opz.stato === 'CHIUSA') return 0;
     const qta = opz.qta || 0;
     if (qta === 0) return 0;
-    const premio = opz.premio || 0;
     const K = opz.strike || 0;
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
     const intrinseco = tipo === 'call' ? Math.max(S - K, 0) : Math.max(K - S, 0);
@@ -65,6 +69,11 @@
       const teo = modelPrice(S, opz, T, tipo);
       valoreOpzione = teo === null ? intrinseco : teo;
     }
+
+    // Premio effettivo: scritto dall'utente se presente, altrimenti il
+    // teorico corrente (fallback "premio auto" → P&L = 0 finché non carichi
+    // esplicitamente un prezzo di carico).
+    const premio = (opz.premio && opz.premio !== 0) ? opz.premio : valoreOpzione;
 
     // P&L = (valore attuale - premio) * segno_posizione * qta * moltiplicatore
     // Per SELL (side=-1): se l'opzione vale meno del premio → profitto
