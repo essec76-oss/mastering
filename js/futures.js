@@ -1,9 +1,15 @@
 // futures.js — calcolo colonna futures: prezzo medio e P&L
+// Modello: ogni riga ha uno stato APERTA / CHIUSA.
+//  - APERTE: formano la posizione netta (delta, P&L aperto, media carico)
+//  - CHIUSE: P&L realizzato congelato (calcolato contro la media di carico
+//    corrente delle APERTE al momento della chiusura), scalano le APERTE.
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-  // ============================================================
-  // CALCOLO COLONNA
-  // ============================================================
+//
+// NOTA: STRUMENTI_CON_COMMISSIONI e feeLatoFutureAttiva() sono definiti in
+// config.js e condivisi da tutti i moduli. NON ridichiararli qui.
+
   function calcolaColonna(scheda, col) {
+    // ... (il resto del file è identico)
     const movimenti = scheda[col];
     const tipo = scheda['tipo' + col];
 
