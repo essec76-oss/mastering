@@ -1,44 +1,40 @@
 // render-futures.js — render righe futures/azioni: come le opzioni
 // Ogni riga: nascondi, DEL, BUY/SELL, Q.tà, Prezzo, Delta, P&L.
-// Header compatto: tipo + q.tà netta @ media + P&L.
-// Footer sotto le righe: Q.tà netta residua + Delta azioni (TWS, solo se AZIONI).
-// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
+// Header compatto: solo @ prezzo medio (la q.tà netta sta nel footer).
+// Footer sotto le righe: Q.tà netta + Delta (dinamico sul tipo) + P&L.
+// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
 
   // ============================================================
   // RENDER
   // ============================================================
-  // Delta di posizione della singola riga ($/pt): segno × q.tà aperta × molt.
+  // Etichetta leggibile del tipo colonna: X → AZIONI, altrimenti il tipo
+  // (NES / MES / ES) oppure il nome della colonna se il tipo è '-'.
+  function _tipoLabelCol(tipo, col) {
+    if (tipo === 'X') return 'AZIONI';
+    if (!tipo || tipo === '-') return col;
+    return tipo;
+  }
+
+  // Delta di posizione della singola riga, in unità del tipo selezionato.
+  //  - futures (NES/MES/ES): valore in "MES-equivalenti" per uniformare
+  //    il confronto (1 MES = 1.0; 1 ES = 10; 1 NES = 0.1).
+  //  - azioni (X): NaN, gestito a parte dal footer (convenzione TWS).
   function deltaRiga(info, tipo) {
     if (!info || !(info.qAperta > 0)) return NaN;
+    if (tipo === 'X') return NaN;
     const molt = MOLTIPLICATORI[tipo] || 0;
     if (!molt) return NaN;
     const segno = info.direzione === 'LONG' ? 1 : -1;
-    return segno * info.qAperta * molt;
+    return segno * info.qAperta * (molt / MOLTIPLICATORI.MES);
   }
 
-  // Piccolo riepilogo in header + footer (q.tà netta + Delta azioni TWS).
+  // Riepilogo in header (solo @ prezzo) e footer (q.tà netta + delta + P&L).
   // Manteniamo la firma renderRigaTotale(col, res) usata da calcola-tutto.js.
   function renderRigaTotale(col, res) {
-    // --- Header compatto ---
-    const qtaEl = el('csQta' + col);
+    // --- Header: solo @ prezzo medio (q.tà netta rimossa: sta nel footer) ---
     const prezzoEl = el('csPrezzo' + col);
-    const pnlEl = el('csPnl' + col);
-    if (qtaEl) {
-      if (!res.qtaNetta) {
-        qtaEl.innerHTML = '<span class="dir-flat">—</span>';
-      } else {
-        const dir = res.qtaNetta > 0 ? 'LONG' : 'SHORT';
-        const cls = res.qtaNetta > 0 ? 'dir-long' : 'dir-short';
-        qtaEl.innerHTML = Math.abs(res.qtaNetta) + ' <span class="' + cls + '">' + dir + '</span>';
-      }
-    }
     if (prezzoEl) {
       prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
-    }
-    if (pnlEl) {
-      const p = res.pnlTotale || 0;
-      pnlEl.textContent = formatEuro(p);
-      pnlEl.className = 'cs-pnl ' + (!isFinite(p) || p === 0 ? 'muted' : (p >= 0 ? 'green' : 'red'));
     }
 
     // --- Footer: Q.tà netta residua ---
@@ -54,19 +50,43 @@
       }
     }
 
-    // --- Footer: Delta azioni (convenzione TWS: 100 azioni = 1,00) ---
-    // Valorizzato solo se la colonna è impostata su AZIONI (tipo X).
-    // Per NES/MES/ES mostra "—" (mondo futures separato).
-    const dAzEl = el('deltaAzCol' + col);
-    if (dAzEl) {
-      if (res.tipo === 'X' && res.qtaNetta !== 0) {
-        const dAz = res.qtaNetta / 100; // TWS: 100 azioni = 1,00
-        dAzEl.textContent = formatGreek(dAz, 2);
-        dAzEl.className = 'value ' + (dAz >= 0 ? 'green' : 'red');
+    // --- Footer: Delta con etichetta dinamica sul tipo selezionato ---
+    //  - X (AZIONI):  delta in convenzione TWS (100 az = 1.00) → "Delta azioni"
+    //  - NES/MES/ES:  delta in MES-equivalenti                   → "Delta NES/MES/ES"
+    const dEl = el('deltaAzCol' + col);
+    const dLabelEl = el('deltaLabel' + col);
+    if (dEl) {
+      const tipoLabel = _tipoLabelCol(res.tipo, col);
+      if (res.tipo === 'X') {
+        if (dLabelEl) dLabelEl.textContent = 'Delta azioni';
+        if (res.qtaNetta !== 0) {
+          const dAz = res.qtaNetta / 100;
+          dEl.textContent = formatGreek(dAz, 2);
+          dEl.className = 'value ' + (dAz >= 0 ? 'green' : 'red');
+        } else {
+          dEl.textContent = '—';
+          dEl.className = 'value muted';
+        }
       } else {
-        dAzEl.textContent = '—';
-        dAzEl.className = 'value muted';
+        if (dLabelEl) dLabelEl.textContent = 'Delta ' + tipoLabel;
+        if (res.qtaNetta !== 0) {
+          const molt = MOLTIPLICATORI[res.tipo] || 0;
+          const dMES = res.qtaNetta * (molt / MOLTIPLICATORI.MES);
+          dEl.textContent = formatGreek(dMES, 2);
+          dEl.className = 'value ' + (dMES >= 0 ? 'green' : 'red');
+        } else {
+          dEl.textContent = '—';
+          dEl.className = 'value muted';
+        }
       }
+    }
+
+    // --- Footer: P&L (spostato dall'header) ---
+    const pnlEl = el('csPnl' + col);
+    if (pnlEl) {
+      const p = res.pnlTotale || 0;
+      pnlEl.textContent = formatEuro(p);
+      pnlEl.className = 'value ' + (!isFinite(p) || p === 0 ? 'muted' : (p >= 0 ? 'green' : 'red'));
     }
   }
 
@@ -199,11 +219,11 @@
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
-      // Delta ($/pt)
+      // Delta (in MES-eq. per futures, azioni per X)
       const tdDelta = document.createElement('td');
       tdDelta.className = 'delta-riga td-delta';
       tdDelta.dataset.label = 'Delta';
-      tdDelta.title = 'Delta di posizione: $ per punto (q.tà × moltiplicatore)';
+      tdDelta.title = 'Delta di posizione: contratti MES equivalenti (futures: 1 MES = 1.0; 1 ES = 10; 1 NES = 0.1) oppure convenzione TWS (azioni: 100 az = 1,00)';
       if (!isOn) {
         tdDelta.textContent = '—';
         tdDelta.classList.add('muted');
