@@ -54,8 +54,16 @@ const SUPABASE_URL = 'https://twulifdttpamrmjvpwia.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_AlJOIOMpTdqBA43Ugcd1Lg_V70uVRXP';
 
 // Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette
+// (mantenuta per usi futuri, non più usata nel disegno del payoff).
 const PALETTE_COMP = ['#f97316', '#22d3e8', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
 function coloreScheda(i) { return i === 0 ? '#ffffff' : PALETTE_COMP[(i - 1) % PALETTE_COMP.length]; }
+
+// --- Colori del grafico di confronto (v25) ---
+// Azzurro = scheda corrente (attiva); Ambra = scheda precedente (confronto).
+// Ambra scelta più chiara di #f97316 (tema tab comparazione) per non confondere
+// la curva "precedente" con la tab attiva quando la scheda è una comparazione.
+const COLORE_CORRENTE   = '#22b8f0'; // azzurro
+const COLORE_PRECEDENTE = '#fb923c'; // ambra
 
 // Una scheda = uno scenario completo (futures NES/MES + opzioni).
 // La scheda 0 è la "Matrice": non può essere rimossa.
@@ -77,5 +85,11 @@ const stato = {
 };
 
 function schedaAttiva() { return stato.schede[stato.attiva] || stato.schede[0]; }
+
+// Scheda precedente (per il confronto). Null se siamo sulla Matrice.
+function schedaPrecedente() {
+  if (stato.attiva <= 0) return null;
+  return stato.schede[stato.attiva - 1] || null;
+}
 
 const el = id => document.getElementById(id);
