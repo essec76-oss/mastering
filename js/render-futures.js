@@ -1,5 +1,15 @@
-// render-futures.js — render righe futures/azioni con stato APERTA/CHIUSA
+// render-futures.js — render righe futures/azioni (modello transazionale)
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+//
+// v26 — Modello transazionale:
+//   - Niente più pulsante APERTA/CHIUSA sulla riga: lo stato è calcolato
+//     automaticamente da ricalcolaStatiScheda() in base alla direzione
+//     rispetto alla posizione netta corrente.
+//   - Rimossa la colonna Delta dalla riga (resta nel footer).
+//   - Colonna P&L rinominata RLZD (P&L realizzato della riga).
+//     - Riga di apertura → "—"
+//     - Riga di chiusura → valore realizzato
+//     - Riga esclusa    → "—"
 
   function _tipoLabelCol(tipo, col) {
     if (tipo === 'X') return 'AZIONI';
@@ -7,6 +17,7 @@
     return tipo;
   }
 
+  // Delta di riga (usato solo per il calcolo interno, non più mostrato).
   function deltaRiga(info, tipo) {
     if (!info || !(info.qAperta > 0)) return NaN;
     if (tipo === 'X') return NaN;
@@ -14,6 +25,43 @@
     if (!molt) return NaN;
     const segno = info.direzione === 'LONG' ? 1 : -1;
     return segno * info.qAperta * (molt / MOLTIPLICATORI.MES);
+  }
+
+  // ============================================================
+  // RICALCOLO STATI (modello transazionale)
+  // ============================================================
+  // Assegna automaticamente `stato` a ogni movimento in base alla
+  // direzione rispetto alla posizione netta corrente:
+  //   - direzione d'accordo con la posizione → APERTA (apertura/aggiunta)
+  //   - direzione opposta                    → CHIUSA (chiusura)
+  //   - riga mista (una parte chiude e una apre) → CHIUSA
+  //     (la parte che apre è gestita internamente da aggiungiPool)
+  // Il campo `stato` resta nel dato (compatibilità salvataggi), ma
+  // non è più editabile dall'utente.
+  function ricalcolaStatiScheda(scheda, col) {
+    const movimenti = scheda[col] || [];
+    let posizioneNetta = 0;
+    movimenti.forEach(m => {
+      if (m.attivo === false) return;
+      const q = m.quantita || 0;
+      if (q === 0) { m.stato = 'APERTA'; return; }
+      const segno = m.direzione === 'LONG' ? 1 : -1;
+      const segnoAttuale = Math.sign(posizioneNetta);
+      if (segnoAttuale === 0 || segnoAttuale === segno) {
+        m.stato = 'APERTA';
+      } else {
+        m.stato = 'CHIUSA';
+      }
+      posizioneNetta += segno * q;
+    });
+  }
+
+  // Ricalcola gli stati di NES e MES della scheda attiva.
+  function ricalcolaStatiSchedaAttiva() {
+    const scheda = schedaAttiva();
+    if (!scheda) return;
+    ricalcolaStatiScheda(scheda, 'NES');
+    ricalcolaStatiScheda(scheda, 'MES');
   }
 
   function renderRigaTotale(col, res) {
@@ -70,6 +118,24 @@
     }
   }
 
+  // Restituisce il valore da mostrare nella colonna RLZD per una riga.
+  // - off → "—"
+  // - apertura → "—"
+  // - chiusura → valore realizzato formattato
+  function _valoreRlzdRiga(info, isOff) {
+    if (isOff) return { testo: '—', classe: 'muted' };
+    if (!info) return { testo: '—', classe: 'muted' };
+    if (info.tipo === 'apertura' || info.tipo === 'vuota' || info.tipo === 'off') {
+      return { testo: '—', classe: 'muted' };
+    }
+    if (info.tipo === 'chiusura' || info.tipo === 'mista') {
+      const v = info.pnlRealizzato || 0;
+      if (v === 0) return { testo: formatEuro(0), classe: 'muted' };
+      return { testo: formatEuro(v), classe: v >= 0 ? 'green' : 'red' };
+    }
+    return { testo: '—', classe: 'muted' };
+  }
+
   function aggiornaCalcolati(col) {
     const scheda = schedaAttiva();
     const res = calcolaColonna(scheda, col);
@@ -81,39 +147,20 @@
       if (!info) return;
       const isOff = scheda[col][idx].attivo === false;
 
-      const tdDelta = tr.querySelector('.delta-riga');
-      if (tdDelta) {
-        if (isOff) {
-          tdDelta.textContent = '—';
-          tdDelta.className = 'delta-riga muted';
-        } else {
-          const d = deltaRiga(info, res.tipo);
-          if (!isFinite(d) || d === 0) {
-            tdDelta.textContent = '—';
-            tdDelta.className = 'delta-riga muted';
-          } else {
-            tdDelta.textContent = formatGreekAuto(d, 2, 3);
-            tdDelta.className = 'delta-riga ' + (d >= 0 ? 'green' : 'red');
-          }
-        }
-      }
-
-      const tdPnl = tr.querySelector('.pnl-riga');
+      const tdPnl = tr.querySelector('.rlzd-riga');
       if (tdPnl) {
-        if (isOff) {
-          tdPnl.textContent = '—';
-          tdPnl.className = 'pnl-riga muted';
-        } else {
-          const pnlVal = info.pnlTotale || 0;
-          tdPnl.textContent = formatEuro(pnlVal);
-          if (pnlVal === 0 && info.tipo === 'vuota') tdPnl.className = 'pnl-riga muted';
-          else tdPnl.className = 'pnl-riga ' + (pnlVal >= 0 ? 'green' : 'red');
-        }
+        const { testo, classe } = _valoreRlzdRiga(info, isOff);
+        tdPnl.textContent = testo;
+        tdPnl.className = 'rlzd-riga ' + classe;
       }
     });
   }
 
   function renderMovimenti(col) {
+    // Modello transazionale: ricalcola gli stati in base alla direzione
+    // rispetto alla posizione netta, prima di calcolare i P&L.
+    ricalcolaStatiScheda(schedaAttiva(), col);
+
     const scheda = schedaAttiva();
     const res = calcolaColonna(scheda, col);
     renderRigaTotale(col, res);
@@ -122,7 +169,7 @@
     tbody.innerHTML = '';
 
     scheda[col].forEach((mov, idx) => {
-      const info = res.righe[idx] || { tipo: 'vuota', qAperta: 0, qChiusa: 0, pnlTotale: 0 };
+      const info = res.righe[idx] || { tipo: 'vuota', qAperta: 0, qChiusa: 0, pnlRealizzato: 0, pnlTotale: 0 };
       const tr = document.createElement('tr');
       const isChiusa = (mov.stato || 'APERTA') === 'CHIUSA';
       if (isChiusa) tr.classList.add('row-chiusa');
@@ -158,20 +205,6 @@
       });
       tdDel.appendChild(btnDel); tr.appendChild(tdDel);
 
-      // Stato: bottone APERTA / CHIUSA
-      const tdStato = document.createElement('td');
-      tdStato.dataset.label = 'Stato';
-      const btnStato = document.createElement('button');
-      btnStato.className = 'btn-stato' + (isChiusa ? ' chiusa' : '');
-      btnStato.textContent = isChiusa ? 'CHIUSA' : 'APERTA';
-      btnStato.title = 'Clicca per aprire/chiudere: se CHIUSA il P&L realizzato viene congelato e la riga non partecipa più al delta';
-      btnStato.addEventListener('click', () => {
-        scheda[col][idx].stato = scheda[col][idx].stato === 'CHIUSA' ? 'APERTA' : 'CHIUSA';
-        renderMovimenti(col);
-        calcolaTutto();
-      });
-      tdStato.appendChild(btnStato); tr.appendChild(tdStato);
-
       // Pos
       const tdPos = document.createElement('td');
       tdPos.dataset.label = 'Pos';
@@ -193,6 +226,8 @@
       inQta.addEventListener('input', e => {
         const v = e.target.value;
         scheda[col][idx].quantita = v === '' ? 0 : (parseFloat(v) || 0);
+        // La quantità cambia la posizione netta → ricalcola gli stati
+        ricalcolaStatiScheda(scheda, col);
         aggiornaCalcolati(col); calcolaTutto();
       });
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
@@ -212,41 +247,15 @@
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
-      // Delta
-      const tdDelta = document.createElement('td');
-      tdDelta.className = 'delta-riga td-delta';
-      tdDelta.dataset.label = 'Delta';
-      tdDelta.title = 'Delta di posizione (futures: MES-equivalenti; azioni: TWS)';
-      if (!isOn) {
-        tdDelta.textContent = '—';
-        tdDelta.classList.add('muted');
-      } else {
-        const d = deltaRiga(info, res.tipo);
-        if (!isFinite(d) || d === 0) {
-          tdDelta.textContent = '—';
-          tdDelta.classList.add('muted');
-        } else {
-          tdDelta.textContent = formatGreekAuto(d, 2, 3);
-          tdDelta.classList.add(d >= 0 ? 'green' : 'red');
-        }
-      }
-      tr.appendChild(tdDelta);
-
-      // P&L
-      const tdPnl = document.createElement('td');
-      tdPnl.className = 'pnl-riga td-pnl';
-      tdPnl.dataset.label = 'P&L';
-      tdPnl.title = 'P&L della riga: aperto + realizzato';
-      if (!isOn) {
-        tdPnl.textContent = '—';
-        tdPnl.classList.add('muted');
-      } else {
-        const pnlVal = info.pnlTotale || 0;
-        tdPnl.textContent = formatEuro(pnlVal);
-        if (pnlVal === 0 && info.tipo === 'vuota') tdPnl.classList.add('muted');
-        else tdPnl.classList.add(pnlVal >= 0 ? 'green' : 'red');
-      }
-      tr.appendChild(tdPnl);
+      // RLZD (ex P&L)
+      const tdRlzd = document.createElement('td');
+      tdRlzd.className = 'rlzd-riga td-pnl';
+      tdRlzd.dataset.label = 'RLZD';
+      tdRlzd.title = 'P&L realizzato della riga (solo per righe di chiusura)';
+      const { testo, classe } = _valoreRlzdRiga(info, !isOn);
+      tdRlzd.textContent = testo;
+      tdRlzd.classList.add(classe);
+      tr.appendChild(tdRlzd);
 
       tbody.appendChild(tr);
     });
