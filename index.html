@@ -55,10 +55,6 @@
     <span class="label">Data analisi</span>
     <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui. Default: data odierna.">
   </div>
-  <div class="param-group">
-    <input type="checkbox" id="commissioniOn" class="toggle-on" checked title="Se attivo, le commissioni entrano nei P&amp;L futures, nei totali e nel grafico payoff (quindi anche nei BE). Attive solo su NES: MES, ES, AZIONI e tutte le opzioni sono commission-free in questa simulazione.">
-    <label for="commissioniOn" class="cash-escludi-label" title="Attive solo su NES: ~1,20 $/contratto per lato, round-trip sulle chiusure. MES, ES, AZIONI e opzioni MES/ES/AZIONI: nessuna commissione.">Commissioni (solo NES)</label>
-  </div>
 </div>
 
 <div class="columns">
@@ -72,6 +68,7 @@
         <option value="ES">ES</option>
         <option value="X">AZIONI</option>
       </select>
+      <span class="cs-fee" title="Fee stimate: N aperture × 2 lati × 1,205 $/lato. Non incluse nei P&amp;L mostrati.">fee stimate: <strong id="feeNES">—</strong></span>
       <div class="col-summary" id="summaryNES">
         <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
       </div>
@@ -117,6 +114,7 @@
         <option value="ES">ES</option>
         <option value="X">AZIONI</option>
       </select>
+      <span class="cs-fee" title="Fee stimate: N aperture × 2 lati × 1,205 $/lato. Non incluse nei P&amp;L mostrati.">fee stimate: <strong id="feeMES">—</strong></span>
       <div class="col-summary" id="summaryMES">
         <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
       </div>
