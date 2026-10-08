@@ -88,6 +88,21 @@
     font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer; min-width: 90px; }
   .col-header select:focus { outline: none; border-color: var(--accent); }
 
+  /* v27 — Fee stimate nell'header di colonna (solo NES) */
+  .col-header .cs-fee {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-left: auto;
+    display: inline-flex; align-items: baseline; gap: 4px;
+  }
+  .col-header .cs-fee .cs-fee-val {
+    font-size: 13px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-transform: none; letter-spacing: 0;
+  }
+  .col-header .cs-fee .cs-fee-val.red { color: var(--red); }
+  .col-header .cs-fee .cs-fee-val.muted { color: var(--muted); }
+
   .riga-totale {
     background: linear-gradient(180deg, var(--panel-3) 0%, var(--panel-2) 100%);
     border-bottom: 1px solid var(--border); padding: 12px 14px;
