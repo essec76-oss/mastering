@@ -10,6 +10,12 @@
 //     - Riga di apertura → "—"
 //     - Riga di chiusura → valore realizzato
 //     - Riga esclusa    → "—"
+//
+// v27 — Fee stimate nell'header di colonna:
+//   - Le commissioni NON entrano più nei calcoli (P&L lordo).
+//   - Le fee stimate (N aperture × 2 lati × 1,205 $/lato, solo NES)
+//     sono mostrate nell'header della colonna come promemoria.
+//   - Il toggle "Commissioni (solo NES)" è stato rimosso.
 
   function _tipoLabelCol(tipo, col) {
     if (tipo === 'X') return 'AZIONI';
@@ -64,10 +70,46 @@
     ricalcolaStatiScheda(scheda, 'MES');
   }
 
+  // ============================================================
+  // FEE STIMATE (v27)
+  // ============================================================
+  // Fee stimate per la colonna: N aperture × 2 lati × 1,205 $/lato.
+  // Solo NES (whitelist STRUMENTI_CON_COMMISSIONI). Per gli altri
+  // strumenti ritorna 0 (in futuro potranno avere fee proprie).
+  // N.B.: le fee NON entrano nei calcoli (P&L lordo).
+  function calcolaFeeStimate(col) {
+    const scheda = schedaAttiva();
+    const tipo = scheda['tipo' + col];
+    if (!tipo || tipo === '-') return 0;
+    if (!STRUMENTI_CON_COMMISSIONI.includes(tipo)) return 0;
+    let nAperture = 0;
+    (scheda[col] || []).forEach(m => {
+      if (m.attivo === false) return;
+      const stato = m.stato || 'APERTA';
+      if (stato !== 'CHIUSA') {
+        nAperture += (m.quantita || 0);
+      }
+    });
+    return nAperture * 2 * FEE_FUTURES_LATO;
+  }
+
   function renderRigaTotale(col, res) {
     const prezzoEl = el('csPrezzo' + col);
     if (prezzoEl) {
       prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
+    }
+
+    // Fee stimate (v27)
+    const feeEl = el('fee' + col);
+    if (feeEl) {
+      const fee = calcolaFeeStimate(col);
+      if (fee > 0) {
+        feeEl.textContent = '-' + formatEuro(fee);
+        feeEl.className = 'cs-fee-val red';
+      } else {
+        feeEl.textContent = '-0,00';
+        feeEl.className = 'cs-fee-val muted';
+      }
     }
 
     const qnEl = el('qtaNetta' + col);
@@ -147,11 +189,11 @@
       if (!info) return;
       const isOff = scheda[col][idx].attivo === false;
 
-      const tdPnl = tr.querySelector('.rlzd-riga');
+      const tdPnl = tr.querySelector('.pnl-riga');
       if (tdPnl) {
         const { testo, classe } = _valoreRlzdRiga(info, isOff);
         tdPnl.textContent = testo;
-        tdPnl.className = 'rlzd-riga ' + classe;
+        tdPnl.className = 'pnl-riga ' + classe;
       }
     });
   }
@@ -249,7 +291,7 @@
 
       // RLZD (ex P&L)
       const tdRlzd = document.createElement('td');
-      tdRlzd.className = 'rlzd-riga td-pnl';
+      tdRlzd.className = 'pnl-riga td-pnl';
       tdRlzd.dataset.label = 'RLZD';
       tdRlzd.title = 'P&L realizzato della riga (solo per righe di chiusura)';
       const { testo, classe } = _valoreRlzdRiga(info, !isOn);
