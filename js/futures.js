@@ -8,6 +8,15 @@
 //
 // NOTA: STRUMENTI_CON_COMMISSIONI e feeLatoFutureAttiva() sono definiti in
 // config.js e condivisi da tutti i moduli. NON ridichiararli qui.
+//
+// NOTA v25 (fix P&L aperto post-chiusura):
+//   Il P&L aperto delle posizioni residue è calcolato UNA VOLTA sulle
+//   variabili aggregate (qtaAssolutaCorrente, sommaPulitaPesata) e non
+//   riga per riga. In precedenza il calcolo riga per riga usava r.prezzo
+//   e r.qAperta "storici", che non riflettevano le riduzioni di pool
+//   effettuate da riduciPool() → P&L gonfiato dopo una chiusura parziale.
+//   Le righe APERTE ora mostrano pnlAperto = 0 (il totale è nel campo
+//   pnlAperto del risultato della colonna).
 
   function calcolaColonna(scheda, col) {
     const movimenti = scheda[col];
@@ -120,16 +129,27 @@
       }
     });
 
+    // ============================================================
+    // P&L APERTO (v25 — fix): calcolato UNA VOLTA sulle variabili
+    // aggregate, non riga per riga. Le righe APERTE mostrano
+    // pnlAperto = 0 (Opzione X): il P&L aperto totale vive solo
+    // nel campo `pnlAperto` del risultato e nel totale colonna.
+    // ============================================================
     const feeAperto = feeLatoFutureAttiva(tipo);
     let pnlApertoTot = 0;
+    const segnoAperto = Math.sign(qtaNetta) || 1;
+    const mediaAperta = qtaAssolutaCorrente > 0
+      ? sommaPulitaPesata / qtaAssolutaCorrente : 0;
+    if (qtaAssolutaCorrente > 0 && spot > 0 && isFinite(mediaAperta)) {
+      pnlApertoTot = (spot - mediaAperta) * qtaAssolutaCorrente * segnoAperto * molt
+                   - feeAperto * qtaAssolutaCorrente;
+    }
+
+    // Le righe mostrano solo il proprio P&L realizzato (o 0).
+    // Il P&L aperto è aggregato a livello di colonna.
     righe.forEach(r => {
-      if (r.qAperta > 0) {
-        const segno = r.direzione === 'LONG' ? 1 : -1;
-        const pnlLive = (spot - r.prezzo) * r.qAperta * segno * molt - feeAperto * r.qAperta;
-        r.pnlAperto = pnlLive;
-        pnlApertoTot += pnlLive;
-      }
-      r.pnlTotale = r.pnlAperto + r.pnlRealizzato;
+      r.pnlAperto = 0;
+      r.pnlTotale = r.pnlRealizzato;
     });
 
     const mediaPulita = qtaAssolutaCorrente > 0
