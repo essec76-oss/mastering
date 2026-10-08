@@ -13,7 +13,7 @@
       b.className = 'scheda-tab' + (i === stato.attiva ? ' active' : '');
       b.title = i === 0
         ? 'Scheda principale Matrice — non rimovibile'
-        : 'Scheda comparazione: modifica la strategia e confrontala sul grafico';
+        : 'Scheda comparazione: modifica la strategia e confrontala sul grafico con la scheda precedente';
       const nome = document.createElement('span');
       nome.textContent = s.nome;
       b.appendChild(nome);
@@ -44,10 +44,8 @@
   // Riporta la pagina sui dati della scheda attiva (valori solo della scheda)
   function renderScheda() {
     const scheda = schedaAttiva();
-    // Tema arancione + pulsante "Promuovi" solo sulle schede comparazione
+    // Tema arancione sulla scheda attiva quando è una comparazione
     document.body.classList.toggle('scheda-comp', stato.attiva > 0);
-    const btnP = el('btnPromuovi');
-    if (btnP) btnP.style.display = stato.attiva > 0 ? '' : 'none';
     el('tipoNES').value = scheda.tipoNES || 'NES';
     el('tipoMES').value = scheda.tipoMES || 'MES';
     if (el('strumentoOpzioni')) el('strumentoOpzioni').value = scheda.strumentoOpzioni || 'MES';
@@ -57,7 +55,8 @@
     calcolaTutto();
   }
 
-  // Clona la scheda attuale in una nuova "Comparazione N"
+  // Clona la scheda attuale in una nuova "Comparazione N".
+  // La nuova scheda diventa attiva; il grafico la confronterà con quella precedente.
   function creaComparazione() {
     const clone = JSON.parse(JSON.stringify(schedaAttiva()));
     clone.nome = 'Comparazione ' + stato.schede.length;
@@ -68,36 +67,36 @@
     mostraStatus('✓ ' + clone.nome + ' creata');
   }
 
-  // Le comparazioni si rimuovono, la Matrice mai
+  // Le comparazioni si rimuovono, la Matrice mai.
+  // Dopo la rimozione, rinumera le comparazioni rimaste in base alla
+  // nuova posizione (indicizzazione posizionale: Comparazione 1, 2, 3…).
   function rimuoviScheda(i) {
     if (i <= 0) return;
     stato.schede.splice(i, 1);
     if (stato.attiva >= i) stato.attiva = Math.max(0, stato.attiva - 1);
+    _rinominaComparazioni();
     renderTabs();
     renderScheda();
   }
 
-  // Passaggio inverso della comparazione: copia la strategia della
-  // comparazione attiva SOPRA la Matrice, che torna la strategia primaria
-  // (è la soluzione che hai trasmesso in reale sulla piattaforma).
-  // La comparazione non viene cancellata: resta per riferimento.
-  function promuoviSuMatrice() {
-    if (stato.attiva <= 0) return;
-    const comp = schedaAttiva();
-    if (!confirm(`Promuovere "${comp.nome}" su Matrice?\n\nLa strategia attuale della Matrice verrà SOSTITUITA da quella di "${comp.nome}".\nLa scheda "${comp.nome}" resterà disponibile per riferimento.`)) return;
-    const copia = JSON.parse(JSON.stringify(comp));
-    copia.nome = 'Matrice';
-    stato.schede[0] = copia;
-    stato.attiva = 0;
-    renderTabs();
-    renderScheda();
-    mostraStatus('✓ ' + comp.nome + ' promossa su Matrice');
+  // Rinomina tutte le schede > 0 in "Comparazione N" dove N è l'indice.
+  function _rinominaComparazioni() {
+    for (let i = 1; i < stato.schede.length; i++) {
+      stato.schede[i].nome = 'Comparazione ' + i;
+    }
   }
 
-  // Legenda del grafico: nome e colore di ogni scheda
+  // Legenda del grafico: solo 2 voci (corrente azzurro / precedente ambra).
+  // Sulla Matrice: solo la corrente.
   function aggiornaLegendaGrafico() {
     const wrap = el('legendSchede');
     if (!wrap) return;
-    wrap.innerHTML = stato.schede.map((s, i) =>
-      `<span><i style="background:${coloreScheda(i)};"></i> ${s.nome}</span>`).join('');
+    const corrente = schedaAttiva();
+    const precedente = schedaPrecedente();
+    const voci = [];
+    voci.push(`<span><i style="background:${COLORE_CORRENTE};"></i> ${corrente ? corrente.nome : 'Corrente'} (corrente)</span>`);
+    if (precedente) {
+      voci.push(`<span><i style="background:${COLORE_PRECEDENTE};"></i> ${precedente.nome} (precedente)</span>`);
+    }
+    wrap.innerHTML = voci.join('');
   }

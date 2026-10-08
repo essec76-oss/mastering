@@ -23,7 +23,6 @@
 
 <div class="schede-bar">
   <div class="schede-tabs" id="schedeTabs"></div>
-  <button class="btn" id="btnPromuovi" title="Copia la strategia di questa comparazione sulla Matrice, che diventa la strategia primaria (con conferma)" style="display:none;">→ Promuovi su Matrice</button>
 </div>
 
 
@@ -259,8 +258,18 @@
 <div class="chart-panel" id="payoffPanel">
   <h2>Payoff Combinato</h2>
   <div class="chart-controls">
-    <label><input type="checkbox" id="showExpiry" checked> A scadenza</label>
-    <label><input type="checkbox" id="showNow" checked> Now (teorico)</label>
+    <div class="ctrl-group corrente" id="ctrlGroupCorrente">
+      <span class="dot"></span>
+      <span class="ctrl-label">Corrente</span>
+      <label><input type="checkbox" id="showExpiryCorrente" checked> A scadenza</label>
+      <label><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
+    </div>
+    <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display:none;">
+      <span class="dot"></span>
+      <span class="ctrl-label">Precedente</span>
+      <label><input type="checkbox" id="showExpiryPrecedente" checked> A scadenza</label>
+      <label><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
+    </div>
     <label><input type="checkbox" id="showBE" checked> Breakeven</label>
     <span style="margin-left:8px;">Delta netto: <strong id="payoffDeltaNetto" style="color:var(--text);">—</strong></span>
   </div>

@@ -131,7 +131,10 @@
     xMin: null, xMax: null,
     baseMin: null, baseMax: null,
     lastResNES: null, lastResMES: null, lastSpot: 0,
-    breakevens: []
+    lastResNESPrec: null, lastResMESPrec: null, hasPrecedente: false,
+    breakevens: [],
+    sigma: null,
+    _sig: null
   };
   let chartGeom = null;
   let chartHoverBound = false;
@@ -164,30 +167,38 @@
     return { minS: Math.max(1, minS), maxS };
   }
 
-  function collectStructureAnchors(spot) {
+  // Ancore di struttura: spot + medie + prezzi movimenti + strike opzioni.
+  // Se `scheda` è passata, usa quella; altrimenti la scheda attiva.
+  function collectStructureAnchors(spot, scheda) {
     const pts = [spot];
-    stato.schede.forEach(scheda => {
-      ['NES', 'MES'].forEach(col => {
-        const res = calcolaColonna(scheda, col);
-        if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita);
-        (scheda[col] || []).forEach(m => {
-          if (m.attivo === false) return;
-          if (m.prezzoPulito > 0) pts.push(m.prezzoPulito);
-        });
+    const target = scheda || schedaAttiva();
+    if (!target) return pts.filter(p => isFinite(p) && p > 0);
+    ['NES', 'MES'].forEach(col => {
+      const res = calcolaColonna(target, col);
+      if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita);
+      (target[col] || []).forEach(m => {
+        if (m.attivo === false) return;
+        if (m.prezzoPulito > 0) pts.push(m.prezzoPulito);
       });
-      (scheda.opzioni || []).forEach(o => {
-        if (o.attivo === false) return;
-        const k = parseFloat(o.strike) || 0;
-        if (k > 0) pts.push(k);
-      });
+    });
+    (target.opzioni || []).forEach(o => {
+      if (o.attivo === false) return;
+      const k = parseFloat(o.strike) || 0;
+      if (k > 0) pts.push(k);
     });
     return pts.filter(p => isFinite(p) && p > 0);
   }
 
+  // Range di scansione per i BE: include anche la scheda precedente (se esiste).
   function scanRangeForBE(spot) {
     let minS = Math.max(1, spot * 0.55);
     let maxS = spot * 1.45;
-    collectStructureAnchors(spot).forEach(a => {
+    const anchors = collectStructureAnchors(spot, schedaAttiva());
+    const prec = schedaPrecedente();
+    if (prec) {
+      collectStructureAnchors(spot, prec).forEach(a => anchors.push(a));
+    }
+    anchors.forEach(a => {
       minS = Math.min(minS, Math.max(1, a * 0.7));
       maxS = Math.max(maxS, a * 1.3);
     });
@@ -195,7 +206,11 @@
   }
 
   function computeSmartChartRange(spot, breakevens) {
-    const anchors = collectStructureAnchors(spot);
+    const anchors = collectStructureAnchors(spot, schedaAttiva());
+    const prec = schedaPrecedente();
+    if (prec) {
+      collectStructureAnchors(spot, prec).forEach(a => anchors.push(a));
+    }
     const bes = (breakevens || []).filter(b => isFinite(b) && b > 0);
 
     let minS, maxS;
@@ -308,13 +323,33 @@
     }));
   }
 
+  // Curve da disegnare: solo [precedente, corrente] (o [corrente] se Matrice).
+  // Ogni set ha ruolo 'corrente' o 'precedente' + colore fisso.
   function buildCurveSets(minS, maxS) {
-    return stato.schede.map((scheda, i) => ({
-      nome: scheda.nome,
-      colore: coloreScheda(i),
-      pts: buildPayoffPoints(scheda, minS, maxS,
-        calcolaColonna(scheda, 'NES'), calcolaColonna(scheda, 'MES'))
-    }));
+    const sets = [];
+    const prec = schedaPrecedente();
+    if (prec) {
+      const resNES = calcolaColonna(prec, 'NES');
+      const resMES = calcolaColonna(prec, 'MES');
+      sets.push({
+        nome: prec.nome,
+        ruolo: 'precedente',
+        colore: COLORE_PRECEDENTE,
+        pts: buildPayoffPoints(prec, minS, maxS, resNES, resMES),
+        resNES, resMES
+      });
+    }
+    const att = schedaAttiva();
+    const resNES = calcolaColonna(att, 'NES');
+    const resMES = calcolaColonna(att, 'MES');
+    sets.push({
+      nome: att.nome,
+      ruolo: 'corrente',
+      colore: COLORE_CORRENTE,
+      pts: buildPayoffPoints(att, minS, maxS, resNES, resMES),
+      resNES, resMES
+    });
+    return sets;
   }
 
   function findBreakevens(pts) {
@@ -435,22 +470,37 @@
     beSupEl.textContent = fmtBe(sorted[sorted.length - 1]);
   }
 
+  // Mostra/nascondi il gruppo toggle "Precedente" in base alla scheda attiva.
+  function aggiornaTogglePrecedente() {
+    const grp = el('ctrlGroupPrecedente');
+    if (!grp) return;
+    const hasPrec = !!schedaPrecedente();
+    grp.style.display = hasPrec ? '' : 'none';
+  }
+
   function redrawChartFromView() {
     const { xMin, xMax, lastSpot, breakevens } = chartView;
     if (!(lastSpot > 0) || xMin == null || xMax == null) return;
-    const showExpiry = el('showExpiry') ? el('showExpiry').checked : true;
-    const showNow    = el('showNow')    ? el('showNow').checked    : true;
+    const showExpiryC = el('showExpiryCorrente')   ? el('showExpiryCorrente').checked   : true;
+    const showNowC    = el('showNowCorrente')      ? el('showNowCorrente').checked      : true;
+    const showExpiryP = el('showExpiryPrecedente') ? el('showExpiryPrecedente').checked : true;
+    const showNowP    = el('showNowPrecedente')    ? el('showNowPrecedente').checked    : true;
     const curveSets = buildCurveSets(xMin, xMax);
-    drawPayoffChart(curveSets, lastSpot, showExpiry, showNow, breakevens || [], chartView.sigma, stato.attiva);
+    drawPayoffChart(
+      curveSets, lastSpot,
+      { showExpiryC, showNowC, showExpiryP, showNowP },
+      breakevens || [], chartView.sigma, stato.attiva
+    );
   }
 
   function resetChartZoom() {
     fitChartToStructure();
   }
 
-  function structureSignature() {
-    const parts = [`${stato.schede.length}:${stato.attiva}`];
-    const scheda = schedaAttiva();
+  // Firma della struttura: serve a capire se il range X va ricalcolato.
+  // Include sia la scheda attiva sia la precedente.
+  function _firmaScheda(scheda) {
+    const parts = [];
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(scheda, col);
       parts.push(`${res.qtaNetta}:${res.mediaPulita || 0}:${res.pnlRealizzato || 0}`);
@@ -461,21 +511,34 @@
     (scheda.opzioni || []).forEach(o => {
       parts.push(`${o.attivo !== false ? 1 : 0}:${o.pos}:${o.tipo}:${o.qta}:${o.strike}:${o.premio}:${o.stato}:${o.vol}:${o.scadenza}:${o.rlzd}:${o.strumento || 'MES'}`);
     });
-    return parts.join('|') + `|cash:${(typeof stato.cash === 'number') ? stato.cash : 0}:${stato.cashEscluso ? 1 : 0}|fee:${commissioniAttive() ? 1 : 0}`;
+    return parts.join('|');
+  }
+
+  function structureSignature() {
+    const parts = [`${stato.schede.length}:${stato.attiva}`];
+    parts.push('C:' + _firmaScheda(schedaAttiva()));
+    const prec = schedaPrecedente();
+    if (prec) parts.push('P:' + _firmaScheda(prec));
+    parts.push(`cash:${(typeof stato.cash === 'number') ? stato.cash : 0}:${stato.cashEscluso ? 1 : 0}`);
+    parts.push(`fee:${commissioniAttive() ? 1 : 0}`);
+    return parts.join('|');
   }
 
   function aggiornaPayoffPreview(scheda, resNES, resMES) {
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const deltaEl = el('payoffDeltaNetto');
+    aggiornaTogglePrecedente();
+
     if (!(spot > 0)) {
       deltaEl.textContent = '—';
       chartView.lastSpot = 0;
       chartView.breakevens = [];
       chartView._sig = null;
+      chartView.hasPrecedente = false;
       updateBreakevenLabels([], 0);
       updatePOPLabel(null);
       chartView.sigma = null;
-      drawPayoffChart([], spot, false, false, [], null, stato.attiva);
+      drawPayoffChart([], spot, { showExpiryC: false, showNowC: false, showExpiryP: false, showNowP: false }, [], null, stato.attiva);
       return;
     }
 
@@ -483,8 +546,15 @@
     deltaEl.textContent = formatGreek(delta, 3);
     deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
 
+    const prec = schedaPrecedente();
+    const resNESPrec = prec ? calcolaColonna(prec, 'NES') : null;
+    const resMESPrec = prec ? calcolaColonna(prec, 'MES') : null;
+
     chartView.lastResNES = resNES;
     chartView.lastResMES = resMES;
+    chartView.lastResNESPrec = resNESPrec;
+    chartView.lastResMESPrec = resMESPrec;
+    chartView.hasPrecedente = !!prec;
     chartView.lastSpot = spot;
 
     const scan = scanRangeForBE(spot);
@@ -493,6 +563,7 @@
       scanMin = Math.min(scanMin, chartView.xMin);
       scanMax = Math.max(scanMax, chartView.xMax);
     }
+    // I BE sono calcolati solo sulla scheda attiva (sono i suoi BE).
     chartView.breakevens = findBreakevensRobust(scheda, spot, scanMin, scanMax, resNES, resMES);
     updateBreakevenLabels(chartView.breakevens, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, chartView.breakevens, resNES, resMES, scanMin, scanMax));
@@ -509,39 +580,63 @@
       chartView.baseMax = smart.maxS;
     }
 
-    const showExpiry = el('showExpiry') ? el('showExpiry').checked : true;
-    const showNow    = el('showNow')    ? el('showNow').checked    : true;
+    const showExpiryC = el('showExpiryCorrente')   ? el('showExpiryCorrente').checked   : true;
+    const showNowC    = el('showNowCorrente')      ? el('showNowCorrente').checked      : true;
+    const showExpiryP = el('showExpiryPrecedente') ? el('showExpiryPrecedente').checked : true;
+    const showNowP    = el('showNowPrecedente')    ? el('showNowPrecedente').checked    : true;
+
     chartView.sigma = sigmaBandsAt(spot, resNES, resMES);
     const curveSets = buildCurveSets(chartView.xMin, chartView.xMax);
-    drawPayoffChart(curveSets, spot, showExpiry, showNow, chartView.breakevens, chartView.sigma, stato.attiva);
+    drawPayoffChart(
+      curveSets, spot,
+      { showExpiryC, showNowC, showExpiryP, showNowP },
+      chartView.breakevens, chartView.sigma, stato.attiva
+    );
   }
 
-  function drawPayoffChart(curveSets, spot, showExpiry, showNow, breakevens, sigma, attivaIdx) {
+  // Curve visibili: capisce quali curve (Expiry/Now) mostrare per ogni ruolo.
+  // Ritorna { corrente: {expiry, now}, precedente: {expiry, now} } con booleani.
+  function _visibilitaCurve(flags, hasPrecedente) {
+    return {
+      corrente:   { expiry: !!flags.showExpiryC, now: !!flags.showNowC },
+      precedente: { expiry: hasPrecedente && !!flags.showExpiryP, now: hasPrecedente && !!flags.showNowP }
+    };
+  }
+
+  function drawPayoffChart(curveSets, spot, flags, breakevens, sigma, attivaIdx) {
     const svg = el('payoffChart');
     if (!svg) return;
     breakevens = breakevens || [];
     curveSets = curveSets || [];
+    flags = flags || { showExpiryC: true, showNowC: true, showExpiryP: true, showNowP: true };
 
     const W = 920, H = 380;
     const padL = 58, padR = 18, padT = 28, padB = 32;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
-    const attiva = curveSets[attivaIdx] || curveSets[0] || null;
-    const pts = attiva ? attiva.pts : [];
+    // Individua la corrente (ruolo 'corrente') e la precedente (ruolo 'precedente').
+    const corrente = curveSets.find(cs => cs.ruolo === 'corrente') || curveSets[curveSets.length - 1] || null;
+    const precedente = curveSets.find(cs => cs.ruolo === 'precedente') || null;
 
+    const pts = corrente ? corrente.pts : [];
     if (!pts.length) {
       chartGeom = null;
       svg.innerHTML = `<text x="${W/2}" y="${H/2}" fill="#8b93a7" font-size="13" text-anchor="middle">Inserisci una posizione per vedere il payoff</text>`;
       return;
     }
 
+    const hasPrec = !!precedente;
+    const vis = _visibilitaCurve(flags, hasPrec);
+
     const xs = pts.map(p => p.S);
     let ys = [];
-    curveSets.forEach(cs => {
-      if (showExpiry) ys = ys.concat(cs.pts.map(p => p.pnlExpiry));
-      if (showNow)    ys = ys.concat(cs.pts.map(p => p.pnlNow));
-    });
+    if (vis.corrente.expiry) ys = ys.concat(corrente.pts.map(p => p.pnlExpiry));
+    if (vis.corrente.now)    ys = ys.concat(corrente.pts.map(p => p.pnlNow));
+    if (precedente) {
+      if (vis.precedente.expiry) ys = ys.concat(precedente.pts.map(p => p.pnlExpiry));
+      if (vis.precedente.now)    ys = ys.concat(precedente.pts.map(p => p.pnlNow));
+    }
     if (!ys.length) ys = [0];
 
     const xMin = Math.min(...xs), xMax = Math.max(...xs);
@@ -558,6 +653,7 @@
 
     let svgContent = '';
 
+    // Griglia Y
     const nGridY = 6;
     for (let i = 0; i <= nGridY; i++) {
       const y = yMin + (i / nGridY) * (yMax - yMin);
@@ -566,6 +662,7 @@
       svgContent += `<text x="${padL - 6}" y="${py + 3}" fill="#8b93a7" font-size="10" text-anchor="end">${y.toFixed(0)}</text>`;
     }
 
+    // Griglia X
     const nGridX = 8;
     for (let i = 0; i <= nGridX; i++) {
       const x = xMin + (i / nGridX) * (xMax - xMin);
@@ -573,6 +670,7 @@
       svgContent += `<text x="${px}" y="${H - padB + 16}" fill="#8b93a7" font-size="10" text-anchor="middle">${Math.round(x)}</text>`;
     }
 
+    // Bande sigma
     const nSDsel = el('nSD');
     const nSD = nSDsel ? Math.max(1, Math.min(10, parseInt(nSDsel.value) || 2)) : 2;
     const nascondiSigma = !!(el('showSigma') && el('showSigma').checked);
@@ -589,11 +687,13 @@
       }
     }
 
+    // Linea zero
     const zeroY = yPix(0);
     svgContent += `<line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="#8b93a7" stroke-width="1"/>`;
 
-    if (showExpiry) {
-      const areaPath = `${pathFrom(attiva.pts, 'pnlExpiry')} L ${xPix(xMax)} ${zeroY} L ${xPix(xMin)} ${zeroY} Z`;
+    // Area sotto la curva Expiry: SOLO per la corrente (verde/rosso).
+    if (vis.corrente.expiry) {
+      const areaPath = `${pathFrom(corrente.pts, 'pnlExpiry')} L ${xPix(xMax)} ${zeroY} L ${xPix(xMin)} ${zeroY} Z`;
       const clipPosH = Math.max(0, zeroY - padT);
       const clipNegH = Math.max(0, H - padB - zeroY);
       svgContent += `
@@ -606,21 +706,23 @@
       `;
     }
 
-    curveSets.map((cs, i) => i)
-      .filter(i => i !== attivaIdx)
-      .concat([attivaIdx])
-      .forEach(i => {
-        const cs = curveSets[i];
-        if (!cs) return;
-        const isAttiva = i === attivaIdx;
-        if (showExpiry) {
-          svgContent += `<path d="${pathFrom(cs.pts, 'pnlExpiry')}" fill="none" stroke="${cs.colore}" stroke-width="${isAttiva ? 2.4 : 2}"/>`;
-        }
-        if (showNow) {
-          svgContent += `<path d="${pathFrom(cs.pts, 'pnlNow')}" fill="none" stroke="${cs.colore}" stroke-width="1.8" stroke-dasharray="5,4" opacity="0.85"/>`;
-        }
-      });
+    // Disegno curve: prima la precedente (sotto), poi la corrente (sopra).
+    if (precedente) {
+      if (vis.precedente.expiry) {
+        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlExpiry')}" fill="none" stroke="${precedente.colore}" stroke-width="2" stroke-dasharray="6,3" opacity="0.9"/>`;
+      }
+      if (vis.precedente.now) {
+        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlNow')}" fill="none" stroke="${precedente.colore}" stroke-width="1.6" stroke-dasharray="3,3" opacity="0.7"/>`;
+      }
+    }
+    if (vis.corrente.expiry) {
+      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlExpiry')}" fill="none" stroke="${corrente.colore}" stroke-width="2.6"/>`;
+    }
+    if (vis.corrente.now) {
+      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.8" stroke-dasharray="5,4" opacity="0.85"/>`;
+    }
 
+    // Linee BE (calcolate sulla scheda attiva)
     const showBEFlag = el('showBE') ? el('showBE').checked : true;
     if (showBEFlag) breakevens.forEach((be) => {
       if (be < xMin || be > xMax) return;
@@ -629,6 +731,7 @@
       svgContent += `<text x="${bx + 3}" y="${H - padB - 6}" fill="#f1c40f" font-size="10" text-anchor="start">BE ${be.toFixed(0)}</text>`;
     });
 
+    // Linea Spot
     if (spot >= xMin && spot <= xMax) {
       const sx = xPix(spot);
       svgContent += `<line x1="${sx}" y1="${padT}" x2="${sx}" y2="${H - padB}" stroke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
@@ -637,15 +740,18 @@
 
     svgContent += `<rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="none" stroke="#2a2f3a"/>`;
 
+    // Hover layer
     svgContent += `
       <g id="hoverLayer" style="pointer-events:none;">
         <line id="hoverLine" x1="0" y1="${padT}" x2="0" y2="${H - padB}" stroke="#7d8590" stroke-width="1" stroke-dasharray="3,3" style="display:none"/>
-        <circle id="hoverDotExpiry" cx="0" cy="0" r="4" fill="#ffffff" stroke="#0c0e12" stroke-width="1.5" style="display:none"/>
-        <circle id="hoverDotNow" cx="0" cy="0" r="4" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2,1" style="display:none"/>
-        <rect id="hoverBox" x="0" y="0" width="168" height="58" rx="5" fill="#0f1115" stroke="#2a2f3a" stroke-width="1" style="display:none"/>
-        <text id="hoverText1" x="0" y="0" fill="#e6e8ee" font-size="11" font-family="Segoe UI, Roboto, sans-serif" style="display:none"></text>
-        <text id="hoverText2" x="0" y="0" fill="#ffffff" font-size="11" font-family="Segoe UI, Roboto, sans-serif" style="display:none"></text>
-        <text id="hoverText3" x="0" y="0" fill="#a8b0c0" font-size="11" font-family="Segoe UI, Roboto, sans-serif" style="display:none"></text>
+        <circle id="hoverDotCorrente" cx="0" cy="0" r="4" fill="${corrente.colore}" stroke="#0c0e12" stroke-width="1.5" style="display:none"/>
+        <circle id="hoverDotPrecedente" cx="0" cy="0" r="4" fill="${precedente ? precedente.colore : '#fb923c'}" stroke="#0c0e12" stroke-width="1.5" style="display:none"/>
+        <rect id="hoverBox" x="0" y="0" width="200" height="72" rx="5" fill="#0f1115" stroke="#2a2f3a" stroke-width="1" style="display:none"/>
+        <circle id="hoverPallinoC" cx="0" cy="0" r="4" fill="${corrente.colore}" style="display:none"/>
+        <circle id="hoverPallinoP" cx="0" cy="0" r="4" fill="none" stroke="${precedente ? precedente.colore : '#fb923c'}" stroke-width="1.5" style="display:none"/>
+        <text id="hoverTextPrezzo" x="0" y="0" fill="#a8b0c0" font-size="11" font-family="Segoe UI, Roboto, sans-serif" style="display:none"></text>
+        <text id="hoverTextCorrente" x="0" y="0" fill="#e6e8ee" font-size="11" font-family="Segoe UI, Roboto, sans-serif" style="display:none"></text>
+        <text id="hoverTextPrecedente" x="0" y="0" fill="#e6e8ee" font-size="11" font-family="Segoe UI, Roboto, sans-serif" style="display:none"></text>
       </g>
     `;
 
@@ -653,22 +759,29 @@
 
     chartGeom = {
       W, H, padL, padR, padT, padB, plotW, plotH,
-      xMin, xMax, yMin, yMax, xPix, yPix, pts, showExpiry, showNow,
-      activeColor: attiva.colore
+      xMin, xMax, yMin, yMax, xPix, yPix,
+      ptsCorrente: corrente.pts,
+      ptsPrecedente: precedente ? precedente.pts : null,
+      nomeCorrente: corrente.nome,
+      nomePrecedente: precedente ? precedente.nome : null,
+      vis,
+      activeColor: corrente.colore
     };
 
     bindChartHover();
   }
 
   function clearChartHover() {
-    ['hoverLine', 'hoverDotExpiry', 'hoverDotNow', 'hoverBox', 'hoverText1', 'hoverText2', 'hoverText3'].forEach(id => {
+    ['hoverLine', 'hoverDotCorrente', 'hoverDotPrecedente', 'hoverBox',
+     'hoverPallinoC', 'hoverPallinoP',
+     'hoverTextPrezzo', 'hoverTextCorrente', 'hoverTextPrecedente'].forEach(id => {
       const e = document.getElementById(id);
       if (e) e.style.display = 'none';
     });
   }
 
   function handleChartHover(e) {
-    if (!chartGeom || !chartGeom.pts.length) return;
+    if (!chartGeom || !chartGeom.ptsCorrente || !chartGeom.ptsCorrente.length) return;
     const svg = el('payoffChart');
     if (!svg) return;
 
@@ -679,7 +792,8 @@
     if (!ctm) return;
     const svgPt = pt.matrixTransform(ctm.inverse());
 
-    const { padL, padR, padT, padB, W, H, xMin, xMax, xPix, yPix, pts, showExpiry, showNow } = chartGeom;
+    const { padL, padR, padT, padB, W, H, xMin, xMax, xPix, yPix,
+            ptsCorrente, ptsPrecedente, vis } = chartGeom;
 
     if (svgPt.x < padL || svgPt.x > W - padR || svgPt.y < padT || svgPt.y > H - padB) {
       clearChartHover();
@@ -688,54 +802,105 @@
 
     const S = xMin + ((svgPt.x - padL) / (W - padL - padR)) * (xMax - xMin);
 
-    let nearest = pts[0];
-    let best = Infinity;
-    for (const p of pts) {
+    // Trova il punto più vicino sulla curva CORRENTE (usato per agganciare la X).
+    let nearestC = ptsCorrente[0];
+    let bestC = Infinity;
+    for (const p of ptsCorrente) {
       const d = Math.abs(p.S - S);
-      if (d < best) { best = d; nearest = p; }
+      if (d < bestC) { bestC = d; nearestC = p; }
     }
 
-    const px = xPix(nearest.S);
+    // Trova il punto più vicino sulla curva PRECEDENTE (stessa ascissa).
+    let nearestP = null;
+    if (ptsPrecedente && ptsPrecedente.length) {
+      let bestP = Infinity;
+      for (const p of ptsPrecedente) {
+        const d = Math.abs(p.S - nearestC.S);
+        if (d < bestP) { bestP = d; nearestP = p; }
+      }
+    }
+
+    const px = xPix(nearestC.S);
     const line = document.getElementById('hoverLine');
-    const dotExp = document.getElementById('hoverDotExpiry');
-    const dotNow = document.getElementById('hoverDotNow');
-    const box = document.getElementById('hoverBox');
-    const t1 = document.getElementById('hoverText1');
-    const t2 = document.getElementById('hoverText2');
-    const t3 = document.getElementById('hoverText3');
-    if (!line || !box) return;
+    if (!line) return;
 
     line.setAttribute('x1', px);
     line.setAttribute('x2', px);
     line.style.display = '';
 
-    if (showExpiry && dotExp) {
-      dotExp.setAttribute('cx', px);
-      dotExp.setAttribute('cy', yPix(nearest.pnlExpiry));
-      dotExp.setAttribute('fill', chartGeom.activeColor || '#ffffff');
-      dotExp.style.display = '';
-    } else if (dotExp) dotExp.style.display = 'none';
+    const dotC = document.getElementById('hoverDotCorrente');
+    const dotP = document.getElementById('hoverDotPrecedente');
+    const box = document.getElementById('hoverBox');
+    const palC = document.getElementById('hoverPallinoC');
+    const palP = document.getElementById('hoverPallinoP');
+    const tPrezzo = document.getElementById('hoverTextPrezzo');
+    const tCorr = document.getElementById('hoverTextCorrente');
+    const tPrec = document.getElementById('hoverTextPrecedente');
+    if (!box || !tPrezzo || !tCorr) return;
 
-    if (showNow && dotNow) {
-      dotNow.setAttribute('cx', px);
-      dotNow.setAttribute('cy', yPix(nearest.pnlNow));
-      dotNow.style.display = '';
-    } else if (dotNow) dotNow.style.display = 'none';
+    // Pallino corrente: pieno, sulla curva Expiry se visibile, altrimenti Now.
+    if (dotC) {
+      const yValC = vis.corrente.expiry ? nearestC.pnlExpiry
+                  : (vis.corrente.now ? nearestC.pnlNow : null);
+      if (yValC != null) {
+        dotC.setAttribute('cx', px);
+        dotC.setAttribute('cy', yPix(yValC));
+        dotC.style.display = '';
+      } else {
+        dotC.style.display = 'none';
+      }
+    }
+
+    // Pallino precedente: pieno, sulla curva Expiry se visibile, altrimenti Now.
+    if (dotP) {
+      const yValP = nearestP
+        ? (vis.precedente.expiry ? nearestP.pnlExpiry
+           : (vis.precedente.now ? nearestP.pnlNow : null))
+        : null;
+      if (yValP != null) {
+        dotP.setAttribute('cx', px);
+        dotP.setAttribute('cy', yPix(yValP));
+        dotP.style.display = '';
+      } else {
+        dotP.style.display = 'none';
+      }
+    }
 
     const fmt = v => (v >= 0 ? '+' : '') + v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const lines = [
-      `Prezzo  ${nearest.S.toFixed(2)}`,
-      showExpiry ? `Scadenza  ${fmt(nearest.pnlExpiry)}` : null,
-      showNow ? `Now  ${fmt(nearest.pnlNow)}` : null
-    ].filter(Boolean);
 
-    const boxW = 168;
-    const boxH = 10 + lines.length * 15;
+    // Righe tooltip: Prezzo + Corrente (Expiry/Now) + Precedente (Expiry/Now).
+    const righe = [];
+    righe.push({ tipo: 'prezzo', testo: `Prezzo  ${nearestC.S.toFixed(2)}` });
+
+    // Corrente: se entrambe visibili, due righe; altrimenti una sola.
+    if (vis.corrente.expiry && vis.corrente.now) {
+      righe.push({ tipo: 'corrente', testo: `● ${chartGeom.nomeCorrente} Scad.  ${fmt(nearestC.pnlExpiry)}` });
+      righe.push({ tipo: 'corrente', testo: `● ${chartGeom.nomeCorrente} Now   ${fmt(nearestC.pnlNow)}` });
+    } else if (vis.corrente.expiry) {
+      righe.push({ tipo: 'corrente', testo: `● ${chartGeom.nomeCorrente}  ${fmt(nearestC.pnlExpiry)}` });
+    } else if (vis.corrente.now) {
+      righe.push({ tipo: 'corrente', testo: `● ${chartGeom.nomeCorrente} Now  ${fmt(nearestC.pnlNow)}` });
+    }
+
+    // Precedente: idem.
+    if (nearestP) {
+      if (vis.precedente.expiry && vis.precedente.now) {
+        righe.push({ tipo: 'precedente', testo: `○ ${chartGeom.nomePrecedente} Scad.  ${fmt(nearestP.pnlExpiry)}` });
+        righe.push({ tipo: 'precedente', testo: `○ ${chartGeom.nomePrecedente} Now   ${fmt(nearestP.pnlNow)}` });
+      } else if (vis.precedente.expiry) {
+        righe.push({ tipo: 'precedente', testo: `○ ${chartGeom.nomePrecedente}  ${fmt(nearestP.pnlExpiry)}` });
+      } else if (vis.precedente.now) {
+        righe.push({ tipo: 'precedente', testo: `○ ${chartGeom.nomePrecedente} Now  ${fmt(nearestP.pnlNow)}` });
+      }
+    }
+
+    // Box dimensioni in base al numero di righe.
+    const boxW = 210;
+    const boxH = 8 + righe.length * 15;
     let boxX = px + 12;
     if (boxX + boxW > W - padR) boxX = px - boxW - 12;
-    let boxY = padT + 8;
-    const refY = showExpiry ? yPix(nearest.pnlExpiry) : yPix(nearest.pnlNow);
-    boxY = Math.max(padT + 4, Math.min(refY - boxH - 8, H - padB - boxH - 4));
+    const refY = vis.corrente.expiry ? yPix(nearestC.pnlExpiry) : yPix(nearestC.pnlNow);
+    let boxY = Math.max(padT + 4, Math.min(refY - boxH - 8, H - padB - boxH - 4));
 
     box.setAttribute('x', boxX);
     box.setAttribute('y', boxY);
@@ -743,19 +908,73 @@
     box.setAttribute('height', boxH);
     box.style.display = '';
 
-    const texts = [t1, t2, t3];
-    lines.forEach((txt, i) => {
-      if (!texts[i]) return;
-      texts[i].setAttribute('x', boxX + 10);
-      texts[i].setAttribute('y', boxY + 16 + i * 15);
-      texts[i].textContent = txt;
-      texts[i].style.display = '';
-      if (i === 0) texts[i].setAttribute('fill', '#a8b0c0');
-      else if (txt.startsWith('Scadenza')) texts[i].setAttribute('fill', '#ffffff');
-      else texts[i].setAttribute('fill', '#c8d0dc');
-    });
-    for (let i = lines.length; i < 3; i++) {
-      if (texts[i]) texts[i].style.display = 'none';
+    // Pallini del tooltip
+    if (palC && palP) {
+      let idxCorr = -1, idxPrec = -1;
+      for (let i = 0; i < righe.length; i++) {
+        if (righe[i].tipo === 'corrente' && idxCorr < 0) idxCorr = i;
+        if (righe[i].tipo === 'precedente' && idxPrec < 0) idxPrec = i;
+      }
+      if (idxCorr >= 0) {
+        palC.setAttribute('cx', boxX + 10);
+        palC.setAttribute('cy', boxY + 16 + idxCorr * 15);
+        palC.style.display = '';
+      } else {
+        palC.style.display = 'none';
+      }
+      if (idxPrec >= 0) {
+        palP.setAttribute('cx', boxX + 10);
+        palP.setAttribute('cy', boxY + 16 + idxPrec * 15);
+        palP.style.display = '';
+      } else {
+        palP.style.display = 'none';
+      }
+    }
+
+    // Riempie i testi. Uso un'unica text per ogni riga, con x spostato di +22
+    // quando c'è il pallino, altrimenti +10.
+    const setRow = (elText, i, tipo) => {
+      if (!elText) return;
+      const r = righe[i];
+      if (!r) { elText.style.display = 'none'; return; }
+      const hasPallino = (r.tipo === 'corrente' || r.tipo === 'precedente');
+      elText.setAttribute('x', boxX + (hasPallino ? 22 : 10));
+      elText.setAttribute('y', boxY + 16 + i * 15);
+      // Rimuovo il pallino dal testo (già disegnato come cerchio SVG)
+      elText.textContent = r.testo.replace(/^[●○]\s*/, '');
+      if (r.tipo === 'prezzo') elText.setAttribute('fill', '#a8b0c0');
+      else if (r.tipo === 'corrente') elText.setAttribute('fill', chartGeom.activeColor);
+      else elText.setAttribute('fill', '#fb923c');
+      elText.style.display = '';
+    };
+
+    // Uso i 3 text disponibili; per righe extra (fino a 5) creo/riuso un pool.
+    // Pool dinamico: hoverTextPrezzo, hoverTextCorrente, hoverTextPrecedente sono i primi 3.
+    // Per ulteriori righe, riciclo in ordine: preferisco un pool più ampio.
+    // Soluzione: rimuovo i 3 text dal DOM e ne creo N.
+    // (semplice, il layer hover è ricreato ad ogni redraw)
+    const layer = document.getElementById('hoverLayer');
+    if (layer) {
+      // Rimuovo i text esistenti con data-hover-row
+      layer.querySelectorAll('text[data-hover-row]').forEach(n => n.remove());
+      // Creo un text per ogni riga
+      for (let i = 0; i < righe.length; i++) {
+        const r = righe[i];
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.setAttribute('data-hover-row', String(i));
+        t.setAttribute('font-size', '11');
+        t.setAttribute('font-family', 'Segoe UI, Roboto, sans-serif');
+        const hasPallino = (r.tipo === 'corrente' || r.tipo === 'precedente');
+        t.setAttribute('x', boxX + (hasPallino ? 22 : 10));
+        t.setAttribute('y', boxY + 16 + i * 15);
+        t.textContent = r.testo.replace(/^[●○]\s*/, '');
+        if (r.tipo === 'prezzo') t.setAttribute('fill', '#a8b0c0');
+        else if (r.tipo === 'corrente') t.setAttribute('fill', chartGeom.activeColor);
+        else t.setAttribute('fill', '#fb923c');
+        layer.appendChild(t);
+      }
+      // I 3 text statici non servono più: nascondo.
+      [tPrezzo, tCorr, tPrec].forEach(t => { if (t) t.style.display = 'none'; });
     }
   }
 
