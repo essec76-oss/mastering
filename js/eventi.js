@@ -91,6 +91,15 @@
 
   // Strategie salvate: salvataggio multiplo con nome + export/import file
   if (el('btnSalvaCome')) el('btnSalvaCome').addEventListener('click', () => salvaConNome(el('nomeStrategia').value));
+
+  // Nome strategia forzato in MAIUSCOLO mentre si digita (cursore preservato)
+  if (el('nomeStrategia')) el('nomeStrategia').addEventListener('input', e => {
+    const inp = e.target;
+    const pos = inp.selectionStart;
+    inp.value = inp.value.toUpperCase();
+    inp.setSelectionRange(pos, pos);
+  });
+
   if (el('btnCaricaSalvato')) el('btnCaricaSalvato').addEventListener('click', () => {
     const v = el('listaSalvate').value;
     if (v) caricaSalvato(v);
