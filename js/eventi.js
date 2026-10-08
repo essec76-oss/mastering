@@ -26,9 +26,9 @@
     stato.cashEscluso = el('cashEscludi').checked;
     calcolaTutto();
   });
-  if (el('commissioniOn')) el('commissioniOn').addEventListener('change', () => {
-    calcolaTutto();
-  });
+  // v27 — il toggle "Commissioni (solo NES)" è stato rimosso: le fee non
+  // entrano più nei calcoli (P&L lordo). Le fee stimate sono mostrate
+  // nell'header di colonna e calcolate in render-futures.js.
   if (el('dataAnalisi')) el('dataAnalisi').addEventListener('change', () => {
     // Ricalcola greche, teorico, GG residui e POP rispetto alla nuova data
     calcolaTutto();

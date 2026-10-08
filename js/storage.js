@@ -25,7 +25,6 @@
       divYield: parseFloat(el('divYield') && el('divYield').value) || 0,
       cash: parseFloat(el('cash').value) || 0,
       cashEscluso: !!stato.cashEscluso,
-      commissioniOn: commissioniAttive(),
       dataAnalisi: el('dataAnalisi') ? (el('dataAnalisi').value || '') : '',
       tipoNES: el('tipoNES').value,
       tipoMES: el('tipoMES').value,
@@ -65,7 +64,9 @@
       if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
       stato.cashEscluso = dati.cashEscluso === true;
       if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
-      if (el('commissioniOn')) el('commissioniOn').checked = dati.commissioniOn !== false;
+      // v27 — il campo `commissioniOn` non esiste più: le commissioni non
+      // entrano nei calcoli. Eventuali valori salvati in precedenza sono
+      // ignorati (retrocompatibilità con i salvataggi vecchi).
       if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
       if (dati.tipoNES) el('tipoNES').value = dati.tipoNES;
       if (dati.tipoMES) el('tipoMES').value = dati.tipoMES;
@@ -373,7 +374,7 @@
     aggiornaStileCash();
     stato.cashEscluso = false;
     if (el('cashEscludi')) el('cashEscludi').checked = false;
-    if (el('commissioniOn')) el('commissioniOn').checked = true;
+    // v27 — il toggle commissioni è stato rimosso
     el('dataAnalisi').value = dataOggiIso();
     el('tipoNES').value = '-';
     el('tipoMES').value = '-';

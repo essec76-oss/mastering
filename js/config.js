@@ -26,7 +26,10 @@ const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
 function moltOpz(opz) { return MOLTIPLICATORI_OPZ[(opz && opz.strumento) || 'MES']; }
 
 function commissioniAttive() {
-  return !!(el('commissioniOn') && el('commissioniOn').checked);
+  // v27 — il toggle "Commissioni (solo NES)" è stato rimosso: le fee
+  // non entrano più nei calcoli (P&L lordo). Le fee stimate sono
+  // mostrate nell'header di colonna (render-futures.js).
+  return false;
 }
 // Fee futures per lato: 0 se il toggle è spento, 0 se lo strumento non
 // è in whitelist (MES / ES / X), altrimenti FEE_FUTURES_LATO (NES).
