@@ -33,8 +33,13 @@
     // Ricalcola greche, teorico, GG residui e POP rispetto alla nuova data
     calcolaTutto();
   });
-  if (el('showExpiry')) el('showExpiry').addEventListener('change', () => calcolaTutto());
-  if (el('showNow'))    el('showNow').addEventListener('change', () => calcolaTutto());
+
+  // Toggle curve del grafico (v25): 4 checkbox indipendenti (corrente/precedente).
+  // Corrente e precedente non richiedono ricalcolo completo: basta ridisegnare.
+  if (el('showExpiryCorrente'))   el('showExpiryCorrente').addEventListener('change',   () => redrawChartFromView());
+  if (el('showNowCorrente'))      el('showNowCorrente').addEventListener('change',      () => redrawChartFromView());
+  if (el('showExpiryPrecedente')) el('showExpiryPrecedente').addEventListener('change', () => redrawChartFromView());
+  if (el('showNowPrecedente'))    el('showNowPrecedente').addEventListener('change',    () => redrawChartFromView());
   if (el('showBE'))     el('showBE').addEventListener('change', () => redrawChartFromView());
   if (el('showSigma'))  el('showSigma').addEventListener('change', () => redrawChartFromView());
   if (el('nSD'))        el('nSD').addEventListener('change', () => redrawChartFromView());
@@ -81,7 +86,6 @@
     calcolaTutto();
   });
   el('btnCreaComp').addEventListener('click', creaComparazione);
-  if (el('btnPromuovi')) el('btnPromuovi').addEventListener('click', promuoviSuMatrice);
   el('btnSalva').addEventListener('click', () => salva(false));
   el('btnReset').addEventListener('click', reset);
 
