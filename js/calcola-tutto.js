@@ -5,6 +5,15 @@
   // ============================================================
   function calcolaTutto() {
     const scheda = schedaAttiva();
+
+    // v26 — Modello transazionale: ricalcola gli stati (APERTA/CHIUSA)
+    // di NES e MES in base alla direzione rispetto alla posizione netta.
+    // Il campo `stato` resta nel dato per compatibilità salvataggi, ma
+    // non è più editabile dall'utente (niente pulsante sulla riga).
+    if (typeof ricalcolaStatiSchedaAttiva === 'function') {
+      ricalcolaStatiSchedaAttiva();
+    }
+
     const resNES = calcolaColonna(scheda, 'NES');
     const resMES = calcolaColonna(scheda, 'MES');
 
