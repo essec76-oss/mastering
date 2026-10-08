@@ -86,7 +86,6 @@
     calcolaTutto();
   });
   el('btnCreaComp').addEventListener('click', creaComparazione);
-  el('btnSalva').addEventListener('click', () => salva(false));
   el('btnReset').addEventListener('click', reset);
 
   // Strategie salvate: salvataggio multiplo con nome + export/import file
