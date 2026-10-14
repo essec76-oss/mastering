@@ -212,22 +212,23 @@
           <th title="Elimina riga"></th>
           <th>Pos</th><th>Tipo</th><th>Q.tà</th>
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
-          <th title="Giorni alla scadenza dalla data analisi">GG</th>
+          <th title="Giorni alla scadenza dalla data analisi">DTE</th>
           <th title="ATM/OTM/ITM + distanza in σ">M/S</th>
-          <th>Teorico</th>
-          <th title="Delta di posizione in contratti (q.tà × Δ × segno). Non include il moltiplicatore.">Delta</th>
-          <th title="Gamma di posizione in contratti">Gamma</th>
-          <th title="Vega di posizione in contratti">Vega</th>
-          <th title="Theta di posizione in contratti">Theta</th>
-          <th title="Valore intrinseco">V. Intr</th>
-          <th title="Valore temporale">V. Temp</th>
-          <th title="Probabilità di tocco dello strike">P. Tocco</th>
-          <th title="P&amp;L della riga a scadenza della gamba più corta">P&amp;L Scad.</th>
-          <th title="P&amp;L attuale mark-to-market">P&amp;L</th>
-          <th title="Debit/Credit: premio × q.tà × moltiplicatore">Deb/Cred</th>
+          <th title="Delta di posizione in contratti (q.tà × Δ × segno). Non include il moltiplicatore.">DELTA</th>
+          <th title="Gamma di posizione in contratti (q.tà × gamma × segno)">GAMMA</th>
+          <th title="Vega di posizione in contratti (q.tà × vega × segno)">VEGA</th>
+          <th title="Theta di posizione in contratti (q.tà × theta × segno)">THETA/gg</th>
+          <th title="Prezzo teorico attuale (Black-76 / Black-Scholes)">PREZZO ATT.</th>
+          <th title="Valore temporale">VAL. TEMP.</th>
+          <th title="Valore intrinseco">VAL. INTR.</th>
+          <th title="Probabilità di tocco dello strike">PROB. TOCCO</th>
+          <th title="P&amp;L della riga a scadenza della gamba più corta">P&amp;L SCAD. ($)</th>
+          <th title="P&amp;L attuale mark-to-market">P&amp;L NOW ($)</th>
+          <th title="Debit/Credit: premio × q.tà × moltiplicatore">DEBITO/CREDITO ($)</th>
         </tr>
       </thead>
       <tbody id="bodyOpzioni"></tbody>
+      <tfoot id="footOpzioni"></tfoot>
     </table>
     </div>
     <button class="btn-add" id="btnAddOpzione">+ Aggiungi opzione</button>
