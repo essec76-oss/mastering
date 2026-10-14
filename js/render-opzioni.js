@@ -130,6 +130,77 @@
     return sel ? sel.value : 'MES';
   }
 
+  // ============================================================
+  // FOOTER TOTALI (come la versione di riferimento: riga viola
+  // in fondo alla tabella con i totali per colonna)
+  // ============================================================
+  function buildFooterOpzioni() {
+    const tfoot = el('footOpzioni');
+    if (!tfoot) return;
+    tfoot.innerHTML = '';
+    const tr = document.createElement('tr');
+    tr.className = 'footer-opzioni';
+    // 10 colonne iniziali (☑, Stato, DEL, Pos, Tipo, Q.tà, Strike, Premio, Vol%, Scadenza)
+    for (let i = 0; i < 10; i++) {
+      const td = document.createElement('td');
+      tr.appendChild(td);
+    }
+    const totCells = [
+      { key: 'dte',    label: '' },
+      { key: 'ms',     label: '' },
+      { key: 'delta',  label: 'DELTA' },
+      { key: 'gamma',  label: 'GAMMA' },
+      { key: 'vega',   label: 'VEGA' },
+      { key: 'theta',  label: 'THETA/gg' },
+      { key: 'price',  label: 'PREZZO ATT.' },
+      { key: 'temp',   label: 'VAL. TEMP.' },
+      { key: 'intr',   label: 'VAL. INTR.' },
+      { key: 'tocco',  label: '' },
+      { key: 'pnlScad', label: 'P&L SCAD.' },
+      { key: 'pnlNow',  label: 'P&L NOW' },
+      { key: 'debcred', label: 'DEB/CRED' }
+    ];
+    totCells.forEach(c => {
+      const td = document.createElement('td');
+      td.dataset.tot = c.key;
+      if (c.label) {
+        const lbl = document.createElement('span');
+        lbl.className = 'tot-label';
+        lbl.textContent = c.label;
+        td.appendChild(lbl);
+      }
+      const val = document.createElement('span');
+      val.className = 'tot-val';
+      val.textContent = '—';
+      td.appendChild(val);
+      tr.appendChild(td);
+    });
+    tfoot.appendChild(tr);
+  }
+
+  function aggiornaFooterOpzioni(tot) {
+    const tfoot = el('footOpzioni');
+    if (!tfoot) return;
+    const set = (key, txt, cls) => {
+      const cell = tfoot.querySelector(`td[data-tot="${key}"] .tot-val`);
+      if (!cell) return;
+      cell.textContent = txt;
+      cell.classList.remove('green', 'red');
+      if (cls) cell.classList.add(cls);
+    };
+    set('delta',  formatGreekAuto(tot.delta, 2, 3));
+    set('gamma',  formatGreekAuto(tot.gamma, 2, 4));
+    set('vega',   formatGreekAuto(tot.vega, 2, 3));
+    set('theta',  formatGreekAuto(tot.theta, 2, 3));
+    set('price',  formatGreekAuto(tot.price, 2, 2));
+    set('temp',   formatGreekAuto(tot.temp, 2, 2));
+    set('intr',   formatGreekAuto(tot.intr, 2, 2));
+    set('tocco',  '');
+    set('pnlScad', formatEuro(tot.pnlScad), tot.pnlScad >= 0 ? 'green' : 'red');
+    set('pnlNow',  formatEuro(tot.pnlNow),  tot.pnlNow >= 0 ? 'green' : 'red');
+    set('debcred', formatEuro(tot.debcred));
+  }
+
   function renderOpzioni() {
     const tbody = el('bodyOpzioni');
     tbody.innerHTML = '';
@@ -264,9 +335,9 @@
       });
       tdScad.appendChild(inScad); tr.appendChild(tdScad);
 
-      // GG
+      // DTE (ex GG)
       const tdGG = document.createElement('td');
-      tdGG.dataset.label = 'GG';
+      tdGG.dataset.label = 'DTE';
       const spanGG = document.createElement('span');
       spanGG.dataset.field = 'gg';
       spanGG.textContent = '—';
@@ -274,7 +345,8 @@
       tdGG.appendChild(spanGG); tr.appendChild(tdGG);
       aggiornaGiorniResidui(tr, opz);
 
-      // M/S
+      // M/S (non presente nel riferimento: rimuovere questo blocco per
+      // una tabella identica al 100% al riferimento)
       const tdMS = document.createElement('td');
       tdMS.dataset.label = 'M/S';
       const wrapMS = document.createElement('div');
@@ -289,96 +361,96 @@
       tdMS.appendChild(wrapMS); tr.appendChild(tdMS);
       aggiornaMoneyness(tr, opz);
 
-      // Teorico
-      const tdTeorico = document.createElement('td');
-      tdTeorico.dataset.label = 'Teorico';
-      const spanTeorico = document.createElement('span');
-      spanTeorico.dataset.field = 'teorico';
-      spanTeorico.textContent = '—';
-      spanTeorico.style.fontVariantNumeric = 'tabular-nums';
-      tdTeorico.appendChild(spanTeorico); tr.appendChild(tdTeorico);
-
-      // Delta
+      // DELTA
       const tdDelta = document.createElement('td');
-      tdDelta.dataset.label = 'Delta';
+      tdDelta.dataset.label = 'DELTA';
       const spanDelta = document.createElement('span');
       spanDelta.dataset.field = 'delta';
       spanDelta.textContent = '—';
       spanDelta.style.fontVariantNumeric = 'tabular-nums';
       tdDelta.appendChild(spanDelta); tr.appendChild(tdDelta);
 
-      // Gamma
+      // GAMMA
       const tdGamma = document.createElement('td');
-      tdGamma.dataset.label = 'Gamma';
+      tdGamma.dataset.label = 'GAMMA';
       const spanGamma = document.createElement('span');
       spanGamma.dataset.field = 'gamma';
       spanGamma.textContent = '—';
       spanGamma.style.fontVariantNumeric = 'tabular-nums';
       tdGamma.appendChild(spanGamma); tr.appendChild(tdGamma);
 
-      // Vega
+      // VEGA
       const tdVega = document.createElement('td');
-      tdVega.dataset.label = 'Vega';
+      tdVega.dataset.label = 'VEGA';
       const spanVega = document.createElement('span');
       spanVega.dataset.field = 'vega';
       spanVega.textContent = '—';
       spanVega.style.fontVariantNumeric = 'tabular-nums';
       tdVega.appendChild(spanVega); tr.appendChild(tdVega);
 
-      // Theta
+      // THETA/gg
       const tdTheta = document.createElement('td');
-      tdTheta.dataset.label = 'Theta';
+      tdTheta.dataset.label = 'THETA/gg';
       const spanTheta = document.createElement('span');
       spanTheta.dataset.field = 'theta';
       spanTheta.textContent = '—';
       spanTheta.style.fontVariantNumeric = 'tabular-nums';
       tdTheta.appendChild(spanTheta); tr.appendChild(tdTheta);
 
-      // V. Intr
-      const tdVintr = document.createElement('td');
-      tdVintr.dataset.label = 'V. Intr';
-      const spanVintr = document.createElement('span');
-      spanVintr.dataset.field = 'intrinseco';
-      spanVintr.textContent = '—';
-      spanVintr.style.fontVariantNumeric = 'tabular-nums';
-      tdVintr.appendChild(spanVintr); tr.appendChild(tdVintr);
+      // PREZZO ATT. (ex Teorico)
+      const tdTeorico = document.createElement('td');
+      tdTeorico.dataset.label = 'PREZZO ATT.';
+      const spanTeorico = document.createElement('span');
+      spanTeorico.dataset.field = 'teorico';
+      spanTeorico.textContent = '—';
+      spanTeorico.style.fontVariantNumeric = 'tabular-nums';
+      tdTeorico.appendChild(spanTeorico); tr.appendChild(tdTeorico);
 
-      // V. Temp
+      // VAL. TEMP. (prima di VAL. INTR., come il riferimento)
       const tdVtemp = document.createElement('td');
-      tdVtemp.dataset.label = 'V. Temp';
+      tdVtemp.dataset.label = 'VAL. TEMP.';
       const spanVtemp = document.createElement('span');
       spanVtemp.dataset.field = 'temporale';
       spanVtemp.textContent = '—';
       spanVtemp.style.fontVariantNumeric = 'tabular-nums';
       tdVtemp.appendChild(spanVtemp); tr.appendChild(tdVtemp);
 
-      // P. Tocco
+      // VAL. INTR.
+      const tdVintr = document.createElement('td');
+      tdVintr.dataset.label = 'VAL. INTR.';
+      const spanVintr = document.createElement('span');
+      spanVintr.dataset.field = 'intrinseco';
+      spanVintr.textContent = '—';
+      spanVintr.style.fontVariantNumeric = 'tabular-nums';
+      tdVintr.appendChild(spanVintr); tr.appendChild(tdVintr);
+
+      // PROB. TOCCO
       const tdTocco = document.createElement('td');
-      tdTocco.dataset.label = 'P. Tocco';
+      tdTocco.dataset.label = 'PROB. TOCCO';
       const spanTocco = document.createElement('span');
       spanTocco.dataset.field = 'tocco';
       spanTocco.textContent = '—';
       spanTocco.style.fontVariantNumeric = 'tabular-nums';
       tdTocco.appendChild(spanTocco); tr.appendChild(tdTocco);
 
-      // P&L Scad.
+      // P&L SCAD. ($)
       const tdPnlScad = document.createElement('td');
       tdPnlScad.className = 'pnl-riga td-pnl';
-      tdPnlScad.dataset.label = 'P&L Scad.';
+      tdPnlScad.dataset.label = 'P&L SCAD. ($)';
       const spanPnlScad = document.createElement('span');
       spanPnlScad.dataset.field = 'pnlScad';
       tdPnlScad.appendChild(spanPnlScad);
       tr.appendChild(tdPnlScad);
 
-      // P&L (now)
+      // P&L NOW ($)
       const tdPnl = document.createElement('td');
       tdPnl.className = 'pnl-riga td-pnl';
-      tdPnl.dataset.label = 'P&L';
+      tdPnl.dataset.label = 'P&L NOW ($)';
       tr.appendChild(tdPnl);
 
-      // Deb/Cred
+      // DEBITO/CREDITO ($)
       const tdDebCred = document.createElement('td');
-      tdDebCred.dataset.label = 'Deb/Cred';
+      tdDebCred.dataset.label = 'DEBITO/CREDITO ($)';
       const spanDebCred = document.createElement('span');
       spanDebCred.dataset.field = 'debitcredit';
       spanDebCred.style.fontVariantNumeric = 'tabular-nums';
@@ -386,6 +458,7 @@
 
       tbody.appendChild(tr);
     });
+    buildFooterOpzioni();
     aggiornaPnlOpzioni();
   }
 
@@ -393,6 +466,7 @@
     const tbody = el('bodyOpzioni');
     let totDelta = 0, totGamma = 0, totVega = 0, totTheta = 0;
     let totPnlScad = 0, totPnlNow = 0, totDebCred = 0;
+    let totPrice = 0, totTemp = 0, totIntr = 0;
 
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const firstExp = firstExpiryOpzioni(schedaAttiva());
@@ -433,6 +507,14 @@
         if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
         if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
         if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
+        // Totali footer: PREZZO ATT. / VAL. TEMP. / VAL. INTR. per singola gamba
+        if (isFinite(g.price)) {
+          totPrice += g.price;
+          if (isFinite(g.intrinsic)) {
+            totIntr += g.intrinsic;
+            totTemp += g.price - g.intrinsic;
+          }
+        }
 
         const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
         if (isFinite(ps)) totPnlScad += ps;
@@ -461,4 +543,11 @@
     el('pnlOpzioni').textContent  = formatEuro(totPnlNow);
     el('pnlOpzScadTot').textContent = formatEuro(totPnlScad);
     el('pnlOpzDebCredTot').textContent = formatEuro(totDebCred);
+
+    // Riga footer: totali per colonna (come la versione di riferimento)
+    aggiornaFooterOpzioni({
+      delta: totDelta, gamma: totGamma, vega: totVega, theta: totTheta,
+      price: totPrice, temp: totTemp, intr: totIntr,
+      pnlScad: totPnlScad, pnlNow: totPnlNow, debcred: totDebCred
+    });
   }
