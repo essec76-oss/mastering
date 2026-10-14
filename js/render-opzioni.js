@@ -86,7 +86,7 @@
     const opz = schedaAttiva().opzioni[idx];
     if (!opz) return;
 
-    const tdPnl = tr.querySelector('.pnl-riga[data-label="P&L"]');
+    const tdPnl = tr.querySelector('.pnl-riga[data-label="P&L NOW ($)"]');
     if (tdPnl) {
       const pnl = calcolaPnlOpzione(opz);
       tdPnl.textContent = formatEuro(pnl);
@@ -476,7 +476,7 @@
       const opz = schedaAttiva().opzioni[idx];
       if (!opz) return;
 
-      const tdPnl = tr.querySelector('.pnl-riga[data-label="P&L"]');
+      const tdPnl = tr.querySelector('.pnl-riga[data-label="P&L NOW ($)"]');
       if (tdPnl) {
         if (opz.attivo === false) {
           tdPnl.textContent = '—';
