@@ -49,12 +49,15 @@
   // Giorni / anni alla scadenza opzione più vicina tra quelle attive e aperte
   // (della scheda indicata; default = scheda attiva). È la "prima scadenza"
   // usata come orizzonte da POP e bande sigma: coerente col metodo calendar.
+  // MONDI SEPARATI: considera solo le opzioni del mondo attivo.
   function nearestOptionYears(scheda) {
     const today = dataAnalisiDate();
+    const mondo = mondoAttivo();
     let minT = null;
     const ops = (scheda && scheda.opzioni) || (schedaAttiva().opzioni || []);
     ops.forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
+      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
       if (!o.scadenza) return;
       const T = yearsBetween(today, o.scadenza);
       if (T == null || T < 0) return;
@@ -74,7 +77,8 @@
     let T = nearestOptionYears(scheda);
     // Se non ci sono opzioni ma ci sono futures, usa orizzonte 30 giorni come riferimento
     if (T === null) {
-      const hasFut = (resNES && resNES.qtaNetta !== 0) || (resMES && resMES.qtaNetta !== 0);
+      const hasFut = (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) ||
+                     (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0);
       if (!hasFut) return null;
       T = 30 / 365.25;
     }
@@ -180,7 +184,8 @@
     const vol = volPct / 100;
     let T = nearestOptionYears();
     if (T === null) {
-      const hasFut = (resNES && resNES.qtaNetta !== 0) || (resMES && resMES.qtaNetta !== 0);
+      const hasFut = (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) ||
+                     (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0);
       if (!hasFut) return null;
       T = 30 / 365.25;
     }
@@ -196,7 +201,7 @@
     return (end - start) / (365.25 * 86400000);
   }
 
-  // Parse 'YYYY-MM-DD' come mezzanotte locale (coerente con il today locale:
+  // Parse 'YYYY-MM-DD' come mezzanotte locale (coerente col today locale:
   // evita lo sfasamento UTC che alterava T di alcune ore)
   function parseDataLocal(s) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
