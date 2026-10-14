@@ -404,3 +404,27 @@
 .movimenti .delta-riga.green { color: var(--green); }
 .movimenti .delta-riga.red { color: var(--red); }
 .movimenti .delta-riga.muted { color: var(--muted); }
+
+/* ============================================================
+   FOOTER TOTALI TABELLA OPZIONI (riga viola come da riferimento)
+   ============================================================ */
+tfoot#footOpzioni tr.footer-opzioni td {
+  border-top: 1px solid var(--border);
+  padding: 6px 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+tfoot#footOpzioni .tot-label {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+tfoot#footOpzioni .tot-val {
+  display: block;
+  color: var(--purple);
+  font-weight: 600;
+  font-size: 12px;
+}
+tfoot#footOpzioni .tot-val.green { color: var(--green); }
+tfoot#footOpzioni .tot-val.red   { color: var(--red); }
