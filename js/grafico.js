@@ -1,5 +1,50 @@
+// ============================================================================
+// FILE UNICO — contiene DUE file da salvare separati nel progetto:
+//   PARTE 1 → js/grafico.js      (salva TUTTA la parte 1 in js/grafico.js)
+//   PARTE 2 → js/matematica.js   (salva TUTTA la parte 2 in js/matematica.js)
+// Il contenuto dei due file è completo: sostituiscono integralmente i file
+// attuali. Cambi rispetto alla versione precedente (mondi separati):
+//   - nuove funzioni mondoDiTipo / mondoOpzione / mondoAttivo / colonnaNelMondo
+//   - pnlCombinatoAt: filtra opzioni e colonne futures del mondo non attivo
+//   - deltaNettoTotale: idem
+//   - firstExpiryOpzioni / nearestOptionYears: prima scadenza solo del mondo attivo
+//   - collectStructureAnchors, buildPayoffPoints, buildPayoffPointsDense:
+//     anchor/strike/medie solo del mondo attivo (BE, POP, range, sigma corretti)
+// Il mondo attivo è deciso dal menu "Strumento" della scheda opzioni
+// (AZIONI → mondo azioni; MES/ES → mondo futures).
+// ============================================================================
+
+
+// ############################################################################
+// ## PARTE 1 — js/grafico.js — GRAFICO PAYOFF: range, BE, POP, zoom, touch  ##
+// ############################################################################
+
 // grafico.js — grafico payoff: range, breakeven, POP, zoom e touch
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+  // ============================================================
+  // MONDI SEPARATI: AZIONI vs FUTURES (NES/MES/ES)
+  // ============================================================
+  // Due mondi indipendenti: quando il menu "Strumento" della scheda opzioni è
+  // su AZIONI, nei conteggi (riepilogo, payoff, BE, POP, sigma, delta) entrano
+  // SOLO le opzioni AZIONI e le colonne futures impostate su "AZIONI" (tipo X).
+  // Quando è su MES/ES entrano SOLO le opzioni MES/ES e le colonne NES/MES/ES.
+  // I due mondi non si vedono mai tra loro.
+  function mondoDiTipo(tipo) {
+    return (tipo === 'X' || tipo === 'AZIONI') ? 'AZIONI' : 'FUT';
+  }
+  function mondoOpzione(opz) {
+    return (opz && (opz.strumento || 'MES')) === 'AZIONI' ? 'AZIONI' : 'FUT';
+  }
+  // Il mondo attivo è deciso dal menu "Strumento" della scheda opzioni
+  function mondoAttivo() {
+    return strumentoOpzSelezionato() === 'AZIONI' ? 'AZIONI' : 'FUT';
+  }
+  // Una colonna futures partecipa solo se il suo tipo è dello stesso mondo
+  function colonnaNelMondo(res) {
+    if (!res || !res.tipo || res.tipo === '-') return false;
+    return mondoDiTipo(res.tipo) === mondoAttivo();
+  }
+
   // ============================================================
   // PAYOFF COMBINATO
   // ============================================================
@@ -26,9 +71,11 @@
 
   function firstExpiryOpzioni(scheda) {
     const today = dataAnalisiDate();
+    const mondo = mondoAttivo();
     let minScad = null;
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
+      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
       if (!o.scadenza) return;
       const T = yearsBetween(today, o.scadenza);
       if (T == null || T < 0) return;
@@ -95,12 +142,15 @@
   }
 
   // P&L combinato a un prezzo S: cash + futures/azioni (realizzato + aperto) + opzioni.
+  // MONDI SEPARATI: contano solo le gambe del mondo attivo (menu Strumento).
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
     let tot = cashAttivo();
-    tot += pnlFutureApertoAt(S, 'NES', resNES);
-    tot += pnlFutureApertoAt(S, 'MES', resMES);
+    if (colonnaNelMondo(resNES)) tot += pnlFutureApertoAt(S, 'NES', resNES);
+    if (colonnaNelMondo(resMES)) tot += pnlFutureApertoAt(S, 'MES', resMES);
+    const mondo = mondoAttivo();
     const firstExp = mode === 'expiry' ? firstExpiryOpzioni(scheda) : null;
     (scheda.opzioni || []).forEach(opz => {
+      if (mondoOpzione(opz) !== mondo) return; // ← il filtro che mancava
       tot += pnlOpzioneAt(S, opz, mode, firstExp);
     });
     return tot;
@@ -108,16 +158,18 @@
 
   function deltaNettoTotale(scheda, resNES, resMES) {
     let d = 0;
-    if (resNES && resNES.qtaNetta !== 0) {
+    const mondo = mondoAttivo();
+    if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
       const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
       d += resNES.qtaNetta * (molt / 5);
     }
-    if (resMES && resMES.qtaNetta !== 0) {
+    if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
       const molt = MOLTIPLICATORI[resMES.tipo] || 5;
       d += resMES.qtaNetta * (molt / 5);
     }
     (scheda.opzioni || []).forEach(opz => {
       if (opz.attivo === false || opz.stato === 'CHIUSA') return;
+      if (mondoOpzione(opz) !== mondo) return;
       const g = calcolaGrecheOpzione(opz);
       if (!isFinite(g.delta)) return;
       const segno = opz.pos === 'SELL' ? -1 : 1;
@@ -168,21 +220,24 @@
   }
 
   // Ancore di struttura: spot + medie + prezzi movimenti + strike opzioni.
-  // Se `scheda` è passata, usa quella; altrimenti la scheda attiva.
+  // MONDI SEPARATI: solo ancore del mondo attivo.
   function collectStructureAnchors(spot, scheda) {
     const pts = [spot];
     const target = scheda || schedaAttiva();
     if (!target) return pts.filter(p => isFinite(p) && p > 0);
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(target, col);
+      if (!colonnaNelMondo(res)) return; // colonna dell'altro mondo: fuori
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita);
       (target[col] || []).forEach(m => {
         if (m.attivo === false) return;
         if (m.prezzoPulito > 0) pts.push(m.prezzoPulito);
       });
     });
+    const mondo = mondoAttivo();
     (target.opzioni || []).forEach(o => {
       if (o.attivo === false) return;
+      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
       const k = parseFloat(o.strike) || 0;
       if (k > 0) pts.push(k);
     });
@@ -295,21 +350,31 @@
     redrawChartFromView();
   }
 
-  function buildPayoffPoints(scheda, minS, maxS, resNES, resMES) {
-    const n = 220;
+  // Eventi di struttura per il payoff (strike + medie + prezzi movimenti).
+  // MONDI SEPARATI: solo eventi del mondo attivo.
+  function collectPayoffEvents(scheda, minS, maxS, resNES, resMES) {
     const events = new Set([minS, maxS]);
+    const mondo = mondoAttivo();
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
+      if (mondoOpzione(o) !== mondo) return;
       const k = parseFloat(o.strike) || 0;
       if (k > 0) events.add(k);
     });
     [['NES', resNES], ['MES', resMES]].forEach(([col, res]) => {
+      if (!colonnaNelMondo(res)) return; // colonna dell'altro mondo: fuori
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) events.add(res.mediaPulita);
       (scheda[col] || []).forEach(m => {
         if (m.attivo === false) return;
         if (m.prezzoPulito > 0) events.add(m.prezzoPulito);
       });
     });
+    return events;
+  }
+
+  function buildPayoffPoints(scheda, minS, maxS, resNES, resMES) {
+    const n = 220;
+    const events = collectPayoffEvents(scheda, minS, maxS, resNES, resMES);
     const xs = [];
     for (let i = 0; i <= n; i++) xs.push(minS + i * (maxS - minS) / n);
     events.forEach(e => {
@@ -375,19 +440,7 @@
 
   function buildPayoffPointsDense(scheda, minS, maxS, resNES, resMES) {
     const n = 200;
-    const events = new Set([minS, maxS]);
-    (scheda.opzioni || []).forEach(o => {
-      if (o.attivo === false || o.stato === 'CHIUSA') return;
-      const k = parseFloat(o.strike) || 0;
-      if (k > 0) events.add(k);
-    });
-    [['NES', resNES], ['MES', resMES]].forEach(([col, res]) => {
-      if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) events.add(res.mediaPulita);
-      (scheda[col] || []).forEach(m => {
-        if (m.attivo === false) return;
-        if (m.prezzoPulito > 0) events.add(m.prezzoPulito);
-      });
-    });
+    const events = collectPayoffEvents(scheda, minS, maxS, resNES, resMES);
     const grid = [];
     for (let i = 0; i <= n; i++) grid.push(minS + i * (maxS - minS) / n);
     const eps = Math.max((maxS - minS) * 1e-4, 1e-6);
@@ -498,7 +551,8 @@
   }
 
   // Firma della struttura: serve a capire se il range X va ricalcolato.
-  // Include sia la scheda attiva sia la precedente.
+  // Include sia la scheda attiva sia la precedente. Include anche il mondo
+  // attivo, così cambiando il menu Strumento il grafico si ricalcola.
   function _firmaScheda(scheda) {
     const parts = [];
     ['NES', 'MES'].forEach(col => {
@@ -516,6 +570,7 @@
 
   function structureSignature() {
     const parts = [`${stato.schede.length}:${stato.attiva}`];
+    parts.push('M:' + mondoAttivo());
     parts.push('C:' + _firmaScheda(schedaAttiva()));
     const prec = schedaPrecedente();
     if (prec) parts.push('P:' + _firmaScheda(prec));
@@ -948,16 +1003,12 @@
       elText.style.display = '';
     };
 
-    // Uso i 3 text disponibili; per righe extra (fino a 5) creo/riuso un pool.
-    // Pool dinamico: hoverTextPrezzo, hoverTextCorrente, hoverTextPrecedente sono i primi 3.
-    // Per ulteriori righe, riciclo in ordine: preferisco un pool più ampio.
-    // Soluzione: rimuovo i 3 text dal DOM e ne creo N.
-    // (semplice, il layer hover è ricreato ad ogni redraw)
+    // Pool dinamico di text per le righe tooltip: rimuovo i text esistenti
+    // con data-hover-row e ne creo uno per riga (il layer hover è ricreato
+    // ad ogni redraw, quindi nessun leak).
     const layer = document.getElementById('hoverLayer');
     if (layer) {
-      // Rimuovo i text esistenti con data-hover-row
       layer.querySelectorAll('text[data-hover-row]').forEach(n => n.remove());
-      // Creo un text per ogni riga
       for (let i = 0; i < righe.length; i++) {
         const r = righe[i];
         const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
