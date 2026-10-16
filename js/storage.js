@@ -28,6 +28,9 @@
       dataAnalisi: el('dataAnalisi') ? (el('dataAnalisi').value || '') : '',
       tipoNES: el('tipoNES').value,
       tipoMES: el('tipoMES').value,
+      modalita: stato.modalita,
+      ticker: stato.ticker,
+      molt: stato.molt,
       attiva: stato.attiva,
       schede: stato.schede
     };
@@ -70,6 +73,24 @@
       if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
       if (dati.tipoNES) el('tipoNES').value = dati.tipoNES;
       if (dati.tipoMES) el('tipoMES').value = dati.tipoMES;
+      // Modalità globale + ticker/moltiplicatore commodities. Per i salvataggi
+      // vecchi (senza modalità) la modalità si deduce dal tipo della prima scheda.
+      if (typeof dati.ticker === 'string' && dati.ticker) stato.ticker = dati.ticker;
+      if (typeof dati.molt === 'number') stato.molt = dati.molt;
+      let modRip = dati.modalita;
+      if (!modRip) {
+        const t0 = (Array.isArray(dati.schede) && dati.schede[0] && dati.schede[0].tipoNES) || dati.tipoNES;
+        if (t0 === 'X') modRip = 'azioni';
+        else if (t0 === 'NES' || t0 === 'MES' || t0 === 'ES' || t0 === '-') modRip = 'futures-indici';
+        else if (t0) {
+          modRip = 'futures-commodities';
+          if (!dati.ticker && _tickerValido(t0)) stato.ticker = t0;
+        }
+      }
+      if (modRip === 'azioni' || modRip === 'futures-indici' || modRip === 'futures-commodities') {
+        stato.modalita = modRip;
+        if (el('modalitaGlobale')) el('modalitaGlobale').value = modRip;
+      }
       if (Array.isArray(dati.schede) && dati.schede.length) {
         stato.schede = dati.schede.map(migraScheda);
       } else if (Array.isArray(dati.NES) || Array.isArray(dati.MES) || Array.isArray(dati.opzioni)) {
@@ -364,7 +385,7 @@
     if (mod === 'azioni') {
       tNES = 'X'; tMES = 'X'; sOpz = 'AZIONI';
     } else if (mod === 'futures-commodities') {
-      tNES = 'ZW'; tMES = 'ZW'; sOpz = 'ZW';
+      tNES = stato.ticker; tMES = stato.ticker; sOpz = stato.ticker;
     }
     stato.schede = [{
       nome: 'Matrice',
