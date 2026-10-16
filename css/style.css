@@ -443,3 +443,62 @@ tfoot#footOpzioni .tot-val {
 }
 tfoot#footOpzioni .tot-val.green { color: var(--green); }
 tfoot#footOpzioni .tot-val.red   { color: var(--red); }
+/* Cloud status indicator (v27) */
+.cloud-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  transition: background 0.2s, border-color 0.2s;
+}
+.cloud-status .cloud-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 0 0 0 rgba(46,204,113,0);
+  transition: background 0.2s, box-shadow 0.3s;
+}
+.cloud-status.ok .cloud-dot {
+  background: var(--green);
+  box-shadow: 0 0 8px 1px rgba(46,204,113,0.6);
+}
+.cloud-status.err .cloud-dot {
+  background: var(--red);
+  box-shadow: 0 0 8px 1px rgba(231,76,60,0.6);
+}
+.cloud-status.checking .cloud-dot {
+  background: var(--yellow);
+  animation: cloudPulse 1.2s ease-in-out infinite;
+}
+.cloud-status .cloud-label { color: var(--muted); }
+.cloud-status.ok .cloud-label { color: var(--green); }
+.cloud-status.err .cloud-label { color: var(--red); }
+.cloud-status.checking .cloud-label { color: var(--yellow); }
+
+@keyframes cloudPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.cloud-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--green);
+  background: rgba(46,204,113,0.10);
+  border: 1px solid rgba(46,204,113,0.35);
+  border-radius: 10px;
+  padding: 3px 9px;
+  animation: cloudFadeIn 0.3s ease;
+}
+.cloud-saved strong { color: var(--green); font-weight: 600; }
+.cloud-saved span { color: var(--muted); }
+
+@keyframes cloudFadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
