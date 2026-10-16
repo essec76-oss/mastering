@@ -46,30 +46,19 @@
     const scheda = schedaAttiva();
     // Tema arancione sulla scheda attiva quando è una comparazione
     document.body.classList.toggle('scheda-comp', stato.attiva > 0);
-    el('tipoNES').value = scheda.tipoNES || 'NES';
-    el('tipoMES').value = scheda.tipoMES || 'MES';
-    if (el('strumentoOpzioni')) el('strumentoOpzioni').value = scheda.strumentoOpzioni || 'MES';
-    // Re-applica i lock del selettore modalità globale (Azioni / Futures)
-    if (typeof applicaModalita === 'function' && stato.modalita) {
-      // Solo i lock, senza cambiare i valori già impostati dalla scheda
-      // se siamo in futures-indici; in azioni forza X/AZIONI.
-      if (stato.modalita === 'azioni' || stato.modalita === 'futures-commodities') {
-        el('tipoNES').value = 'X';
-        el('tipoMES').value = 'X';
-        if (el('strumentoOpzioni')) el('strumentoOpzioni').value = 'AZIONI';
-        el('tipoNES').disabled = true;
-        el('tipoMES').disabled = true;
-        if (el('strumentoOpzioni')) el('strumentoOpzioni').disabled = true;
-      } else {
-        el('tipoNES').disabled = false;
-        el('tipoMES').disabled = false;
-        if (el('strumentoOpzioni')) el('strumentoOpzioni').disabled = false;
-      }
+    // Re-applica la modalità globale (ricostruisce le option dei select
+    // e i lock corretti: Azioni bloccato, Indici sbloccato, Commodities ZW)
+    if (typeof applicaModalita === 'function') {
+      applicaModalita(stato.modalita || MODALITA_DEFAULT);
+    } else {
+      el('tipoNES').value = scheda.tipoNES || 'NES';
+      el('tipoMES').value = scheda.tipoMES || 'MES';
+      if (el('strumentoOpzioni')) el('strumentoOpzioni').value = scheda.strumentoOpzioni || 'MES';
+      renderMovimenti('NES');
+      renderMovimenti('MES');
+      renderOpzioni();
+      calcolaTutto();
     }
-    renderMovimenti('NES');
-    renderMovimenti('MES');
-    renderOpzioni();
-    calcolaTutto();
   }
 
   // Clona la scheda attuale in una nuova "Comparazione N".
