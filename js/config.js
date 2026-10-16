@@ -10,8 +10,8 @@
 //   1 contratto di opzione.
 // Changelog precedente (v22 e precedenti): consultare la cronologia git.
 
-// Moltiplicatori futures: X = azioni, q.tà 1 = 1 singola azione (molt. 1).
-const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 1 };
+// Moltiplicatori futures: X = azioni (q.tà 1 = 1 azione), ZW = Wheat (×50).
+const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 1, ZW: 50 };
 
 // Whitelist commissioni futures: solo NES paga fee in questa simulazione.
 const STRUMENTI_CON_COMMISSIONI = ['NES'];
