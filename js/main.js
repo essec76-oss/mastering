@@ -1,5 +1,7 @@
 // main.js — avvio: valori di default e primo render
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// v27 — P&L lordo, cloud Supabase attivo (lista strategie caricata all'avvio).
+
   // ============================================================
   // OVERLAY DELTA — DUE MONDI DISTINTI (futures / azioni)
   // ============================================================
@@ -13,7 +15,7 @@
   // index.html): el() è riservato agli id statici tracciati dal lint.
 
   // Versione visibile (verifica deploy): titolo del tab del browser
-  function _appVersion() { return 'v24.2'; }
+  function _appVersion() { return 'v27'; }
   document.title = 'Mastering — ' + _appVersion();
 
   // Crea (una sola volta) il display "Delta azioni" accanto a "Delta netto".
@@ -110,7 +112,17 @@
   renderTabs();
   renderScheda();
 
-  // Step 1 Supabase: se URL/chiave sono configurati, verifica la connessione
+  // ============================================================
+  // SUPABASE — connessione + lista strategie salvate
+  // ============================================================
+  // Step 1: verifica che URL/chiave siano configurati e raggiungibili.
   if (typeof testaConnessioneSupabase === 'function') {
     testaConnessioneSupabase();
+  }
+  // Step 2: popola la select #listaSalvate con le strategie presenti
+  // in cloud (o nel fallback locale se il cloud non è raggiungibile).
+  // Senza questa chiamata la select resta vuota all'avvio, anche se
+  // il cloud è configurato correttamente.
+  if (typeof renderListaSalvate === 'function') {
+    renderListaSalvate();
   }
