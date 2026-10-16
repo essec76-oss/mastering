@@ -359,14 +359,18 @@
     localStorage.removeItem(STORAGE_KEY);
     STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
     // Rispetta la modalità globale corrente
-    const isAzioni = (stato.modalita || MODALITA_DEFAULT) === 'azioni' ||
-                     (stato.modalita || MODALITA_DEFAULT) === 'futures-commodities';
+    const mod = stato.modalita || MODALITA_DEFAULT;
+    let tNES = '-', tMES = '-', sOpz = 'MES';
+    if (mod === 'azioni') {
+      tNES = 'X'; tMES = 'X'; sOpz = 'AZIONI';
+    } else if (mod === 'futures-commodities') {
+      tNES = 'ZW'; tMES = 'ZW'; sOpz = 'ZW';
+    }
     stato.schede = [{
       nome: 'Matrice',
-      tipoNES: isAzioni ? 'X' : '-',
-      tipoMES: isAzioni ? 'X' : '-',
+      tipoNES: tNES, tipoMES: tMES,
       NES: [], MES: [], opzioni: [],
-      strumentoOpzioni: isAzioni ? 'AZIONI' : 'MES'
+      strumentoOpzioni: sOpz
     }];
     stato.attiva = 0;
     el('prezzoSpot').value = '';
@@ -380,16 +384,13 @@
     if (el('cashEscludi')) el('cashEscludi').checked = false;
     // v27 — il toggle commissioni è stato rimosso
     el('dataAnalisi').value = dataOggiIso();
-    el('tipoNES').value = isAzioni ? 'X' : '-';
-    el('tipoMES').value = isAzioni ? 'X' : '-';
-    if (el('strumentoOpzioni')) el('strumentoOpzioni').value = isAzioni ? 'AZIONI' : 'MES';
     if (typeof chartView !== 'undefined') {
       chartView.xMin = null; chartView.xMax = null;
       chartView.baseMin = null; chartView.baseMax = null;
       chartView._sig = null;
     }
     renderTabs();
-    renderScheda();
+    renderScheda(); // applicaModalita ricostruisce i select
     mostraStatus('✓ Foglio azzerato');
   }
 
