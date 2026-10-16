@@ -1,8 +1,7 @@
 // opzioni.js — P&L opzioni: valore nominale, singola riga, totale
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-  // ============================================================
-  // OPZIONI
-  // ============================================================
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
+// v27 — P&L lordo: feeLatoOpzione() ritorna sempre 0 (vedi grafico.js).
+
   // P&L di una singola opzione:
   // - disattivata → 0
   // - CHIUSA → 0 (il realizzato va annotato nel box Cash in alto)
@@ -15,6 +14,7 @@
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     return pnlOpzioneAt(spot, opz, 'now');
   }
+
   // Totale P&L opzioni: con filtro = solo dello strumento indicato,
   // senza filtro = tutti gli strumenti (riepilogo, TWS, payoff)
   function calcolaPnlOpzioniTotale(filtro) {
