@@ -389,6 +389,9 @@
       chartView.baseMin = null; chartView.baseMax = null;
       chartView._sig = null;
     }
+    // Svuota nome strategia e menu "Strategie salvate" (nessuna voce, nessun testo)
+    if (el('nomeStrategia')) el('nomeStrategia').value = '';
+    if (el('listaSalvate')) { el('listaSalvate').innerHTML = ''; el('listaSalvate').selectedIndex = -1; }
     renderTabs();
     renderScheda(); // applicaModalita ricostruisce i select
     mostraStatus('✓ Foglio azzerato');
