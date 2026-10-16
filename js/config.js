@@ -90,7 +90,10 @@ const stato = {
   prezzoSpot: 7700,
   cash: 0,
   cashEscluso: false,
-  modalita: MODALITA_DEFAULT
+  modalita: MODALITA_DEFAULT,
+  // Commodities: ticker + moltiplicatore scritti nelle caselle accanto al menu padre
+  ticker: 'ZW',
+  molt: 50
 };
 
 function schedaAttiva() { return stato.schede[stato.attiva] || stato.schede[0]; }
