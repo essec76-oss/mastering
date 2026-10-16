@@ -71,6 +71,21 @@
     sel.value = esiste ? valore : (opzioni[0] ? opzioni[0].value : '');
   }
 
+  // --- Commodities: ticker e moltiplicatore liberi (caselle accanto al menu padre) ---
+  // Ticker riservati: non si possono usare perché sovrascriverebbero i moltiplicatori
+  // di indici/azioni.
+  const TICKER_RISERVATI = ['-', 'NES', 'MES', 'ES', 'X', 'AZIONI'];
+  function _tickerValido(t) {
+    return typeof t === 'string' && /^[A-Z0-9]{1,8}$/.test(t) && TICKER_RISERVATI.indexOf(t) === -1;
+  }
+  // Registra il moltiplicatore del ticker corrente nelle tabelle usate dai calcoli
+  function _registraMoltCommodity() {
+    if (!_tickerValido(stato.ticker)) return;
+    const m = stato.molt > 0 ? stato.molt : 0;
+    MOLTIPLICATORI[stato.ticker] = m;
+    MOLTIPLICATORI_OPZ[stato.ticker] = m;
+  }
+
   function applicaModalita(mod) {
     stato.modalita = mod || MODALITA_DEFAULT;
     const selNES = el('tipoNES');
@@ -78,6 +93,9 @@
     const selOpz = el('strumentoOpzioni');
     const sub = el('subtitle');
     const scheda = schedaAttiva();
+    // Caselle ticker + moltiplicatore: visibili solo in modalità commodities
+    const wrapTk = el('tickerWrap');
+    if (wrapTk) wrapTk.style.display = (stato.modalita === 'futures-commodities') ? 'inline-block' : 'none';
 
     if (stato.modalita === 'azioni') {
       // Unico asset: Azioni. Select bloccati su X / AZIONI.
@@ -126,100 +144,39 @@
       if (sub) sub.textContent = 'NES / MES / ES — Nano, Micro & E-mini futures ES500 — metodo prezzo medio (IBKR)';
 
     } else if (stato.modalita === 'futures-commodities') {
-      // Commodities: ZW (Wheat) moltiplicatore 50
+      // Commodities: il ticker scritto nella casella in alto (es. ZW) comanda
+      // menu delle colonne e menu opzioni: sotto non va più indicato.
+      if (!_tickerValido(stato.ticker)) stato.ticker = 'ZW';
+      if (!(stato.molt > 0) && stato.ticker === 'ZW') stato.molt = 50;
+      _registraMoltCommodity();
+      const tk = stato.ticker;
+      const inTk = el('tickerCommodity');
+      const inMt = el('moltiplicatoreCommodity');
+      if (inTk) inTk.value = tk;
+      if (inMt) inMt.value = stato.molt > 0 ? stato.molt : '';
+      stato.schede.forEach(s => {
+        s.tipoNES = (s.tipoNES === '-') ? '-' : tk;
+        s.tipoMES = (s.tipoMES === '-') ? '-' : tk;
+        s.strumentoOpzioni = tk;
+      });
       const optsComm = [
         { value: '-', label: '-' },
-        { value: 'ZW', label: 'ZW' }
+        { value: tk, label: tk }
       ];
-      _riempiSelectTipo(selNES, optsComm, 'ZW');
-      _riempiSelectTipo(selMES, optsComm, 'ZW');
+      _riempiSelectTipo(selNES, optsComm, scheda.tipoNES);
+      _riempiSelectTipo(selMES, optsComm, scheda.tipoMES);
       if (selNES) selNES.disabled = false;
       if (selMES) selMES.disabled = false;
-      // Opzioni commodities: per ora non definite → menu disabilitato
+      // Menu opzioni: bloccato sul ticker
       if (selOpz) {
-        selOpz.innerHTML = '<option value="ZW">ZW</option>';
-        selOpz.value = 'ZW';
+        selOpz.innerHTML = '<option value="' + tk + '">' + tk + '</option>';
+        selOpz.value = tk;
         selOpz.disabled = true;
       }
-      scheda.tipoNES = 'ZW';
-      scheda.tipoMES = 'ZW';
-      scheda.strumentoOpzioni = 'ZW';
-      stato.schede.forEach(s => {
-        s.tipoNES = 'ZW';
-        s.tipoMES = 'ZW';
-        s.strumentoOpzioni = 'ZW';
-      });
-      if (sub) sub.textContent = 'ZW — Wheat futures (×50) — metodo prezzo medio (IBKR)';
+      if (sub) sub.textContent = tk + ' — futures su commodity (×' + (stato.molt > 0 ? stato.molt : '?') + ') — metodo prezzo medio (IBKR)';
     }
 
     renderMovimenti('NES');
     renderMovimenti('MES');
     renderOpzioni();
     calcolaTutto();
-  }
-
-  if (el('modalitaGlobale')) {
-    el('modalitaGlobale').addEventListener('change', e => {
-      applicaModalita(e.target.value);
-    });
-    // Applica lo stato iniziale (Azioni di default)
-    applicaModalita(el('modalitaGlobale').value || MODALITA_DEFAULT);
-  }
-
-  document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const col = btn.dataset.col;
-      const spot = parseFloat(el('prezzoSpot').value) || 0;
-      schedaAttiva()[col].push({ direzione: 'LONG', quantita: 1, prezzoPulito: spot, attivo: true });
-      renderMovimenti(col); calcolaTutto();
-    });
-  });
-  el('btnAddOpzione').addEventListener('click', () => {
-    // Scadenza di default: data analisi + 30 giorni
-    const defaultScad = dataAnalisiDate();
-    defaultScad.setDate(defaultScad.getDate() + 30);
-    const yyyy = defaultScad.getFullYear();
-    const mm = String(defaultScad.getMonth() + 1).padStart(2, '0');
-    const dd = String(defaultScad.getDate()).padStart(2, '0');
-    schedaAttiva().opzioni.push({
-      attivo: true, strumento: strumentoOpzSelezionato(),
-      pos: 'SELL', tipo: 'PUT', qta: 1, assgn: false,
-      strike: 0, rlzd: '', premio: 0, vol: 15, scadenza: `${yyyy}-${mm}-${dd}`,
-      stato: 'APERTA'
-    });
-    renderOpzioni(); calcolaTutto();
-  });
-  el('strumentoOpzioni').addEventListener('change', () => {
-    // Il menu a tendina dell'header cambia lo strumento della scheda
-    // (MES / ES / AZIONI): le righe degli altri strumenti restano dormienti
-    schedaAttiva().strumentoOpzioni = el('strumentoOpzioni').value;
-    renderOpzioni();
-    calcolaTutto();
-  });
-  el('btnCreaComp').addEventListener('click', creaComparazione);
-  el('btnReset').addEventListener('click', reset);
-  // Strategie salvate: salvataggio multiplo con nome + export/import file
-  if (el('btnSalvaCome')) el('btnSalvaCome').addEventListener('click', () => salvaConNome(el('nomeStrategia').value));
-  // Nome strategia forzato in MAIUSCOLO mentre si digita (cursore preservato)
-  if (el('nomeStrategia')) el('nomeStrategia').addEventListener('input', e => {
-    const inp = e.target;
-    const pos = inp.selectionStart;
-    inp.value = inp.value.toUpperCase();
-    inp.setSelectionRange(pos, pos);
-  });
-  if (el('btnCaricaSalvato')) el('btnCaricaSalvato').addEventListener('click', () => {
-    const v = el('listaSalvate').value;
-    if (v) caricaSalvato(v);
-  });
-  if (el('btnEliminaSalvato')) el('btnEliminaSalvato').addEventListener('click', () => {
-    const v = el('listaSalvate').value;
-    if (v) eliminaSalvato(v);
-  });
-  if (el('btnEsporta')) el('btnEsporta').addEventListener('click', esportaFile);
-  if (el('btnImporta')) el('btnImporta').addEventListener('click', () => el('fileImporta').click());
-  if (el('fileImporta')) el('fileImporta').addEventListener('change', e => {
-    const f = e.target.files && e.target.files[0];
-    if (f) importaDaInputFile(f);
-    e.target.value = '';
-  });
-  renderListaSalvate();
