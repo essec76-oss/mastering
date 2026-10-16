@@ -15,6 +15,12 @@
       <option value="futures-indici">Futures su indici</option>
       <option value="futures-commodities">Futures su commodities</option>
     </select>
+    <!-- Ticker + moltiplicatore (visibili solo in modalità commodities) -->
+    <span id="tickerWrap" style="display:none; margin-left:6px; white-space:nowrap;">
+      <input type="text" id="tickerCommodity" placeholder="Ticker (es. ZW)" maxlength="8" style="width:110px; text-transform:uppercase;" title="Ticker del future su commodity: comanda i menu sottostanti">
+      <span style="color:var(--muted);">×</span>
+      <input type="number" id="moltiplicatoreCommodity" placeholder="50" min="0" step="any" style="width:70px;" title="Moltiplicatore del contratto (es. 50)">
+    </span>
     <h1>Mastering</h1>
     <div class="subtitle" id="subtitle">Azioni — simulatore azioni + opzioni su azioni — metodo prezzo medio (IBKR)</div>
   </div>
@@ -28,9 +34,9 @@
   <div class="schede-tabs" id="schedeTabs"></div>
 </div>
 <div class="salvati-bar">
-  <span class="label">Strategie salvate</span>
-  <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare/caricare la strategia corrente">
-  <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva in cloud</button>
+  <span class="label">Salva con nome</span>
+  <input type="text" id="nomeStrategia" placeholder="Dettagli (es. ZW scad 20/11)" style="width:200px;" title="Nome/dettagli con cui salvare la strategia corrente: li ritroverai nell'elenco da caricare">
+  <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva con nome</button>
   <select id="listaSalvate" title="Strategie salvate in questo browser"></select>
   <button class="btn" id="btnCaricaSalvato" title="Carica la strategia selezionata (sostituisce il lavoro corrente)">Carica</button>
   <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata dall'elenco salvato">Elimina</button>
@@ -312,5 +318,18 @@
 <script src="js/storage.js"></script>
 <script src="js/eventi.js"></script>
 <script src="js/main.js"></script>
+<script>
+// Mostra ticker + moltiplicatore solo in modalità "Futures su commodities"
+(function () {
+  var sel = document.getElementById('modalitaGlobale');
+  var wrap = document.getElementById('tickerWrap');
+  if (!sel || !wrap) return;
+  function aggiorna() {
+    wrap.style.display = (sel.value === 'futures-commodities') ? 'inline-block' : 'none';
+  }
+  sel.addEventListener('change', aggiorna);
+  aggiorna();
+})();
+</script>
 </body>
 </html>
