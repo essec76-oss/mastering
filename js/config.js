@@ -68,14 +68,19 @@ function coloreScheda(i) { return i === 0 ? '#ffffff' : PALETTE_COMP[(i - 1) % P
 const COLORE_CORRENTE   = '#22b8f0'; // azzurro
 const COLORE_PRECEDENTE = '#fb923c'; // ambra
 
+// Modalità globale della pagina (selettore padre in alto a sx)
+// 'azioni' | 'futures-indici' | 'futures-commodities'
+const MODALITA_DEFAULT = 'azioni';
+
 // Una scheda = uno scenario completo (futures NES/MES + opzioni).
 // La scheda 0 è la "Matrice": non può essere rimossa.
+// Default = modalità Azioni (tipo X + strumentoOpzioni AZIONI).
 function nuovaScheda(nome) {
   return {
     nome: nome || 'Matrice',
-    tipoNES: 'NES', tipoMES: 'MES',
+    tipoNES: 'X', tipoMES: 'X',
     NES: [], MES: [], opzioni: [],
-    strumentoOpzioni: 'MES'
+    strumentoOpzioni: 'AZIONI'
   };
 }
 
@@ -84,7 +89,8 @@ const stato = {
   attiva: 0,
   prezzoSpot: 7700,
   cash: 0,
-  cashEscluso: false
+  cashEscluso: false,
+  modalita: MODALITA_DEFAULT
 };
 
 function schedaAttiva() { return stato.schede[stato.attiva] || stato.schede[0]; }
