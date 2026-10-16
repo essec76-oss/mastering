@@ -55,10 +55,18 @@
 </div>
 <div class="price-bar">
   <span class="label">Prezzo Spot</span>
-  <input type="number" id="prezzoSpot" value="7700" step="0.25">
+  <input type="number" id="prezzoSpot" class="prezzo-spot" value="7700" step="0.25">
+  <div class="param-group">
+    <span class="label">Vol ATM %</span>
+    <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP, bande ±1σ/±2σ del grafico e curve Now">
+  </div>
+  <div class="param-group">
+    <span class="label">Div %</span>
+    <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
+  </div>
   <div class="param-group">
     <span class="label">Risk-free %</span>
-    <input type="number" id="riskFree" class="small" value="4.0" step="0.1">
+    <input type="number" id="riskFree" class="small" value="0" step="0.1">
   </div>
   <div class="param-group">
     <span class="label">Cash €</span>
@@ -71,7 +79,14 @@
     <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui. Default: data odierna.">
   </div>
 </div>
-<div class="columns">
+<!-- Toggle visibilità colonne futures (visibile solo in modalità commodities) -->
+<div class="columns-toggle" id="columnsToggleWrap" style="display:none;">
+  <button type="button" class="btn" id="btnToggleFutures" title="Mostra/nascondi le colonne futures">
+    <span id="btnToggleFuturesIcon">▼</span>
+    <span id="btnToggleFuturesLabel">Mostra Futures</span>
+  </button>
+</div>
+<div class="columns" id="columnsWrap">
   <div class="column" id="colNES">
     <div class="col-header">
       <select id="tipoNES" data-col="NES" disabled>
@@ -172,14 +187,6 @@
         <option value="ES">ES</option>
         <option value="AZIONI" selected>AZIONI</option>
       </select>
-      <div class="param-group">
-        <span class="label">Vol ATM %</span>
-        <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP, bande ±1σ/±2σ del grafico e curve Now">
-      </div>
-      <div class="param-group">
-        <span class="label">Div %</span>
-        <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
-      </div>
     </div>
     <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
       <div class="pnl-opz">
