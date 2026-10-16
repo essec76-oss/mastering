@@ -1,8 +1,7 @@
 // schede.js — schede multi-scenario: Matrice e comparazioni
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-  // ============================================================
-  // SCHEDE: MATRICE + COMPARAZIONI
-  // ============================================================
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
+// v27 — P&L lordo, nessun riferimento a commissioni.
+
   function renderTabs() {
     const wrap = el('schedeTabs');
     if (!wrap) return;
@@ -41,13 +40,9 @@
     renderScheda();
   }
 
-  // Riporta la pagina sui dati della scheda attiva (valori solo della scheda)
   function renderScheda() {
     const scheda = schedaAttiva();
-    // Tema arancione sulla scheda attiva quando è una comparazione
     document.body.classList.toggle('scheda-comp', stato.attiva > 0);
-    // Re-applica la modalità globale (ricostruisce le option dei select
-    // e i lock corretti: Azioni bloccato, Indici sbloccato, Commodities ZW)
     if (typeof applicaModalita === 'function') {
       applicaModalita(stato.modalita || MODALITA_DEFAULT);
     } else {
@@ -61,8 +56,6 @@
     }
   }
 
-  // Clona la scheda attuale in una nuova "Comparazione N".
-  // La nuova scheda diventa attiva; il grafico la confronterà con quella precedente.
   function creaComparazione() {
     const clone = JSON.parse(JSON.stringify(schedaAttiva()));
     clone.nome = 'Comparazione ' + stato.schede.length;
@@ -73,9 +66,6 @@
     mostraStatus('✓ ' + clone.nome + ' creata');
   }
 
-  // Le comparazioni si rimuovono, la Matrice mai.
-  // Dopo la rimozione, rinumera le comparazioni rimaste in base alla
-  // nuova posizione (indicizzazione posizionale: Comparazione 1, 2, 3…).
   function rimuoviScheda(i) {
     if (i <= 0) return;
     stato.schede.splice(i, 1);
@@ -85,15 +75,12 @@
     renderScheda();
   }
 
-  // Rinomina tutte le schede > 0 in "Comparazione N" dove N è l'indice.
   function _rinominaComparazioni() {
     for (let i = 1; i < stato.schede.length; i++) {
       stato.schede[i].nome = 'Comparazione ' + i;
     }
   }
 
-  // Legenda del grafico: solo 2 voci (corrente azzurro / precedente ambra).
-  // Sulla Matrice: solo la corrente.
   function aggiornaLegendaGrafico() {
     const wrap = el('legendSchede');
     if (!wrap) return;
