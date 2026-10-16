@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -318,18 +318,5 @@
 <script src="js/storage.js"></script>
 <script src="js/eventi.js"></script>
 <script src="js/main.js"></script>
-<script>
-// Mostra ticker + moltiplicatore solo in modalità "Futures su commodities"
-(function () {
-  var sel = document.getElementById('modalitaGlobale');
-  var wrap = document.getElementById('tickerWrap');
-  if (!sel || !wrap) return;
-  function aggiorna() {
-    wrap.style.display = (sel.value === 'futures-commodities') ? 'inline-block' : 'none';
-  }
-  sel.addEventListener('change', aggiorna);
-  aggiorna();
-})();
-</script>
 </body>
 </html>
