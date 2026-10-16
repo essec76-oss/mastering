@@ -4,19 +4,17 @@
 //  - CHIUSE: P&L realizzato congelato contro la media di carico corrente
 //    delle APERTE, scalano le APERTE. Il P&L realizzato entra nei totali
 //    e nel grafico (via pnlFutureApertoAt in grafico.js).
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
 //
 // NOTA: STRUMENTI_CON_COMMISSIONI e feeLatoFutureAttiva() sono definiti in
 // config.js e condivisi da tutti i moduli. NON ridichiararli qui.
 //
+// v27 — P&L lordo: feeLatoFutureAttiva() ritorna sempre 0.
+//
 // NOTA v25 (fix P&L aperto post-chiusura):
 //   Il P&L aperto delle posizioni residue è calcolato UNA VOLTA sulle
 //   variabili aggregate (qtaAssolutaCorrente, sommaPulitaPesata) e non
-//   riga per riga. In precedenza il calcolo riga per riga usava r.prezzo
-//   e r.qAperta "storici", che non riflettevano le riduzioni di pool
-//   effettuate da riduciPool() → P&L gonfiato dopo una chiusura parziale.
-//   Le righe APERTE ora mostrano pnlAperto = 0 (il totale è nel campo
-//   pnlAperto del risultato della colonna).
+//   riga per riga.
 
   function calcolaColonna(scheda, col) {
     const movimenti = scheda[col];
@@ -47,19 +45,16 @@
       return sommaPulitaPesata / qtaAssolutaCorrente;
     }
 
-    // Applica una chiusura: P&L realizzato + fee round-trip.
-    // Ritorna il P&L realizzato prodotto dalla parte di chiusura.
     function applicaChiusura(qta, prezzoUscita) {
       const media = mediaCorrente();
       const qChiusa = Math.min(qta, qtaAssolutaCorrente);
       if (qChiusa === 0) return 0;
       const segnoAperta = Math.sign(qtaNetta) || 1;
       const pnlRea = (prezzoUscita - media) * qChiusa * segnoAperta * molt;
-      const feeRt = feeLatoFutureAttiva(tipo) * 2 * qChiusa;
+      const feeRt = feeLatoFutureAttiva(tipo) * 2 * qChiusa; // v27: sempre 0
       return pnlRea - feeRt;
     }
 
-    // Riduce il pool APERTE di `qta` (in valore assoluto)
     function riduciPool(qta) {
       let da = qta;
       while (da > 0 && qtaAssolutaCorrente > 0) {
@@ -129,13 +124,7 @@
       }
     });
 
-    // ============================================================
-    // P&L APERTO (v25 — fix): calcolato UNA VOLTA sulle variabili
-    // aggregate, non riga per riga. Le righe APERTE mostrano
-    // pnlAperto = 0 (Opzione X): il P&L aperto totale vive solo
-    // nel campo `pnlAperto` del risultato e nel totale colonna.
-    // ============================================================
-    const feeAperto = feeLatoFutureAttiva(tipo);
+    const feeAperto = feeLatoFutureAttiva(tipo); // v27: sempre 0
     let pnlApertoTot = 0;
     const segnoAperto = Math.sign(qtaNetta) || 1;
     const mediaAperta = qtaAssolutaCorrente > 0
@@ -145,8 +134,6 @@
                    - feeAperto * qtaAssolutaCorrente;
     }
 
-    // Le righe mostrano solo il proprio P&L realizzato (o 0).
-    // Il P&L aperto è aggregato a livello di colonna.
     righe.forEach(r => {
       r.pnlAperto = 0;
       r.pnlTotale = r.pnlRealizzato;
