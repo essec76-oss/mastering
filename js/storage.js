@@ -389,9 +389,12 @@
       chartView.baseMin = null; chartView.baseMax = null;
       chartView._sig = null;
     }
-    // Svuota nome strategia e menu "Strategie salvate" (nessuna voce, nessun testo)
+    // Svuota il campo nome strategia
     if (el('nomeStrategia')) el('nomeStrategia').value = '';
-    if (el('listaSalvate')) { el('listaSalvate').innerHTML = ''; el('listaSalvate').selectedIndex = -1; }
+    // La lista delle strategie salvate resta disponibile; solo la cella di selezione torna vuota
+    renderListaSalvate().then(() => {
+      if (el('listaSalvate')) el('listaSalvate').selectedIndex = -1;
+    });
     renderTabs();
     renderScheda(); // applicaModalita ricostruisce i select
     mostraStatus('✓ Foglio azzerato');
@@ -399,10 +402,3 @@
 
   let statusTimer = null;
   function mostraStatus(txt, err) {
-    const s = el('saveStatus');
-    s.textContent = txt;
-    s.style.color = err ? 'var(--red)' : 'var(--green)';
-    s.classList.add('show');
-    clearTimeout(statusTimer);
-    statusTimer = setTimeout(() => s.classList.remove('show'), 1800);
-  }
