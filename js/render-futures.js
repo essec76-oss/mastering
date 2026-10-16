@@ -1,5 +1,5 @@
 // render-futures.js — render righe futures/azioni (modello transazionale)
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
 //
 // v26 — Modello transazionale:
 //   - Niente più pulsante APERTA/CHIUSA sulla riga: lo stato è calcolato
@@ -7,15 +7,11 @@
 //     rispetto alla posizione netta corrente.
 //   - Rimossa la colonna Delta dalla riga (resta nel footer).
 //   - Colonna P&L rinominata RLZD (P&L realizzato della riga).
-//     - Riga di apertura → "—"
-//     - Riga di chiusura → valore realizzato
-//     - Riga esclusa    → "—"
 //
 // v27 — Fee stimate nell'header di colonna:
 //   - Le commissioni NON entrano più nei calcoli (P&L lordo).
 //   - Le fee stimate (N aperture × 2 lati × 1,205 $/lato, solo NES)
 //     sono mostrate nell'header della colonna come promemoria.
-//   - Il toggle "Commissioni (solo NES)" è stato rimosso.
 
   function _tipoLabelCol(tipo, col) {
     if (tipo === 'X') return 'AZIONI';
@@ -36,14 +32,6 @@
   // ============================================================
   // RICALCOLO STATI (modello transazionale)
   // ============================================================
-  // Assegna automaticamente `stato` a ogni movimento in base alla
-  // direzione rispetto alla posizione netta corrente:
-  //   - direzione d'accordo con la posizione → APERTA (apertura/aggiunta)
-  //   - direzione opposta                    → CHIUSA (chiusura)
-  //   - riga mista (una parte chiude e una apre) → CHIUSA
-  //     (la parte che apre è gestita internamente da aggiungiPool)
-  // Il campo `stato` resta nel dato (compatibilità salvataggi), ma
-  // non è più editabile dall'utente.
   function ricalcolaStatiScheda(scheda, col) {
     const movimenti = scheda[col] || [];
     let posizioneNetta = 0;
@@ -62,7 +50,6 @@
     });
   }
 
-  // Ricalcola gli stati di NES e MES della scheda attiva.
   function ricalcolaStatiSchedaAttiva() {
     const scheda = schedaAttiva();
     if (!scheda) return;
@@ -75,8 +62,7 @@
   // ============================================================
   // Fee stimate per la colonna: N aperture × 2 lati × 1,205 $/lato.
   // Solo NES (whitelist STRUMENTI_CON_COMMISSIONI). Per gli altri
-  // strumenti ritorna 0 (in futuro potranno avere fee proprie).
-  // N.B.: le fee NON entrano nei calcoli (P&L lordo).
+  // strumenti ritorna 0. NON entrano nei calcoli (P&L lordo).
   function calcolaFeeStimate(col) {
     const scheda = schedaAttiva();
     const tipo = scheda['tipo' + col];
@@ -160,10 +146,7 @@
     }
   }
 
-  // Restituisce il valore da mostrare nella colonna RLZD per una riga.
-  // - off → "—"
-  // - apertura → "—"
-  // - chiusura → valore realizzato formattato
+  // Valore da mostrare nella colonna RLZD per una riga.
   function _valoreRlzdRiga(info, isOff) {
     if (isOff) return { testo: '—', classe: 'muted' };
     if (!info) return { testo: '—', classe: 'muted' };
@@ -199,8 +182,6 @@
   }
 
   function renderMovimenti(col) {
-    // Modello transazionale: ricalcola gli stati in base alla direzione
-    // rispetto alla posizione netta, prima di calcolare i P&L.
     ricalcolaStatiScheda(schedaAttiva(), col);
 
     const scheda = schedaAttiva();
@@ -268,7 +249,6 @@
       inQta.addEventListener('input', e => {
         const v = e.target.value;
         scheda[col][idx].quantita = v === '' ? 0 : (parseFloat(v) || 0);
-        // La quantità cambia la posizione netta → ricalcola gli stati
         ricalcolaStatiScheda(scheda, col);
         aggiornaCalcolati(col); calcolaTutto();
       });
