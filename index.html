@@ -36,13 +36,20 @@
 <div class="salvati-bar">
   <span class="label">Salva con nome</span>
   <input type="text" id="nomeStrategia" placeholder="Dettagli (es. ZW scad 20/11)" style="width:200px;" title="Nome/dettagli con cui salvare la strategia corrente: li ritroverai nell'elenco da caricare">
-  <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva con nome</button>
-  <select id="listaSalvate" title="Strategie salvate in questo browser"></select>
+  <button class="btn primary" id="btnSalvaCome" title="Salva la strategia corrente in cloud Supabase e in locale (cache). Se il cloud non è raggiungibile, salva solo in locale.">☁ Salva in cloud</button>
+    <select id="listaSalvate" title="Strategie salvate in cloud Supabase (con fallback locale)"></select>
   <button class="btn" id="btnCaricaSalvato" title="Carica la strategia selezionata (sostituisce il lavoro corrente)">Carica</button>
-  <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata dall'elenco salvato">Elimina</button>
-  <span style="width:1px; height:24px; background:var(--border);"></span>
+  <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata (cloud + locale)">Elimina</button>
+  <span class="cloud-status" id="cloudStatus" title="Stato della connessione a Supabase">
+    <span class="cloud-dot"></span>
+    <span class="cloud-label" id="cloudStatusLabel">Cloud: verifica…</span>
+  </span>  <span style="width:1px; height:24px; background:var(--border);"></span>
   <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
   <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
+    <span class="cloud-saved" id="cloudSaved" style="display:none;" title="Ultimo salvataggio in cloud riuscito">
+    <strong id="cloudSavedNome">—</strong>
+    <span id="cloudSavedOra"></span>
+  </span>
   <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
 </div>
 <div class="price-bar">
