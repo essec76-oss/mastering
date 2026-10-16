@@ -1,6 +1,7 @@
 // eventi.js — binding degli eventi interfaccia
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-// v27 — P&L lordo, nessun riferimento al toggle commissioni rimosso.
+// v27 — P&L lordo, mappa MOLTIPLICATORI_COMMODITIES per aggiornamento automatico
+//       del moltiplicatore quando si cambia ticker in modalità commodities.
 
   // ============================================================
   // EVENTI
@@ -58,7 +59,7 @@
   // ============================================================
   // Azioni (default) → colonne e opzioni bloccate su AZIONI (molt. 100)
   // Futures su indici → NES/MES/ES sbloccati (scelta libera)
-  // Futures su commodities → ticker libero (es. ZW)
+  // Futures su commodities → ticker libero (mappa pre-registrata)
   function _riempiSelectTipo(sel, opzioni, valore) {
     if (!sel) return;
     sel.innerHTML = '';
@@ -149,6 +150,10 @@
       // Commodities: il ticker scritto nella casella in alto (es. ZW) comanda
       // menu delle colonne e menu opzioni: sotto non va più indicato.
       if (!_tickerValido(stato.ticker)) stato.ticker = 'ZW';
+      // Se il ticker è nella mappa pre-registrata, aggiorna il moltiplicatore
+      if (MOLTIPLICATORI_COMMODITIES[stato.ticker] !== undefined) {
+        stato.molt = MOLTIPLICATORI_COMMODITIES[stato.ticker];
+      }
       if (!(stato.molt > 0) && stato.ticker === 'ZW') stato.molt = 50;
       _registraMoltCommodity();
       const tk = stato.ticker;
@@ -194,6 +199,7 @@
 
   // Casella ticker (commodities): a fine digitazione le righe opzioni del vecchio
   // ticker passano al nuovo, poi si ricostruiscono menu e calcoli.
+  // Inoltre, se il ticker è nella mappa pre-registrata, aggiorna il moltiplicatore.
   if (el('tickerCommodity')) el('tickerCommodity').addEventListener('change', () => {
     const inTk = el('tickerCommodity');
     const nuovo = inTk.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -209,8 +215,30 @@
         (s.opzioni || []).forEach(o => { if (o.strumento === vecchio) o.strumento = nuovo; });
       });
     }
+    // Se il nuovo ticker è nella mappa pre-registrata, aggiorna il moltiplicatore
+    if (MOLTIPLICATORI_COMMODITIES[nuovo] !== undefined) {
+      stato.molt = MOLTIPLICATORI_COMMODITIES[nuovo];
+      const inMt = el('moltiplicatoreCommodity');
+      if (inMt) inMt.value = stato.molt;
+    }
     applicaModalita('futures-commodities');
   });
+
+  // Suggerimento: aggiorna il placeholder del campo moltiplicatore mentre
+  // l'utente digita il ticker (mostra il valore consigliato dalla mappa).
+  if (el('tickerCommodity')) el('tickerCommodity').addEventListener('input', () => {
+    const inTk = el('tickerCommodity');
+    const inMt = el('moltiplicatoreCommodity');
+    if (!inTk || !inMt) return;
+    const tk = inTk.value.trim().toUpperCase();
+    const consigliato = MOLTIPLICATORI_COMMODITIES[tk];
+    if (consigliato !== undefined) {
+      inMt.placeholder = 'consigliato: ' + consigliato;
+    } else {
+      inMt.placeholder = '50';
+    }
+  });
+
   // Casella moltiplicatore (es. 50): aggiorna subito P&L e opzioni
   if (el('moltiplicatoreCommodity')) el('moltiplicatoreCommodity').addEventListener('input', () => {
     const v = parseFloat(el('moltiplicatoreCommodity').value);
