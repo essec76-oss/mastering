@@ -1,38 +1,67 @@
 // config.js — costanti, moltiplicatori, stato iniziale e helper DOM
 // Parte di Mastering: l'ordine di caricamento dei moduli è definito in index.html.
 
-// v24 — Commissioni: attive SOLO su NES. Tutti gli altri strumenti
-//   (MES, ES, X e opzioni MES/ES/AZIONI) sono simulati commission-free:
-//   P&L lordo. Obiettivo: isolare il costo commissionale sul Nano E-mini.
+// v27 — Commissioni: nessun P&L include fee (P&L lordo). Le costanti che
+//   seguono restano SOLO per la stima informativa mostrata nell'header di
+//   colonna (render-futures.js). Le funzioni feeLato* ritornano sempre 0.
 // v23 — futures X (azioni): moltiplicatore ×1 (q.tà 1 = 1 singola azione).
-//   Le OPZIONI AZIONI restano ×100 (MOLTIPLICATORI_OPZ): un contratto di
-//   opzione muove sempre 100 azioni, quindi 100 q.tà di futures X coprono
-//   1 contratto di opzione.
+//   Le OPZIONI AZIONI restano ×100 (MOLTIPLICATORI_OPZ).
 // Changelog precedente (v22 e precedenti): consultare la cronologia git.
 
 // Moltiplicatori futures: X = azioni (q.tà 1 = 1 azione), ZW = Wheat (×50).
 const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 1, ZW: 50 };
 
-// Whitelist commissioni futures: solo NES paga fee in questa simulazione.
+// Whitelist commissioni futures: solo NES paga fee (per la stima informativa).
 const STRUMENTI_CON_COMMISSIONI = ['NES'];
 
 // Commissioni per lato (apertura o chiusura), in $ per contratto.
 const FEE_FUTURES_LATO = 1.205; // NES
-// FEE_OPTION_LATO non più usata: le opzioni sono commission-free in questa sim.
-// const FEE_OPTION_LATO = 1.00;
 
 // Moltiplicatori opzioni: un contratto eq. muove 100 azioni.
 const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
 function moltOpz(opz) { return MOLTIPLICATORI_OPZ[(opz && opz.strumento) || 'MES']; }
 
+// ============================================================
+// COMMODITIES — mappa ticker → moltiplicatore (dati utente)
+// ============================================================
+// Usata dal selettore ticker in modalità "Futures su commodities":
+// quando l'utente scrive un ticker presente qui, il moltiplicatore
+// della casella si aggiorna automaticamente. Ticker sconosciuti →
+// moltiplicatore da impostare a mano (default 1).
+const MOLTIPLICATORI_COMMODITIES = {
+  ZW: 50,      // Wheat (SRW)
+  ZM: 100,     // Soybean Meal
+  ZC: 50,      // Corn
+  ZL: 600,     // Soybean Oil
+  ZS: 50,      // Soybean
+  KE: 50,      // KC Wheat
+  LE: 400,     // Live Cattle
+  GF: 500,     // Feeder Cattle
+  HE: 400,     // Lean Hogs
+  RB: 42000,   // RBOB Gasoline
+  NG: 10000,   // Natural Gas
+  HO: 42000,   // Heating Oil
+  CL: 1000,    // Crude Oil WTI
+  SI: 5000,    // Silver
+  GC: 100,     // Gold
+  PL: 50,      // Platinum
+  HG: 25000,   // Copper
+  CC: 10,      // Cocoa
+  KC: 375,     // Coffee
+  CT: 500,     // Cotton
+  OJ: 150,     // Orange Juice
+  SB: 1120     // Sugar
+};
+
+// v27 — Le commissioni non entrano più in nessun calcolo (P&L lordo).
+// La funzione è mantenuta per retrocompatibilità: se in futuro si volesse
+// riattivare il toggle, basterebbe cambiare questo valore di ritorno.
 function commissioniAttive() {
-  // v27 — il toggle "Commissioni (solo NES)" è stato rimosso: le fee
-  // non entrano più nei calcoli (P&L lordo). Le fee stimate sono
-  // mostrate nell'header di colonna (render-futures.js).
   return false;
 }
-// Fee futures per lato: 0 se il toggle è spento, 0 se lo strumento non
-// è in whitelist (MES / ES / X), altrimenti FEE_FUTURES_LATO (NES).
+
+// Fee futures per lato: sempre 0 nei calcoli (P&L lordo).
+// La stima informativa è calcolata separatamente in render-futures.js.
 function feeLatoFuture(tipo) {
   if (!commissioniAttive()) return 0;
   if (!STRUMENTI_CON_COMMISSIONI.includes(tipo)) return 0;
@@ -42,8 +71,7 @@ function feeLatoFuture(tipo) {
 function feeLatoFutureAttiva(tipo) {
   return feeLatoFuture(tipo);
 }
-// Fee opzioni per lato: sempre 0 (le opzioni del tool sono MES/ES/AZIONI,
-// mai NES: nessuno strumento opzionabile paga commissioni in questa sim).
+// Fee opzioni per lato: sempre 0 (le opzioni sono commission-free).
 function feeLatoOpzione() {
   return 0;
 }
