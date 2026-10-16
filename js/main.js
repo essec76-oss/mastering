@@ -1,6 +1,6 @@
 // main.js — avvio: valori di default e primo render
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-// v27 — P&L lordo, cloud Supabase attivo (lista strategie caricata all'avvio).
+// v27 — P&L lordo, cloud Supabase con indicatore di stato.
 
   // ============================================================
   // OVERLAY DELTA — DUE MONDI DISTINTI (futures / azioni)
@@ -113,10 +113,13 @@
   renderScheda();
 
   // ============================================================
-  // SUPABASE — connessione + lista strategie salvate
+  // SUPABASE — connessione + lista strategie + indicatore cloud
   // ============================================================
   // Step 1: verifica che URL/chiave siano configurati e raggiungibili.
-  if (typeof testaConnessioneSupabase === 'function') {
+  // Aggiorna anche il pallino "Cloud connesso" nell'header dei salvati.
+  if (typeof aggiornaIndicatoreCloud === 'function') {
+    aggiornaIndicatoreCloud();
+  } else if (typeof testaConnessioneSupabase === 'function') {
     testaConnessioneSupabase();
   }
   // Step 2: popola la select #listaSalvate con le strategie presenti
