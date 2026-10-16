@@ -1,7 +1,6 @@
 // eventi.js — binding degli eventi interfaccia
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-// v27 — P&L lordo, mappa MOLTIPLICATORI_COMMODITIES per aggiornamento automatico
-//       del moltiplicatore quando si cambia ticker in modalità commodities.
+// v27 — P&L lordo, mappa MOLTIPLICATORI_COMMODITIES, toggle visibilità colonne futures.
 
   // ============================================================
   // EVENTI
@@ -59,7 +58,7 @@
   // ============================================================
   // Azioni (default) → colonne e opzioni bloccate su AZIONI (molt. 100)
   // Futures su indici → NES/MES/ES sbloccati (scelta libera)
-  // Futures su commodities → ticker libero (mappa pre-registrata)
+  // Futures su commodities → ticker libero, opzioni visibili, futures nascosti
   function _riempiSelectTipo(sel, opzioni, valore) {
     if (!sel) return;
     sel.innerHTML = '';
@@ -181,6 +180,30 @@
         selOpz.disabled = true;
       }
       if (sub) sub.textContent = tk + ' — futures su commodity (×' + (stato.molt > 0 ? stato.molt : '?') + ') — metodo prezzo medio (IBKR)';
+
+      // Mostra il toggle "Futures" e nascondi di default le colonne.
+      // In modalità commodities l'utente vuole vedere di default le opzioni
+      // (che occupano la parte più interessante del foglio).
+      const toggleWrapC = el('columnsToggleWrap');
+      const columnsWrapC = el('columnsWrap');
+      if (toggleWrapC) toggleWrapC.style.display = 'block';
+      if (columnsWrapC) columnsWrapC.style.display = 'none';
+      const btnTkC = el('btnToggleFutures');
+      const lblTkC = el('btnToggleFuturesLabel');
+      const icoTkC = el('btnToggleFuturesIcon');
+      if (btnTkC) btnTkC.classList.remove('open');
+      if (lblTkC) lblTkC.textContent = 'Mostra Futures';
+      if (icoTkC) icoTkC.textContent = '▼';
+    }
+
+    // In modalità NON-commodities, nascondi il toggle e mostra sempre le colonne.
+    if (stato.modalita !== 'futures-commodities') {
+      const toggleWrapN = el('columnsToggleWrap');
+      const columnsWrapN = el('columnsWrap');
+      if (toggleWrapN) toggleWrapN.style.display = 'none';
+      if (columnsWrapN) columnsWrapN.style.display = 'grid';
+      const btnTkN = el('btnToggleFutures');
+      if (btnTkN) btnTkN.classList.remove('open');
     }
 
     renderMovimenti('NES');
@@ -250,6 +273,27 @@
     renderMovimenti('MES');
     renderOpzioni();
     calcolaTutto();
+  });
+
+  // Toggle visibilità colonne futures (modalità commodities)
+  if (el('btnToggleFutures')) el('btnToggleFutures').addEventListener('click', () => {
+    const columnsWrap = el('columnsWrap');
+    const btnTk = el('btnToggleFutures');
+    const lblTk = el('btnToggleFuturesLabel');
+    const icoTk = el('btnToggleFuturesIcon');
+    if (!columnsWrap) return;
+    const isHidden = columnsWrap.style.display === 'none';
+    if (isHidden) {
+      columnsWrap.style.display = 'grid';
+      if (btnTk) btnTk.classList.add('open');
+      if (lblTk) lblTk.textContent = 'Nascondi Futures';
+      if (icoTk) icoTk.textContent = '▲';
+    } else {
+      columnsWrap.style.display = 'none';
+      if (btnTk) btnTk.classList.remove('open');
+      if (lblTk) lblTk.textContent = 'Mostra Futures';
+      if (icoTk) icoTk.textContent = '▼';
+    }
   });
 
   document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
