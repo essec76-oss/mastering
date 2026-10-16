@@ -358,11 +358,15 @@
     if (!confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.')) return;
     localStorage.removeItem(STORAGE_KEY);
     STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
+    // Rispetta la modalità globale corrente
+    const isAzioni = (stato.modalita || MODALITA_DEFAULT) === 'azioni' ||
+                     (stato.modalita || MODALITA_DEFAULT) === 'futures-commodities';
     stato.schede = [{
       nome: 'Matrice',
-      tipoNES: '-', tipoMES: '-',
+      tipoNES: isAzioni ? 'X' : '-',
+      tipoMES: isAzioni ? 'X' : '-',
       NES: [], MES: [], opzioni: [],
-      strumentoOpzioni: 'MES'
+      strumentoOpzioni: isAzioni ? 'AZIONI' : 'MES'
     }];
     stato.attiva = 0;
     el('prezzoSpot').value = '';
@@ -376,9 +380,9 @@
     if (el('cashEscludi')) el('cashEscludi').checked = false;
     // v27 — il toggle commissioni è stato rimosso
     el('dataAnalisi').value = dataOggiIso();
-    el('tipoNES').value = '-';
-    el('tipoMES').value = '-';
-    if (el('strumentoOpzioni')) el('strumentoOpzioni').value = 'MES';
+    el('tipoNES').value = isAzioni ? 'X' : '-';
+    el('tipoMES').value = isAzioni ? 'X' : '-';
+    if (el('strumentoOpzioni')) el('strumentoOpzioni').value = isAzioni ? 'AZIONI' : 'MES';
     if (typeof chartView !== 'undefined') {
       chartView.xMin = null; chartView.xMax = null;
       chartView.baseMin = null; chartView.baseMax = null;
