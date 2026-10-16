@@ -1,5 +1,7 @@
 // storage.js — persistenza localStorage + strategie cloud Supabase
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// v27 — P&L lordo + indicatore cloud persistente (pallino + badge ultimo salvataggio).
+
   // ============================================================
   // UTILITY
   // ============================================================
@@ -108,7 +110,7 @@
   }
 
   // ============================================================
-  // SUPABASE — client + test connessione (Step 1)
+  // SUPABASE — client + test connessione
   // ============================================================
   let _sbClient = null;
 
@@ -127,26 +129,80 @@
     return _sbClient;
   }
 
+  // ============================================================
+  // INDICATORE STATO CLOUD (v27)
+  // ============================================================
+  // Aggiorna il badge "Cloud: ..." nella salvati-bar.
+  // stati: 'checking' | 'ok' | 'err'
+  function setCloudStatus(statoCloud, msg) {
+    const wrap = el('cloudStatus');
+    const label = el('cloudStatusLabel');
+    if (!wrap || !label) return;
+    wrap.classList.remove('ok', 'err', 'checking');
+    wrap.classList.add(statoCloud);
+    if (msg) {
+      label.textContent = msg;
+    } else {
+      label.textContent = statoCloud === 'ok' ? 'Cloud connesso'
+                       : statoCloud === 'err' ? 'Cloud non raggiungibile'
+                       : 'Cloud: verifica…';
+    }
+  }
+
+  // Mostra il badge "Ultimo salvataggio cloud: NOME · ora"
+  function setCloudSaved(nome) {
+    const wrap = el('cloudSaved');
+    const nomeEl = el('cloudSavedNome');
+    const oraEl = el('cloudSavedOra');
+    if (!wrap || !nomeEl || !oraEl) return;
+    if (!nome) { wrap.style.display = 'none'; return; }
+    nomeEl.textContent = nome;
+    const ora = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    oraEl.textContent = '· ' + ora;
+    wrap.style.display = 'inline-flex';
+  }
+
+  // Aggiorna lo stato cloud combinando "connesso" + "ultimo salvataggio"
+  function aggiornaIndicatoreCloud() {
+    if (!supabaseConfigurato()) {
+      setCloudStatus('err', 'Cloud non configurato');
+      return;
+    }
+    setCloudStatus('checking', 'Cloud: verifica…');
+    testaConnessioneSupabase().then(ok => {
+      setCloudStatus(ok ? 'ok' : 'err');
+    });
+  }
+
   async function testaConnessioneSupabase() {
-    if (!supabaseConfigurato()) return;
+    if (!supabaseConfigurato()) {
+      setCloudStatus('err', 'Cloud non configurato');
+      return false;
+    }
     const sb = getSupabase();
-    if (!sb) return;
+    if (!sb) {
+      setCloudStatus('err', 'Cloud non configurato');
+      return false;
+    }
     try {
       const { error } = await sb.from('strategie').select('nome').limit(1);
       if (error) {
+        setCloudStatus('err', 'Cloud: ' + (error.message || 'errore'));
         mostraStatus('Supabase: ' + (error.message || 'errore'), true);
         return false;
       }
+      setCloudStatus('ok', 'Cloud connesso');
       mostraStatus('✓ Supabase collegato');
       return true;
     } catch (e) {
+      setCloudStatus('err', 'Cloud non raggiungibile');
       mostraStatus('Supabase: rete o chiave non valide', true);
       return false;
     }
   }
 
   // ============================================================
-  // STRATEGIE SALVATE — Step 2: cloud Supabase + cache localStorage
+  // STRATEGIE SALVATE — cloud Supabase + cache localStorage
   // ============================================================
   const STORAGE_SALVATI = 'mastering_salvati_v1';
 
@@ -224,17 +280,22 @@
     catch (e) { mostraStatus('Errore salvataggio locale', true); return; }
 
     if (sb) {
+      setCloudStatus('checking', 'Salvataggio in cloud…');
       try {
         const { error } = await sb
           .from('strategie')
           .upsert({ nome: nome, dati: dati, salvato_il: salvatoIl }, { onConflict: 'nome' });
         if (error) throw error;
+        setCloudStatus('ok', 'Cloud connesso');
+        setCloudSaved(nome);
         mostraStatus('✓ "' + nome + '" salvata in cloud');
       } catch (e) {
+        setCloudStatus('err', 'Cloud non raggiungibile');
         mostraStatus('Salvata in locale; cloud non raggiungibile', true);
       }
     } else {
-      mostraStatus('✓ Strategia "' + nome + '" salvata');
+      setCloudStatus('err', 'Cloud non configurato');
+      mostraStatus('✓ Strategia "' + nome + '" salvata solo in locale');
     }
     await renderListaSalvate();
   }
@@ -257,6 +318,8 @@
           if (el('nomeStrategia')) el('nomeStrategia').value = nome;
           renderTabs(); renderScheda();
           await renderListaSalvate();
+          setCloudStatus('ok', 'Cloud connesso');
+          setCloudSaved(nome);
           mostraStatus('✓ "' + nome + '" caricata da cloud');
           return;
         }
@@ -271,7 +334,7 @@
     if (el('nomeStrategia')) el('nomeStrategia').value = nome;
     renderTabs(); renderScheda();
     await renderListaSalvate();
-    mostraStatus('✓ "' + nome + '" caricata');
+    mostraStatus('✓ "' + nome + '" caricata (locale)');
   }
 
   async function eliminaSalvato(nome) {
@@ -287,11 +350,15 @@
       try {
         const { error } = await sb.from('strategie').delete().eq('nome', nome);
         if (error) throw error;
+        setCloudStatus('ok', 'Cloud connesso');
+        setCloudSaved(null);
         mostraStatus('✓ "' + nome + '" eliminata da cloud');
       } catch (e) {
+        setCloudStatus('err', 'Cloud non raggiungibile');
         mostraStatus('Eliminata in locale; cloud non aggiornato', true);
       }
     } else {
+      setCloudStatus('err', 'Cloud non configurato');
       mostraStatus('✓ "' + nome + '" eliminata');
     }
     await renderListaSalvate();
@@ -418,12 +485,14 @@
     });
     renderTabs();
     renderScheda(); // applicaModalita ricostruisce i select
+    setCloudSaved(null);
     mostraStatus('✓ Foglio azzerato');
   }
 
   let statusTimer = null;
   function mostraStatus(txt, err) {
     const s = el('saveStatus');
+    if (!s) return;
     s.textContent = txt;
     s.style.color = err ? 'var(--red)' : 'var(--green)';
     s.classList.add('show');
