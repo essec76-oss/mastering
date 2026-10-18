@@ -497,7 +497,8 @@
       if (v == null || !isFinite(v)) return '—';
       const dist = v - spot;
       const sign = dist >= 0 ? '+' : '';
-      return `${v.toFixed(5)} (${sign}${dist.toFixed(5)})`;
+      const pct = (dist / spot) * 100;
+return `${v.toFixed(5)} (${sign}${dist.toFixed(5)} | ${sign}${pct.toFixed(2)}%)`;
     };
 
     if (sorted.length === 1) {
