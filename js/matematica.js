@@ -207,8 +207,9 @@
     const mu = Math.log(spot) - 0.5 * sigma * sigma;
     const sd = sigma;
     const zone = [];
-    const loBound = Math.max(0.01, (minS != null ? minS : spot * 0.5));
-    const hiBound = (maxS != null ? maxS : spot * 1.5);
+        // Code della distribuzione incluse: la zona di profitto può estendersi oltre il range del grafico
+    const loBound = 0.01;
+    const hiBound = spot * 10;
     const sorted = (bes || []).filter(b => isFinite(b) && b > loBound && b < hiBound).sort((a, b) => a - b);
     const edges = [loBound, ...sorted, hiBound];
     for (let i = 0; i < edges.length - 1; i++) {
