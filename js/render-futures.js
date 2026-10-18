@@ -118,7 +118,7 @@
         if (dLabelEl) dLabelEl.textContent = 'Delta azioni';
         if (res.qtaNetta !== 0) {
           const dAz = res.qtaNetta / 100;
-          dEl.textContent = formatGreek(dAz, 2);
+          dEl.textContent = formatGreek(dAz, 5);
           dEl.className = 'value ' + (dAz >= 0 ? 'green' : 'red');
         } else {
           dEl.textContent = '—';
