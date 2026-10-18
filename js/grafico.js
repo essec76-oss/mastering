@@ -497,7 +497,7 @@
       if (v == null || !isFinite(v)) return '—';
       const dist = v - spot;
       const sign = dist >= 0 ? '+' : '';
-      return `${v.toFixed(1)} (${sign}${dist.toFixed(1)})`;
+      return `${v.toFixed(5)} (${sign}${dist.toFixed(5)})`;
     };
 
     if (sorted.length === 1) {
@@ -590,7 +590,7 @@
     }
 
     const delta = deltaNettoTotale(scheda, resNES, resMES);
-    deltaEl.textContent = formatGreek(delta, 3);
+    deltaEl.textContent = formatGreek(delta, 5);
     deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
 
     const prec = schedaPrecedente();
