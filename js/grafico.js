@@ -1,24 +1,3 @@
-// ============================================================================
-// FILE UNICO — contiene DUE file da salvare separati nel progetto:
-//   PARTE 1 → js/grafico.js      (salva TUTTA la parte 1 in js/grafico.js)
-//   PARTE 2 → js/matematica.js   (salva TUTTA la parte 2 in js/matematica.js)
-// Il contenuto dei due file è completo: sostituiscono integralmente i file
-// attuali. Cambi rispetto alla versione precedente (mondi separati):
-//   - nuove funzioni mondoDiTipo / mondoOpzione / mondoAttivo / colonnaNelMondo
-//   - pnlCombinatoAt: filtra opzioni e colonne futures del mondo non attivo
-//   - deltaNettoTotale: idem
-//   - firstExpiryOpzioni / nearestOptionYears: prima scadenza solo del mondo attivo
-//   - collectStructureAnchors, buildPayoffPoints, buildPayoffPointsDense:
-//     anchor/strike/medie solo del mondo attivo (BE, POP, range, sigma corretti)
-// Il mondo attivo è deciso dal menu "Strumento" della scheda opzioni
-// (AZIONI → mondo azioni; MES/ES → mondo futures).
-// ============================================================================
-
-
-// ############################################################################
-// ## PARTE 1 — js/grafico.js — GRAFICO PAYOFF: range, BE, POP, zoom, touch  ##
-// ############################################################################
-
 // grafico.js — grafico payoff: range, breakeven, POP, zoom e touch
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
   // ============================================================
@@ -26,9 +5,9 @@
   // ============================================================
   // Due mondi indipendenti: quando il menu "Strumento" della scheda opzioni è
   // su AZIONI, nei conteggi (riepilogo, payoff, BE, POP, sigma, delta) entrano
-  // SOLO le opzioni AZIONI e le colonne futures impostate su "AZIONI" (tipo X).
-  // Quando è su MES/ES entrano SOLO le opzioni MES/ES e le colonne NES/MES/ES.
-  // I due mondi non si vedono mai tra loro.
+  // SOLO le opzioni AZIONI e le colonne azionarie. Quando è su MES/ES entrano
+  // SOLO le opzioni MES/ES e le colonne NES/MES/ES. I due mondi non si vedono
+  // mai tra loro.
   function mondoDiTipo(tipo) {
     return (tipo === 'X' || tipo === 'AZIONI') ? 'AZIONI' : 'FUT';
   }
@@ -39,7 +18,7 @@
   function mondoAttivo() {
     return strumentoOpzSelezionato() === 'AZIONI' ? 'AZIONI' : 'FUT';
   }
-  // Una colonna futures partecipa solo se il suo tipo è dello stesso mondo
+  // Una colonna partecipa solo se il suo tipo è dello stesso mondo
   function colonnaNelMondo(res) {
     if (!res || !res.tipo || res.tipo === '-') return false;
     return mondoDiTipo(res.tipo) === mondoAttivo();
@@ -141,7 +120,7 @@
     return stato.cashEscluso ? 0 : c;
   }
 
-  // P&L combinato a un prezzo S: cash + futures/azioni (realizzato + aperto) + opzioni.
+  // P&L combinato a un prezzo S: cash + gambe sottostante (realizzato + aperto) + opzioni.
   // MONDI SEPARATI: contano solo le gambe del mondo attivo (menu Strumento).
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
     let tot = cashAttivo();
@@ -156,26 +135,39 @@
     return tot;
   }
 
+  // ============================================================
+  // DELTA NETTO TOTALE (MODIFICATO)
+  // ============================================================
+  // Delta netto TOTALE: opzioni + posizione sul sottostante del mondo attivo.
+  // NESSUN moltiplicatore, nessun fattore /5: convenzione TWS.
+  //   Mondo AZIONI: 100 azioni = 1.00 → short 200 azioni = -2.00
+  //   Mondo FUT:    1 contratto (NES/MES/ES) = delta 1.00
   function deltaNettoTotale(scheda, resNES, resMES) {
     let d = 0;
     const mondo = mondoAttivo();
-    if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
-      const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
-      d += resNES.qtaNetta * (molt / 5);
-    }
-    if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
-      const molt = MOLTIPLICATORI[resMES.tipo] || 5;
-      d += resMES.qtaNetta * (molt / 5);
-    }
+
+    // Gambe sul sottostante (colonne del mondo attivo)
+    [['NES', resNES], ['MES', resMES]].forEach(([, res]) => {
+      if (!colonnaNelMondo(res) || !res || res.qtaNetta === 0) return;
+      if (mondo === 'AZIONI') {
+        // qtaNetta = numero di azioni → convenzione 100 azioni = 1.00
+        d += res.qtaNetta / 100;
+      } else {
+        // Futures: 1 contratto = delta 1
+        d += res.qtaNetta;
+      }
+    });
+
+    // Opzioni del mondo attivo: delta per contratto, puro
     (scheda.opzioni || []).forEach(opz => {
       if (opz.attivo === false || opz.stato === 'CHIUSA') return;
       if (mondoOpzione(opz) !== mondo) return;
       const g = calcolaGrecheOpzione(opz);
       if (!isFinite(g.delta)) return;
       const segno = opz.pos === 'SELL' ? -1 : 1;
-      const qta = opz.qta || 0;
-      d += segno * qta * g.delta * (moltOpz(opz) / 5);
+      d += segno * (opz.qta || 0) * g.delta;
     });
+
     return d;
   }
 
@@ -857,7 +849,7 @@
 
     const S = xMin + ((svgPt.x - padL) / (W - padL - padR)) * (xMax - xMin);
 
-    // Trova il punto più vicino sulla curva CORRENTE (usato per agganciare la X).
+    // Trova il punto più vicino sulla curva CORRENTE (usato per aggancare la X).
     let nearestC = ptsCorrente[0];
     let bestC = Infinity;
     for (const p of ptsCorrente) {
@@ -985,23 +977,6 @@
         palP.style.display = 'none';
       }
     }
-
-    // Riempie i testi. Uso un'unica text per ogni riga, con x spostato di +22
-    // quando c'è il pallino, altrimenti +10.
-    const setRow = (elText, i, tipo) => {
-      if (!elText) return;
-      const r = righe[i];
-      if (!r) { elText.style.display = 'none'; return; }
-      const hasPallino = (r.tipo === 'corrente' || r.tipo === 'precedente');
-      elText.setAttribute('x', boxX + (hasPallino ? 22 : 10));
-      elText.setAttribute('y', boxY + 16 + i * 15);
-      // Rimuovo il pallino dal testo (già disegnato come cerchio SVG)
-      elText.textContent = r.testo.replace(/^[●○]\s*/, '');
-      if (r.tipo === 'prezzo') elText.setAttribute('fill', '#a8b0c0');
-      else if (r.tipo === 'corrente') elText.setAttribute('fill', chartGeom.activeColor);
-      else elText.setAttribute('fill', '#fb923c');
-      elText.style.display = '';
-    };
 
     // Pool dinamico di text per le righe tooltip: rimuovo i text esistenti
     // con data-hover-row e ne creo uno per riga (il layer hover è ricreato
