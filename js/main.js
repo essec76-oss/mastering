@@ -91,11 +91,10 @@
       const v = segno * (opz.qta || 0) * g.delta; // eq. 100 azioni, senza ×100
       totDelta += v;
       const cell = tr.querySelector('[data-field="delta"]');
-      if (cell) cell.textContent = formatGreekAuto(v, 2, 3);
+      if (cell) cell.textContent = formatGreekAuto(v, 5, 5);
     });
-    el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
+    el('greeksDelta').textContent = formatGreekAuto(totDelta, 5, 5);
   };
-
   // ============================================================
   // AVVIO
   // ============================================================
