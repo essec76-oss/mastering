@@ -498,7 +498,7 @@
       const dist = v - spot;
       const sign = dist >= 0 ? '+' : '';
       const pct = (dist / spot) * 100;
-return `${v.toFixed(5)} (${sign}${dist.toFixed(5)} | ${sign}${pct.toFixed(2)}%)`;
+return `${v.toFixed(5)} (${sign}${dist.toFixed(5)} | ${sign}${pct.toFixed(3)}%)`;
     };
 
     if (sorted.length === 1) {
