@@ -1,7 +1,6 @@
 // matematica.js — Black-76 / Black-Scholes, greche, POP, moneyness, formattazione
 // Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
 // v27 — Nessun riferimento a commissioni: P&L lordo.
-
   // ============================================================
   // DATA ANALISI
   // ============================================================
@@ -12,7 +11,6 @@
     const dd = String(d.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   }
-
   function dataAnalisiDate() {
     const inp = el('dataAnalisi');
     if (inp && inp.value) {
@@ -24,7 +22,6 @@
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), n.getDate());
   }
-
   function yearsBetween(dateA, dateB) {
     const a = (dateA instanceof Date) ? dateA : new Date(dateA);
     const b = (dateB instanceof Date) ? dateB : new Date(dateB);
@@ -32,14 +29,12 @@
         const giorni = Math.round((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000));
     return giorni / 365;
   }
-
   function giorniTra(dateA, dateB) {
     const a = (dateA instanceof Date) ? dateA : new Date(dateA);
     const b = (dateB instanceof Date) ? dateB : new Date(dateB);
     if (!isFinite(a.getTime()) || !isFinite(b.getTime())) return null;
     return Math.round((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000));
   }
-
   // Giorni residui di un'opzione rispetto alla data analisi
   function giorniResiduiOpzione(opz) {
     if (!opz || !opz.scadenza) return null;
@@ -48,7 +43,6 @@
     if (!isFinite(scad.getTime())) return null;
     return giorniTra(oggi, scad);
   }
-
   // ============================================================
   // BLACK-76 (futures) / BLACK-SCHOLES (azioni)
   // ============================================================
@@ -80,7 +74,6 @@
     if (tipo === 'call') return discS * S * Nd1 - discount * K * Nd2;
     return discount * K * (1 - Nd2) - discS * S * (1 - Nd1);
   }
-
   // Normale standard cumulata (Abramowitz-Stegun 26.2.17)
   function normCdf(x) {
     if (x < -10) return 0;
@@ -90,11 +83,9 @@
     const p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
     return x >= 0 ? 1 - p : p;
   }
-
   function normPdf(x) {
     return 0.3989422804014327 * Math.exp(-x * x / 2);
   }
-
   // ============================================================
   // GRECHE
   // ============================================================
@@ -116,7 +107,6 @@
     const intrinseco = tipo === 'call' ? Math.max(S - K, 0) : Math.max(K - S, 0);
     out.intrinsic = intrinseco;
     out.T = T;
-
     if (T == null || T <= 0) {
       out.price = intrinseco;
       out.delta = (tipo === 'call' ? (S > K ? 1 : 0) : (S < K ? -1 : 0));
@@ -141,7 +131,6 @@
     const pdf1 = normPdf(d1);
     const discR = Math.exp(-r * T);
     const discQ = Math.exp(-q * T);
-
     // Delta
     if (tipo === 'call') {
       out.delta = strumento === 'AZIONI' ? discQ * Nd1 : discR * Nd1;
@@ -169,13 +158,10 @@
       thetaAnn = r * prezzoB76 - discR * (S * pdf1 * sigma) / (2 * sqrtT);
     }
     out.theta = thetaAnn / 365;
-
     // Prezzo teorico
     out.price = modelPrice(S, opz, T, tipo);
-
     return out;
   }
-
   // ============================================================
   // BANDE SIGMA
   // ============================================================
@@ -190,7 +176,6 @@
     const s1 = spot * volAtm * Math.sqrt(T);
     return { s1, T };
   }
-
   // ============================================================
   // POP — Probabilità di profitto (lognormale, Vol ATM)
   // ============================================================
@@ -226,7 +211,6 @@
     const pop = zone.reduce((s, z) => s + z.pop, 0);
     return { pop: Math.max(0, Math.min(1, pop)), zone, T, sigma };
   }
-
   function updatePOPLabel(pop) {
     const elPop = el('popValue');
     const elZone = el('popZoneWrap');
@@ -243,7 +227,6 @@
       ).join('');
     }
   }
-
   // ============================================================
   // PROBABILITÀ DI TOCCO
   // ============================================================
@@ -258,7 +241,6 @@
     const pFine = strike >= spot ? 1 - normCdf(z) : normCdf(z);
     return Math.min(1, 2 * pFine);
   }
-
   // ============================================================
   // MONEYNESS
   // ============================================================
@@ -266,14 +248,12 @@
     const spanM = tr.querySelector('[data-field="ms"]');
     const spanSigma = tr.querySelector('[data-field="msSigma"]');
     if (!spanM) return;
-
     if (opz.attivo === false || opz.stato === 'CHIUSA') {
       spanM.textContent = '—';
       spanM.style.color = '';
       if (spanSigma) spanSigma.textContent = '';
       return;
     }
-
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const K = parseFloat(opz.strike) || 0;
     if (!(spot > 0) || !(K > 0)) {
@@ -282,7 +262,6 @@
       if (spanSigma) spanSigma.textContent = '';
       return;
     }
-
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
     let label, classe;
     if (Math.abs(spot - K) / spot < 0.005) {
@@ -298,7 +277,6 @@
     spanM.style.color = classe === 'atm' ? 'var(--yellow)'
                        : classe === 'itm' ? 'var(--green)'
                        : 'var(--muted)';
-
     if (spanSigma) {
       const volFrac = (parseFloat(opz.vol) || 0) / 100;
       const T = opz.scadenza ? yearsBetween(dataAnalisiDate(), opz.scadenza) : 0;
@@ -311,7 +289,6 @@
       }
     }
   }
-
   // ============================================================
   // FORMATTAZIONE
   // ============================================================
@@ -319,25 +296,21 @@
     if (v == null || !isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-
   function formatPrezzo(v) {
     if (v == null || !isFinite(v)) return '—';
-    return v.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+    return v.toLocaleString('it-IT', { minimumFractionDigits: 5, maximumFractionDigits: 5 });
   }
-
   function formatGreek(v, dec) {
     if (v == null || !isFinite(v)) return '—';
-    const d = (dec == null) ? 2 : dec;
+    const d = (dec == null) ? 5 : dec;          // default 5 decimali per le greche
     return v.toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d });
   }
-
   function formatGreekAuto(v, decMin, decMax) {
     if (v == null || !isFinite(v)) return '—';
-    const a = (decMin == null) ? 2 : decMin;
+    const a = (decMin == null) ? 5 : decMin;    // default 5 decimali
     const b = (decMax == null) ? a : decMax;
     return v.toLocaleString('it-IT', { minimumFractionDigits: a, maximumFractionDigits: b });
   }
-
   function strumentoOpzSelezionato() {
     const sel = el('strumentoOpzioni');
     if (sel && sel.value) return sel.value;
