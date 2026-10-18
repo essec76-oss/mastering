@@ -29,8 +29,8 @@
     const a = (dateA instanceof Date) ? dateA : new Date(dateA);
     const b = (dateB instanceof Date) ? dateB : new Date(dateB);
     if (!isFinite(a.getTime()) || !isFinite(b.getTime())) return null;
-    const ms = b.getTime() - a.getTime();
-    return ms / (365.25 * 24 * 60 * 60 * 1000);
+        const giorni = Math.round((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000));
+    return giorni / 365;
   }
 
   function giorniTra(dateA, dateB) {
