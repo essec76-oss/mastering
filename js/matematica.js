@@ -21,7 +21,8 @@
         return new Date(parts[0], parts[1] - 1, parts[2]);
       }
     }
-    return new Date();
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate());
   }
 
   function yearsBetween(dateA, dateB) {
@@ -61,21 +62,23 @@
     }
     const sqrtT = Math.sqrt(T);
     const strumento = opz.strumento || 'MES';
-    let d1, d2, discount;
+    let d1, d2, discount, discS;
     if (strumento === 'AZIONI') {
       const q = (parseFloat(el('divYield') && el('divYield').value) || 0) / 100;
       d1 = (Math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
       d2 = d1 - sigma * sqrtT;
-      discount = Math.exp(-r * T);
+      discount = Math.exp(-r * T);   // sconto su K
+      discS = Math.exp(-q * T);      // sconto su S (dividendi)
     } else {
       d1 = (Math.log(S / K) + 0.5 * sigma * sigma * T) / (sigma * sqrtT);
       d2 = d1 - sigma * sqrtT;
       discount = Math.exp(-r * T);
+      discS = discount;              // Black-76: S è il forward
     }
     const Nd1 = normCdf(d1);
     const Nd2 = normCdf(d2);
-    if (tipo === 'call') return discount * (S * Nd1 - K * Nd2);
-    return discount * (K * (1 - Nd2) - S * (1 - Nd1));
+    if (tipo === 'call') return discS * S * Nd1 - discount * K * Nd2;
+    return discount * K * (1 - Nd2) - discS * S * (1 - Nd1);
   }
 
   // Normale standard cumulata (Abramowitz-Stegun 26.2.17)
@@ -141,30 +144,29 @@
 
     // Delta
     if (tipo === 'call') {
-      out.delta = strumento === 'AZIONI' ? discQ * Nd1 : Nd1;
+      out.delta = strumento === 'AZIONI' ? discQ * Nd1 : discR * Nd1;
     } else {
-      out.delta = strumento === 'AZIONI' ? discQ * (Nd1 - 1) : (Nd1 - 1);
+      out.delta = strumento === 'AZIONI' ? discQ * (Nd1 - 1) : discR * (Nd1 - 1);
     }
-    // Gamma (identica BS / B76)
-    out.gamma = pdf1 / (S * sigma * sqrtT);
+    // Fattore di sconto su S: e^{-qT} per le azioni, e^{-rT} per Black-76
+    const discS = strumento === 'AZIONI' ? discQ : discR;
+    // Gamma
+    out.gamma = discS * pdf1 / (S * sigma * sqrtT);
     // Vega (per 1% di vol)
-    out.vega = S * pdf1 * sqrtT / 100;
+    out.vega = discS * S * pdf1 * sqrtT / 100;
     // Theta (per giorno)
     let thetaAnn;
     if (strumento === 'AZIONI') {
-      const term1 = -(S * pdf1 * sigma) / (2 * sqrtT);
+      const term1 = -(S * discQ * pdf1 * sigma) / (2 * sqrtT);
       if (tipo === 'call') {
         thetaAnn = term1 - r * K * discR * Nd2 + q * S * discQ * Nd1;
       } else {
         thetaAnn = term1 + r * K * discR * (1 - Nd2) - q * S * discQ * (1 - Nd1);
       }
     } else {
-      const term1 = -(S * pdf1 * sigma) / (2 * sqrtT);
-      if (tipo === 'call') {
-        thetaAnn = term1 + r * K * discR * Nd2;
-      } else {
-        thetaAnn = term1 - r * K * discR * (1 - Nd2);
-      }
+      // Black-76: theta = r*prezzo - e^{-rT} * F * phi(d1) * sigma / (2*sqrt(T))
+      const prezzoB76 = modelPrice(S, opz, T, tipo);
+      thetaAnn = r * prezzoB76 - discR * (S * pdf1 * sigma) / (2 * sqrtT);
     }
     out.theta = thetaAnn / 365;
 
@@ -204,10 +206,10 @@
     if (!(sigma > 0)) return null;
     const mu = Math.log(spot) - 0.5 * sigma * sigma;
     const sd = sigma;
-    const sorted = (bes || []).filter(b => isFinite(b) && b > 0).sort((a, b) => a - b);
     const zone = [];
     const loBound = Math.max(0.01, (minS != null ? minS : spot * 0.5));
     const hiBound = (maxS != null ? maxS : spot * 1.5);
+    const sorted = (bes || []).filter(b => isFinite(b) && b > loBound && b < hiBound).sort((a, b) => a - b);
     const edges = [loBound, ...sorted, hiBound];
     for (let i = 0; i < edges.length - 1; i++) {
       const a = edges[i], b = edges[i + 1];
@@ -251,8 +253,9 @@
     if (!(sigmaT > 0)) return null;
     const mu = Math.log(spot) - 0.5 * sigma * sigma * T;
     const z = (Math.log(strike) - mu) / sigmaT;
-    const pItm = 1 - normCdf(z);
-    return Math.min(1, 2 * pItm);
+    // Strike sopra lo spot: coda destra; strike sotto lo spot: coda sinistra
+    const pFine = strike >= spot ? 1 - normCdf(z) : normCdf(z);
+    return Math.min(1, 2 * pFine);
   }
 
   // ============================================================
