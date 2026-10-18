@@ -3,14 +3,7 @@
   // ============================================================
   // OPZIONI RENDER
   // ============================================================
-  function formatGreek(v, digits = 3) {
-    if (!isFinite(v)) return '—';
-    return v.toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-  }
-  function formatGreekAuto(v, minDig, maxDig) {
-    if (!isFinite(v)) return '—';
-    return v.toLocaleString('it-IT', { minimumFractionDigits: minDig, maximumFractionDigits: maxDig });
-  }
+  // formatGreek / formatGreekAuto / strumentoOpzSelezionato sono definite in matematica.js
 
   // Prezzo di carico effettivo: premio scritto, altrimenti teorico allo spot
   // corrente (fotografato). Coerente con premioCarico() in grafico.js.
@@ -88,10 +81,16 @@
 
     const tdPnl = tr.querySelector('.pnl-riga[data-label="P&L NOW ($)"]');
     if (tdPnl) {
-      const pnl = calcolaPnlOpzione(opz);
-      tdPnl.textContent = formatEuro(pnl);
-      tdPnl.classList.remove('green', 'red', 'muted');
-      tdPnl.classList.add(pnl >= 0 ? 'green' : 'red');
+      if (opz.attivo === false) {
+        tdPnl.textContent = '—';
+        tdPnl.classList.remove('green', 'red');
+        tdPnl.classList.add('muted');
+      } else {
+        const pnl = calcolaPnlOpzione(opz);
+        tdPnl.textContent = formatEuro(pnl);
+        tdPnl.classList.remove('green', 'red', 'muted');
+        tdPnl.classList.add(pnl >= 0 ? 'green' : 'red');
+      }
     }
 
     aggiornaGiorniResidui(tr, opz);
@@ -123,11 +122,6 @@
     setPos('vega',  segno * qta * g.vega,  2, 3);
     setPos('theta', segno * qta * g.theta, 2, 3);
     aggiornaExtraOpzione(tr, opz);
-  }
-
-  function strumentoOpzSelezionato() {
-    const sel = el('strumentoOpzioni');
-    return sel ? sel.value : 'MES';
   }
 
   // ============================================================
@@ -278,7 +272,7 @@
       const tdQta = document.createElement('td');
       tdQta.dataset.label = 'Q.tà';
       const inQta = document.createElement('input');
-      inQta.type = 'number'; inQta.step = '1'; inQta.min = '0'; inQta.value = opz.qta || 1;
+      inQta.type = 'number'; inQta.step = '1'; inQta.min = '0'; inQta.value = (opz.qta != null ? opz.qta : 1);
       inQta.addEventListener('input', e => {
         const v = e.target.value;
         opzioniScheda[idx].qta = v === '' ? 0 : (parseFloat(v) || 0);
