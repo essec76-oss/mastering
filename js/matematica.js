@@ -186,7 +186,7 @@
     const firstExp = firstExpiryOpzioni(scheda);
     let T = null;
     if (firstExp) T = yearsBetween(dataAnalisiDate(), firstExp);
-    if (T == null || T <= 0) T = 30 / 365.25;
+    if (T == null || T <= 0) T = 30 / 365;
     const s1 = spot * volAtm * Math.sqrt(T);
     return { s1, T };
   }
@@ -201,7 +201,7 @@
     const firstExp = firstExpiryOpzioni(scheda_);
     let T = null;
     if (firstExp) T = yearsBetween(dataAnalisiDate(), firstExp);
-    if (T == null || T <= 0) T = 30 / 365.25;
+    if (T == null || T <= 0) T = 30 / 365;
     const sigma = volAtm * Math.sqrt(T);
     if (!(sigma > 0)) return null;
     const mu = Math.log(spot) - 0.5 * sigma * sigma;
