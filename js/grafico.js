@@ -42,7 +42,7 @@
     if (res.qtaNetta !== 0 && !isNaN(res.mediaPulita)) {
       const segno = res.qtaNetta > 0 ? 1 : -1;
       const q = Math.abs(res.qtaNetta);
-      pnlAperto = (S - res.mediaPulita) * q * segno * molt - feeLatoFuture(tipo) * q;
+      pnlAperto = (S - res.mediaPulita) * q * segno * molt;
     }
 
     return pnlRealizzato + pnlAperto;
@@ -101,8 +101,7 @@
 
     const premio = premioCarico(opz);
     const side = opz.pos === 'SELL' ? -1 : 1;
-    const fee = feeLatoOpzione() * qta;
-    return (valoreOpzione - premio) * side * qta * moltOpz(opz) - fee;
+    return (valoreOpzione - premio) * side * qta * moltOpz(opz);
   }
 
   function aggiornaStileCash() {
@@ -568,7 +567,6 @@ return `${v.toFixed(5)} (${sign}${dist.toFixed(5)} | ${sign}${pct.toFixed(3)}%)`
     const prec = schedaPrecedente();
     if (prec) parts.push('P:' + _firmaScheda(prec));
     parts.push(`cash:${(typeof stato.cash === 'number') ? stato.cash : 0}:${stato.cashEscluso ? 1 : 0}`);
-    parts.push(`fee:${commissioniAttive() ? 1 : 0}`);
     return parts.join('|');
   }
 
