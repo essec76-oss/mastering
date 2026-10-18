@@ -239,7 +239,7 @@
     elPop.textContent = (pop.pop * 100).toFixed(10) + '%';
     if (elZone) {
       elZone.innerHTML = pop.zone.map(z =>
-        `<span>${formatPrezzo(z.da)}–${formatPrezzo(z.a)}: <strong style="color:var(--text);">${(z.pop * 100).toFixed(1)}%</strong></span>`
+        `<span>${formatPrezzo(z.da)}–${formatPrezzo(z.a)}: <strong style="color:var(--text);">${(z.pop * 100).toFixed(4)}%</strong></span>`
       ).join('');
     }
   }
