@@ -27,7 +27,7 @@
   body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
     font-family: var(--font); font-size: 14px; }
   .top-bar { display: flex; align-items: flex-start; justify-content: space-between;
-    gap: 16px; max-width: 1300px; margin-bottom: 16px; flex-wrap: wrap; }
+    gap: 16px; max-width: none; margin-bottom: 16px; flex-wrap: wrap; }
   #modalitaGlobale {
     display: block;
     background: var(--panel-2);
@@ -59,7 +59,7 @@
 
   /* Barra schede: Matrice (non rimovibile) + comparazioni.
      Nota v25: il pulsante "Promuovi su Matrice" è stato rimosso. */
-  .schede-bar { max-width: 1300px; margin-bottom: 16px; display: flex;
+  .schede-bar { max-width: none; margin-bottom: 16px; display: flex;
     align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .schede-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
   .scheda-tab { background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
@@ -82,7 +82,7 @@
   body.scheda-comp .btn-add:hover { border-color: #f97316; color: #f97316; }
   .price-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     background: var(--panel); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; max-width: 1300px; }
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; max-width: none; }
   .price-bar .label { font-size: 12px; color: var(--muted);
     text-transform: uppercase; letter-spacing: 1px; }
   .price-bar input { background: var(--panel-2); border: 1px solid var(--border);
@@ -92,7 +92,7 @@
   .price-bar input:focus { outline: none; border-color: var(--accent); }
   .price-bar input.small { font-size: 14px; width: 90px; color: var(--text); font-weight: 600; }
   .price-bar .param-group { display: flex; align-items: center; gap: 8px; }
-  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1300px; }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: none; }
   .column { background: var(--panel); border: 1px solid var(--border);
     border-radius: var(--radius); overflow: hidden; }
   .col-header { background: var(--panel-3); border-bottom: 2px solid var(--accent);
@@ -226,7 +226,7 @@
     font-family: var(--font); letter-spacing: 0.5px; }
   .btn-add:hover { border-color: var(--accent); color: var(--accent); }
 
-  .options-card { max-width: 1300px; margin-top: 16px;
+  .options-card { max-width: none; margin-top: 16px;
     background: var(--panel); border: 1px solid var(--border);
     border-radius: var(--radius); overflow: hidden; }
   .options-header { background: var(--panel-3); border-bottom: 2px solid var(--purple);
@@ -255,7 +255,7 @@
     letter-spacing: 1px; display: block; }
   .options-header .pnl-opz .value {
     font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .riepilogo { max-width: 1300px; margin-top: 20px;
+  .riepilogo { max-width: none; margin-top: 20px;
     background: var(--panel); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 16px 18px; }
   .riepilogo h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
@@ -470,7 +470,7 @@ input[type="number"] {
 
 /* 3. Toggle visibilità colonne futures (modalità commodities) */
 .columns-toggle {
-  max-width: 1300px;
+  max-width: none;
   margin: -8px 0 12px 0;
 }
 .columns-toggle .btn {
