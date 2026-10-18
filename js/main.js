@@ -50,7 +50,7 @@
   function deltaAzioniTotale(scheda, resNES, resMES) {
     let d = 0;
     [resNES, resMES].forEach(res => {
-      if (res && res.qtaNetta !== 0 && res.tipo === 'X') d += res.qtaNetta / 100;
+      if (res && res.qtaNetta !== 0) d += res.qtaNetta / 100;
     });
     (scheda.opzioni || []).forEach(opz => {
       if (opz.attivo === false || opz.stato === 'CHIUSA') return;
