@@ -29,7 +29,9 @@
       tipoNES: el('tipoNES').value,
       tipoMES: el('tipoMES').value,
       attiva: stato.attiva,
-      schede: stato.schede
+      schede: stato.schede,
+      // v28 — modalità globale: necessaria per riallineare il menu padre al load
+      modalitaGlobale: (el('modalitaGlobale') ? el('modalitaGlobale').value : (stato.modalita || MODALITA_DEFAULT))
     };
     return dati;
   }
@@ -55,6 +57,17 @@
     } catch (e) { return false; }
   }
 
+  // Deduce la modalità globale da una scheda (o da un dato legacy) quando il campo
+  // `modalitaGlobale` non è presente nei salvataggi precedenti alla v28.
+  function deduciModalita(schedaODati) {
+    const s = schedaODati || {};
+    const t = s.tipoNES || s.tipoMES || '';
+    if (t === 'ZW') return 'futures-commodities';
+    if (t === 'NES' || t === 'MES' || t === 'ES') return 'futures-indici';
+    if (t === 'X' || s.strumentoOpzioni === 'AZIONI') return 'azioni';
+    return MODALITA_DEFAULT;
+  }
+
   // Applica un oggetto dati (corrente, salvato o importato) ai controlli della pagina
   function applicaDati(dati) {
       if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
@@ -68,8 +81,8 @@
       // entrano nei calcoli. Eventuali valori salvati in precedenza sono
       // ignorati (retrocompatibilità con i salvataggi vecchi).
       if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
-      if (dati.tipoNES) el('tipoNES').value = dati.tipoNES;
-      if (dati.tipoMES) el('tipoMES').value = dati.tipoMES;
+
+      // Schede: prima carica lo stato, poi applica la modalità (che sistema i select globali)
       if (Array.isArray(dati.schede) && dati.schede.length) {
         stato.schede = dati.schede.map(migraScheda);
       } else if (Array.isArray(dati.NES) || Array.isArray(dati.MES) || Array.isArray(dati.opzioni)) {
@@ -84,6 +97,19 @@
         })];
       }
       stato.attiva = Math.max(0, Math.min(stato.schede.length - 1, dati.attiva || 0));
+
+      // v28 — Determina la modalità da ripristinare.
+      // 1) Se salvata esplicitamente, usala.
+      // 2) Altrimenti deducila dal contenuto (retrocompatibilità con salvataggi vecchi).
+      const modSalvata = dati.modalitaGlobale
+        || deduciModalita(stato.schede[stato.attiva] || dati);
+
+      const selMod = el('modalitaGlobale');
+      if (selMod) selMod.value = modSalvata;
+
+      // applicaModalita ricostruisce i select, forza i valori in base alla modalità,
+      // riallinea le schede e chiama render + calcolaTutto.
+      applicaModalita(modSalvata);
   }
 
   // ============================================================
