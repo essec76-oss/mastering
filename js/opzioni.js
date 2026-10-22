@@ -3,27 +3,6 @@
   // ============================================================
   // OPZIONI
   // ============================================================
-  //
-  // v29 — Override moltiplicatore commodities:
-  //   moltOpz(opz) risolve il moltiplicatore contrattuale dell'opzione.
-  //   - azioni / indici → MOLTIPLICATORI[strumento] standard
-  //   - commodities con strumento 'custom' → usa scheda.moltiplicatoreCommodity
-  //     (fallback su MOLTIPLICATORI.ZW)
-  //   Tutte le funzioni che prima usavano MOLTIPLICATORI[opz.strumento]
-  //   devono passare da moltOpz(opz) per coerenza con il sottotitolo/colonne.
-  //
-  function moltOpz(opz) {
-    const strumento = (opz && opz.strumento) || 'MES';
-    const isComm = (typeof stato !== 'undefined' && stato.modalita === 'futures-commodities');
-    if (isComm && strumento === 'custom') {
-      const scheda = schedaAttiva();
-      const v = parseFloat(scheda && scheda.moltiplicatoreCommodity);
-      if (isFinite(v) && v > 0) return v;
-      return MOLTIPLICATORI.ZW || 50;
-    }
-    return MOLTIPLICATORI[strumento];
-  }
-
   // P&L di una singola opzione:
   // - disattivata → 0
   // - CHIUSA → 0 (il realizzato va annotato nel box Cash in alto)
