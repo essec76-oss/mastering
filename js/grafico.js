@@ -1,45 +1,17 @@
-// ============================================================================
-// FILE UNICO — contiene DUE file da salvare separati nel progetto:
-//   PARTE 1 → js/grafico.js      (salva TUTTA la parte 1 in js/grafico.js)
-//   PARTE 2 → js/matematica.js   (salva TUTTA la parte 2 in js/matematica.js)
-// Il contenuto dei due file è completo: sostituiscono integralmente i file
-// attuali. Cambi rispetto alla versione precedente (mondi separati):
-//   - nuove funzioni mondoDiTipo / mondoOpzione / mondoAttivo / colonnaNelMondo
-//   - pnlCombinatoAt: filtra opzioni e colonne futures del mondo non attivo
-//   - deltaNettoTotale: idem
-//   - firstExpiryOpzioni / nearestOptionYears: prima scadenza solo del mondo attivo
-//   - collectStructureAnchors, buildPayoffPoints, buildPayoffPointsDense:
-//     anchor/strike/medie solo del mondo attivo (BE, POP, range, sigma corretti)
-// Il mondo attivo è deciso dal menu "Strumento" della scheda opzioni
-// (AZIONI → mondo azioni; MES/ES → mondo futures).
-// ============================================================================
-
-
-// ############################################################################
-// ## PARTE 1 — js/grafico.js — GRAFICO PAYOFF: range, BE, POP, zoom, touch  ##
-// ############################################################################
-
 // grafico.js — grafico payoff: range, breakeven, POP, zoom e touch
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
   // ============================================================
   // MONDI SEPARATI: AZIONI vs FUTURES (NES/MES/ES)
   // ============================================================
-  // Due mondi indipendenti: quando il menu "Strumento" della scheda opzioni è
-  // su AZIONI, nei conteggi (riepilogo, payoff, BE, POP, sigma, delta) entrano
-  // SOLO le opzioni AZIONI e le colonne futures impostate su "AZIONI" (tipo X).
-  // Quando è su MES/ES entrano SOLO le opzioni MES/ES e le colonne NES/MES/ES.
-  // I due mondi non si vedono mai tra loro.
   function mondoDiTipo(tipo) {
     return (tipo === 'X' || tipo === 'AZIONI') ? 'AZIONI' : 'FUT';
   }
   function mondoOpzione(opz) {
     return (opz && (opz.strumento || 'MES')) === 'AZIONI' ? 'AZIONI' : 'FUT';
   }
-  // Il mondo attivo è deciso dal menu "Strumento" della scheda opzioni
   function mondoAttivo() {
     return strumentoOpzSelezionato() === 'AZIONI' ? 'AZIONI' : 'FUT';
   }
-  // Una colonna futures partecipa solo se il suo tipo è dello stesso mondo
   function colonnaNelMondo(res) {
     if (!res || !res.tipo || res.tipo === '-') return false;
     return mondoDiTipo(res.tipo) === mondoAttivo();
@@ -48,9 +20,6 @@
   // ============================================================
   // PAYOFF COMBINATO
   // ============================================================
-  // P&L di una gamba futures/azioni a un prezzo S: somma del P&L realizzato
-  // (chiusure, già incassato, non dipende da S) e del P&L aperto (mark-to-market
-  // sulla posizione residua). Il realizzato è una traslazione verticale.
   function pnlFutureApertoAt(S, col, res) {
     if (!res) return 0;
     const tipo = res.tipo;
@@ -75,7 +44,7 @@
     let minScad = null;
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
-      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
+      if (mondoOpzione(o) !== mondo) return;
       if (!o.scadenza) return;
       const T = yearsBetween(today, o.scadenza);
       if (T == null || T < 0) return;
@@ -84,7 +53,6 @@
     return minScad;
   }
 
-  // Prezzo di carico effettivo di un'opzione: se premio vuoto → teorico allo spot.
   function premioCarico(opz) {
     if (opz.premio && opz.premio !== 0) return opz.premio;
     const spot = parseFloat(el('prezzoSpot').value) || 0;
@@ -135,14 +103,11 @@
     else if (v < 0) inp.classList.add('neg');
   }
 
-  // Cash manuale (annotato dall'utente): entra se non escluso.
   function cashAttivo() {
     const c = (typeof stato.cash === 'number') ? stato.cash : 0;
     return stato.cashEscluso ? 0 : c;
   }
 
-  // P&L combinato a un prezzo S: cash + futures/azioni (realizzato + aperto) + opzioni.
-  // MONDI SEPARATI: contano solo le gambe del mondo attivo (menu Strumento).
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
     let tot = cashAttivo();
     if (colonnaNelMondo(resNES)) tot += pnlFutureApertoAt(S, 'NES', resNES);
@@ -150,7 +115,7 @@
     const mondo = mondoAttivo();
     const firstExp = mode === 'expiry' ? firstExpiryOpzioni(scheda) : null;
     (scheda.opzioni || []).forEach(opz => {
-      if (mondoOpzione(opz) !== mondo) return; // ← il filtro che mancava
+      if (mondoOpzione(opz) !== mondo) return;
       tot += pnlOpzioneAt(S, opz, mode, firstExp);
     });
     return tot;
@@ -219,15 +184,13 @@
     return { minS: Math.max(1, minS), maxS };
   }
 
-  // Ancore di struttura: spot + medie + prezzi movimenti + strike opzioni.
-  // MONDI SEPARATI: solo ancore del mondo attivo.
   function collectStructureAnchors(spot, scheda) {
     const pts = [spot];
     const target = scheda || schedaAttiva();
     if (!target) return pts.filter(p => isFinite(p) && p > 0);
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(target, col);
-      if (!colonnaNelMondo(res)) return; // colonna dell'altro mondo: fuori
+      if (!colonnaNelMondo(res)) return;
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita);
       (target[col] || []).forEach(m => {
         if (m.attivo === false) return;
@@ -237,14 +200,13 @@
     const mondo = mondoAttivo();
     (target.opzioni || []).forEach(o => {
       if (o.attivo === false) return;
-      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
+      if (mondoOpzione(o) !== mondo) return;
       const k = parseFloat(o.strike) || 0;
-      if (k > 0) pts.push(k);
+      if (k > 0) pts.push(k); // ignora strike a 0
     });
     return pts.filter(p => isFinite(p) && p > 0);
   }
 
-  // Range di scansione per i BE: include anche la scheda precedente (se esiste).
   function scanRangeForBE(spot) {
     let minS = Math.max(1, spot * 0.55);
     let maxS = spot * 1.45;
@@ -260,13 +222,20 @@
     return { minS, maxS };
   }
 
+  // Corretto: ignora i BE troppo lontani dal prezzo Spot
   function computeSmartChartRange(spot, breakevens) {
     const anchors = collectStructureAnchors(spot, schedaAttiva());
     const prec = schedaPrecedente();
     if (prec) {
       collectStructureAnchors(spot, prec).forEach(a => anchors.push(a));
     }
-    const bes = (breakevens || []).filter(b => isFinite(b) && b > 0);
+    
+    // Filtra i BE: accetta solo quelli entro il 20% dal prezzo spot
+    const bes = (breakevens || []).filter(b => {
+      if (!isFinite(b) || b <= 0) return false;
+      const distPct = Math.abs(b - spot) / spot;
+      return distPct <= 0.20;
+    });
 
     let minS, maxS;
 
@@ -291,6 +260,7 @@
         maxS = be + pad;
       }
     } else {
+      // Se non ci sono BE validi, usa il default e le ancore
       const def = defaultChartRange(spot);
       minS = def.minS;
       maxS = def.maxS;
@@ -350,8 +320,6 @@
     redrawChartFromView();
   }
 
-  // Eventi di struttura per il payoff (strike + medie + prezzi movimenti).
-  // MONDI SEPARATI: solo eventi del mondo attivo.
   function collectPayoffEvents(scheda, minS, maxS, resNES, resMES) {
     const events = new Set([minS, maxS]);
     const mondo = mondoAttivo();
@@ -362,7 +330,7 @@
       if (k > 0) events.add(k);
     });
     [['NES', resNES], ['MES', resMES]].forEach(([col, res]) => {
-      if (!colonnaNelMondo(res)) return; // colonna dell'altro mondo: fuori
+      if (!colonnaNelMondo(res)) return;
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) events.add(res.mediaPulita);
       (scheda[col] || []).forEach(m => {
         if (m.attivo === false) return;
@@ -388,8 +356,6 @@
     }));
   }
 
-  // Curve da disegnare: solo [precedente, corrente] (o [corrente] se Matrice).
-  // Ogni set ha ruolo 'corrente' o 'precedente' + colore fisso.
   function buildCurveSets(minS, maxS) {
     const sets = [];
     const prec = schedaPrecedente();
@@ -523,7 +489,6 @@
     beSupEl.textContent = fmtBe(sorted[sorted.length - 1]);
   }
 
-  // Mostra/nascondi il gruppo toggle "Precedente" in base alla scheda attiva.
   function aggiornaTogglePrecedente() {
     const grp = el('ctrlGroupPrecedente');
     if (!grp) return;
@@ -550,9 +515,6 @@
     fitChartToStructure();
   }
 
-  // Firma della struttura: serve a capire se il range X va ricalcolato.
-  // Include sia la scheda attiva sia la precedente. Include anche il mondo
-  // attivo, così cambiando il menu Strumento il grafico si ricalcola.
   function _firmaScheda(scheda) {
     const parts = [];
     ['NES', 'MES'].forEach(col => {
@@ -618,7 +580,6 @@
       scanMin = Math.min(scanMin, chartView.xMin);
       scanMax = Math.max(scanMax, chartView.xMax);
     }
-    // I BE sono calcolati solo sulla scheda attiva (sono i suoi BE).
     chartView.breakevens = findBreakevensRobust(scheda, spot, scanMin, scanMax, resNES, resMES);
     updateBreakevenLabels(chartView.breakevens, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, chartView.breakevens, resNES, resMES, scanMin, scanMax));
@@ -649,8 +610,6 @@
     );
   }
 
-  // Curve visibili: capisce quali curve (Expiry/Now) mostrare per ogni ruolo.
-  // Ritorna { corrente: {expiry, now}, precedente: {expiry, now} } con booleani.
   function _visibilitaCurve(flags, hasPrecedente) {
     return {
       corrente:   { expiry: !!flags.showExpiryC, now: !!flags.showNowC },
@@ -670,7 +629,6 @@
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
-    // Individua la corrente (ruolo 'corrente') e la precedente (ruolo 'precedente').
     const corrente = curveSets.find(cs => cs.ruolo === 'corrente') || curveSets[curveSets.length - 1] || null;
     const precedente = curveSets.find(cs => cs.ruolo === 'precedente') || null;
 
@@ -708,7 +666,6 @@
 
     let svgContent = '';
 
-    // Griglia Y
     const nGridY = 6;
     for (let i = 0; i <= nGridY; i++) {
       const y = yMin + (i / nGridY) * (yMax - yMin);
@@ -717,7 +674,6 @@
       svgContent += `<text x="${padL - 6}" y="${py + 3}" fill="#8b93a7" font-size="10" text-anchor="end">${y.toFixed(0)}</text>`;
     }
 
-    // Griglia X
     const nGridX = 8;
     for (let i = 0; i <= nGridX; i++) {
       const x = xMin + (i / nGridX) * (xMax - xMin);
@@ -725,7 +681,6 @@
       svgContent += `<text x="${px}" y="${H - padB + 16}" fill="#8b93a7" font-size="10" text-anchor="middle">${Math.round(x)}</text>`;
     }
 
-    // Bande sigma
     const nSDsel = el('nSD');
     const nSD = nSDsel ? Math.max(1, Math.min(10, parseInt(nSDsel.value) || 2)) : 2;
     const nascondiSigma = !!(el('showSigma') && el('showSigma').checked);
@@ -742,11 +697,9 @@
       }
     }
 
-    // Linea zero
     const zeroY = yPix(0);
     svgContent += `<line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="#8b93a7" stroke-width="1"/>`;
 
-    // Area sotto la curva Expiry: SOLO per la corrente (verde/rosso).
     if (vis.corrente.expiry) {
       const areaPath = `${pathFrom(corrente.pts, 'pnlExpiry')} L ${xPix(xMax)} ${zeroY} L ${xPix(xMin)} ${zeroY} Z`;
       const clipPosH = Math.max(0, zeroY - padT);
@@ -761,7 +714,6 @@
       `;
     }
 
-    // Disegno curve: prima la precedente (sotto), poi la corrente (sopra).
     if (precedente) {
       if (vis.precedente.expiry) {
         svgContent += `<path d="${pathFrom(precedente.pts, 'pnlExpiry')}" fill="none" stroke="${precedente.colore}" stroke-width="2" stroke-dasharray="6,3" opacity="0.9"/>`;
@@ -777,7 +729,6 @@
       svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.8" stroke-dasharray="5,4" opacity="0.85"/>`;
     }
 
-    // Linee BE (calcolate sulla scheda attiva)
     const showBEFlag = el('showBE') ? el('showBE').checked : true;
     if (showBEFlag) breakevens.forEach((be) => {
       if (be < xMin || be > xMax) return;
@@ -786,7 +737,6 @@
       svgContent += `<text x="${bx + 3}" y="${H - padB - 6}" fill="#f1c40f" font-size="10" text-anchor="start">BE ${be.toFixed(0)}</text>`;
     });
 
-    // Linea Spot
     if (spot >= xMin && spot <= xMax) {
       const sx = xPix(spot);
       svgContent += `<line x1="${sx}" y1="${padT}" x2="${sx}" y2="${H - padB}" stroke="#4f8cff" stroke-width="1.5" stroke-dasharray="4,3"/>`;
@@ -795,7 +745,6 @@
 
     svgContent += `<rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="none" stroke="#2a2f3a"/>`;
 
-    // Hover layer
     svgContent += `
       <g id="hoverLayer" style="pointer-events:none;">
         <line id="hoverLine" x1="0" y1="${padT}" x2="0" y2="${H - padB}" stroke="#7d8590" stroke-width="1" stroke-dasharray="3,3" style="display:none"/>
@@ -857,7 +806,6 @@
 
     const S = xMin + ((svgPt.x - padL) / (W - padL - padR)) * (xMax - xMin);
 
-    // Trova il punto più vicino sulla curva CORRENTE (usato per agganciare la X).
     let nearestC = ptsCorrente[0];
     let bestC = Infinity;
     for (const p of ptsCorrente) {
@@ -865,7 +813,6 @@
       if (d < bestC) { bestC = d; nearestC = p; }
     }
 
-    // Trova il punto più vicino sulla curva PRECEDENTE (stessa ascissa).
     let nearestP = null;
     if (ptsPrecedente && ptsPrecedente.length) {
       let bestP = Infinity;
@@ -893,7 +840,6 @@
     const tPrec = document.getElementById('hoverTextPrecedente');
     if (!box || !tPrezzo || !tCorr) return;
 
-    // Pallino corrente: pieno, sulla curva Expiry se visibile, altrimenti Now.
     if (dotC) {
       const yValC = vis.corrente.expiry ? nearestC.pnlExpiry
                   : (vis.corrente.now ? nearestC.pnlNow : null);
@@ -906,7 +852,6 @@
       }
     }
 
-    // Pallino precedente: pieno, sulla curva Expiry se visibile, altrimenti Now.
     if (dotP) {
       const yValP = nearestP
         ? (vis.precedente.expiry ? nearestP.pnlExpiry
@@ -923,11 +868,9 @@
 
     const fmt = v => (v >= 0 ? '+' : '') + v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    // Righe tooltip: Prezzo + Corrente (Expiry/Now) + Precedente (Expiry/Now).
     const righe = [];
     righe.push({ tipo: 'prezzo', testo: `Prezzo  ${nearestC.S.toFixed(2)}` });
 
-    // Corrente: se entrambe visibili, due righe; altrimenti una sola.
     if (vis.corrente.expiry && vis.corrente.now) {
       righe.push({ tipo: 'corrente', testo: `● ${chartGeom.nomeCorrente} Scad.  ${fmt(nearestC.pnlExpiry)}` });
       righe.push({ tipo: 'corrente', testo: `● ${chartGeom.nomeCorrente} Now   ${fmt(nearestC.pnlNow)}` });
@@ -937,7 +880,6 @@
       righe.push({ tipo: 'corrente', testo: `● ${chartGeom.nomeCorrente} Now  ${fmt(nearestC.pnlNow)}` });
     }
 
-    // Precedente: idem.
     if (nearestP) {
       if (vis.precedente.expiry && vis.precedente.now) {
         righe.push({ tipo: 'precedente', testo: `○ ${chartGeom.nomePrecedente} Scad.  ${fmt(nearestP.pnlExpiry)}` });
@@ -949,7 +891,6 @@
       }
     }
 
-    // Box dimensioni in base al numero di righe.
     const boxW = 210;
     const boxH = 8 + righe.length * 15;
     let boxX = px + 12;
@@ -963,7 +904,6 @@
     box.setAttribute('height', boxH);
     box.style.display = '';
 
-    // Pallini del tooltip
     if (palC && palP) {
       let idxCorr = -1, idxPrec = -1;
       for (let i = 0; i < righe.length; i++) {
@@ -986,8 +926,6 @@
       }
     }
 
-    // Riempie i testi. Uso un'unica text per ogni riga, con x spostato di +22
-    // quando c'è il pallino, altrimenti +10.
     const setRow = (elText, i, tipo) => {
       if (!elText) return;
       const r = righe[i];
@@ -995,7 +933,6 @@
       const hasPallino = (r.tipo === 'corrente' || r.tipo === 'precedente');
       elText.setAttribute('x', boxX + (hasPallino ? 22 : 10));
       elText.setAttribute('y', boxY + 16 + i * 15);
-      // Rimuovo il pallino dal testo (già disegnato come cerchio SVG)
       elText.textContent = r.testo.replace(/^[●○]\s*/, '');
       if (r.tipo === 'prezzo') elText.setAttribute('fill', '#a8b0c0');
       else if (r.tipo === 'corrente') elText.setAttribute('fill', chartGeom.activeColor);
@@ -1003,9 +940,6 @@
       elText.style.display = '';
     };
 
-    // Pool dinamico di text per le righe tooltip: rimuovo i text esistenti
-    // con data-hover-row e ne creo uno per riga (il layer hover è ricreato
-    // ad ogni redraw, quindi nessun leak).
     const layer = document.getElementById('hoverLayer');
     if (layer) {
       layer.querySelectorAll('text[data-hover-row]').forEach(n => n.remove());
@@ -1024,7 +958,6 @@
         else t.setAttribute('fill', '#fb923c');
         layer.appendChild(t);
       }
-      // I 3 text statici non servono più: nascondo.
       [tPrezzo, tCorr, tPrec].forEach(t => { if (t) t.style.display = 'none'; });
     }
   }
