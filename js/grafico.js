@@ -44,7 +44,7 @@
     let minScad = null;
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
-      if (mondoOpzione(o) !== mondo) return;
+      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
       if (!o.scadenza) return;
       const T = yearsBetween(today, o.scadenza);
       if (T == null || T < 0) return;
@@ -53,6 +53,7 @@
     return minScad;
   }
 
+  // Prezzo di carico effettivo di un'opzione: se premio vuoto → teorico allo spot.
   function premioCarico(opz) {
     if (opz.premio && opz.premio !== 0) return opz.premio;
     const spot = parseFloat(el('prezzoSpot').value) || 0;
@@ -115,7 +116,7 @@
     const mondo = mondoAttivo();
     const firstExp = mode === 'expiry' ? firstExpiryOpzioni(scheda) : null;
     (scheda.opzioni || []).forEach(opz => {
-      if (mondoOpzione(opz) !== mondo) return;
+      if (mondoOpzione(opz) !== mondo) return; // ← il filtro che mancava
       tot += pnlOpzioneAt(S, opz, mode, firstExp);
     });
     return tot;
@@ -190,7 +191,7 @@
     if (!target) return pts.filter(p => isFinite(p) && p > 0);
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(target, col);
-      if (!colonnaNelMondo(res)) return;
+      if (!colonnaNelMondo(res)) return; // colonna dell'altro mondo: fuori
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita);
       (target[col] || []).forEach(m => {
         if (m.attivo === false) return;
@@ -200,9 +201,9 @@
     const mondo = mondoAttivo();
     (target.opzioni || []).forEach(o => {
       if (o.attivo === false) return;
-      if (mondoOpzione(o) !== mondo) return;
+      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
       const k = parseFloat(o.strike) || 0;
-      if (k > 0) pts.push(k); // ignora strike a 0
+      if (k > 0) pts.push(k);
     });
     return pts.filter(p => isFinite(p) && p > 0);
   }
@@ -222,7 +223,7 @@
     return { minS, maxS };
   }
 
-  // Corretto: ignora i BE troppo lontani dal prezzo Spot
+  // MODIFICA: Filtra i BE validi (vicini al prezzo Spot) per evitare zoom errati
   function computeSmartChartRange(spot, breakevens) {
     const anchors = collectStructureAnchors(spot, schedaAttiva());
     const prec = schedaPrecedente();
@@ -260,7 +261,7 @@
         maxS = be + pad;
       }
     } else {
-      // Se non ci sono BE validi, usa il default e le ancore
+      // Se non ci sono BE validi (o sono stati filtrati), usa il default
       const def = defaultChartRange(spot);
       minS = def.minS;
       maxS = def.maxS;
@@ -925,20 +926,6 @@
         palP.style.display = 'none';
       }
     }
-
-    const setRow = (elText, i, tipo) => {
-      if (!elText) return;
-      const r = righe[i];
-      if (!r) { elText.style.display = 'none'; return; }
-      const hasPallino = (r.tipo === 'corrente' || r.tipo === 'precedente');
-      elText.setAttribute('x', boxX + (hasPallino ? 22 : 10));
-      elText.setAttribute('y', boxY + 16 + i * 15);
-      elText.textContent = r.testo.replace(/^[●○]\s*/, '');
-      if (r.tipo === 'prezzo') elText.setAttribute('fill', '#a8b0c0');
-      else if (r.tipo === 'corrente') elText.setAttribute('fill', chartGeom.activeColor);
-      else elText.setAttribute('fill', '#fb923c');
-      elText.style.display = '';
-    };
 
     const layer = document.getElementById('hoverLayer');
     if (layer) {
