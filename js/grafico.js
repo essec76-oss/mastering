@@ -44,7 +44,7 @@
     let minScad = null;
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
-      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
+      if (mondoOpzione(o) !== mondo) return;
       if (!o.scadenza) return;
       const T = yearsBetween(today, o.scadenza);
       if (T == null || T < 0) return;
@@ -53,7 +53,6 @@
     return minScad;
   }
 
-  // Prezzo di carico effettivo di un'opzione: se premio vuoto → teorico allo spot.
   function premioCarico(opz) {
     if (opz.premio && opz.premio !== 0) return opz.premio;
     const spot = parseFloat(el('prezzoSpot').value) || 0;
@@ -116,7 +115,7 @@
     const mondo = mondoAttivo();
     const firstExp = mode === 'expiry' ? firstExpiryOpzioni(scheda) : null;
     (scheda.opzioni || []).forEach(opz => {
-      if (mondoOpzione(opz) !== mondo) return; // ← il filtro che mancava
+      if (mondoOpzione(opz) !== mondo) return;
       tot += pnlOpzioneAt(S, opz, mode, firstExp);
     });
     return tot;
@@ -191,7 +190,7 @@
     if (!target) return pts.filter(p => isFinite(p) && p > 0);
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(target, col);
-      if (!colonnaNelMondo(res)) return; // colonna dell'altro mondo: fuori
+      if (!colonnaNelMondo(res)) return;
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita);
       (target[col] || []).forEach(m => {
         if (m.attivo === false) return;
@@ -201,7 +200,7 @@
     const mondo = mondoAttivo();
     (target.opzioni || []).forEach(o => {
       if (o.attivo === false) return;
-      if (mondoOpzione(o) !== mondo) return; // solo opzioni del mondo attivo
+      if (mondoOpzione(o) !== mondo) return;
       const k = parseFloat(o.strike) || 0;
       if (k > 0) pts.push(k);
     });
@@ -223,7 +222,6 @@
     return { minS, maxS };
   }
 
-  // MODIFICA: Filtra i BE validi (vicini al prezzo Spot) per evitare zoom errati
   function computeSmartChartRange(spot, breakevens) {
     const anchors = collectStructureAnchors(spot, schedaAttiva());
     const prec = schedaPrecedente();
@@ -261,7 +259,7 @@
         maxS = be + pad;
       }
     } else {
-      // Se non ci sono BE validi (o sono stati filtrati), usa il default
+      // Se non ci sono BE validi, usa il default
       const def = defaultChartRange(spot);
       minS = def.minS;
       maxS = def.maxS;
@@ -308,16 +306,20 @@
     const scheda = schedaAttiva();
     const resNES = calcolaColonna(scheda, 'NES');
     const resMES = calcolaColonna(scheda, 'MES');
+    
     const scan = scanRangeForBE(spot);
     const bes = findBreakevensRobust(scheda, spot, scan.minS, scan.maxS, resNES, resMES);
+    
     chartView.breakevens = bes;
     updateBreakevenLabels(bes, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, bes, resNES, resMES, scan.minS, scan.maxS));
+    
     const smart = computeSmartChartRange(spot, bes);
     chartView.xMin = smart.minS;
     chartView.xMax = smart.maxS;
     chartView.baseMin = smart.minS;
     chartView.baseMax = smart.maxS;
+    
     redrawChartFromView();
   }
 
