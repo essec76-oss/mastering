@@ -66,7 +66,10 @@
         <option value="MES">MES</option>
         <option value="ES">ES</option>
         <option value="X" selected>AZIONI</option>
+        <option value="custom">Personalizzato</option>
       </select>
+      <input type="text" id="tickerNES" class="ticker-input" placeholder="Ticker" title="Ticker visualizzato nel sottotitolo (es. NG, CL, GC)" style="display:none;">
+      <input type="number" id="moltiplicatoreNES" class="moltiplicatore-input" placeholder="Molt." step="1" min="1" title="Moltiplicatore contrattuale (override)" style="display:none; width:80px;">
       <span class="cs-fee" title="Fee stimate: N aperture × 2 lati × 1,205 $/lato. Non incluse nei P&amp;L mostrati.">fee stimate: <strong id="feeNES">—</strong></span>
       <div class="col-summary" id="summaryNES">
         <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
@@ -111,7 +114,10 @@
         <option value="MES">MES</option>
         <option value="ES">ES</option>
         <option value="X" selected>AZIONI</option>
+        <option value="custom">Personalizzato</option>
       </select>
+      <input type="text" id="tickerMES" class="ticker-input" placeholder="Ticker" title="Ticker visualizzato nel sottotitolo (es. NG, CL, GC)" style="display:none;">
+      <input type="number" id="moltiplicatoreMES" class="moltiplicatore-input" placeholder="Molt." step="1" min="1" title="Moltiplicatore contrattuale (override)" style="display:none; width:80px;">
       <span class="cs-fee" title="Fee stimate: N aperture × 2 lati × 1,205 $/lato. Non incluse nei P&amp;L mostrati.">fee stimate: <strong id="feeMES">—</strong></span>
       <div class="col-summary" id="summaryMES">
         <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
@@ -157,6 +163,7 @@
         <option value="MES">MES</option>
         <option value="ES">ES</option>
         <option value="AZIONI" selected>AZIONI</option>
+        <option value="custom">Personalizzato</option>
       </select>
       <div class="param-group">
         <span class="label">Vol ATM %</span>
