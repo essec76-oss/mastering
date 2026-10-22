@@ -26,15 +26,9 @@
     stato.cashEscluso = el('cashEscludi').checked;
     calcolaTutto();
   });
-  // v27 — il toggle "Commissioni (solo NES)" è stato rimosso: le fee non
-  // entrano più nei calcoli (P&L lordo). Le fee stimate sono mostrate
-  // nell'header di colonna e calcolate in render-futures.js.
   if (el('dataAnalisi')) el('dataAnalisi').addEventListener('change', () => {
-    // Ricalcola greche, teorico, GG residui e POP rispetto alla nuova data
     calcolaTutto();
   });
-  // Toggle curve del grafico (v25): 4 checkbox indipendenti (corrente/precedente).
-  // Corrente e precedente non richiedono ricalcolo completo: basta ridisegnare.
   if (el('showExpiryCorrente'))   el('showExpiryCorrente').addEventListener('change',   () => redrawChartFromView());
   if (el('showNowCorrente'))      el('showNowCorrente').addEventListener('change',      () => redrawChartFromView());
   if (el('showExpiryPrecedente')) el('showExpiryPrecedente').addEventListener('change', () => redrawChartFromView());
@@ -42,21 +36,95 @@
   if (el('showBE'))     el('showBE').addEventListener('change', () => redrawChartFromView());
   if (el('showSigma'))  el('showSigma').addEventListener('change', () => redrawChartFromView());
   if (el('nSD'))        el('nSD').addEventListener('change', () => redrawChartFromView());
+
+  // ============================================================
+  // NOMI COMMODITIES (solo per il sottotitolo)
+  // ============================================================
+  const NOMI_COMMODITY = {
+    ZW: 'Wheat futures', NG: 'Natural Gas futures', CL: 'Crude Oil futures',
+    GC: 'Gold futures', SI: 'Silver futures', HG: 'Copper futures',
+    ZC: 'Corn futures', ZS: 'Soybean futures', ZL: 'Soybean Oil futures',
+    ZM: 'Soybean Meal futures', KC: 'Coffee futures', SB: 'Sugar futures',
+    CC: 'Cocoa futures', CT: 'Cotton futures', LE: 'Live Cattle futures',
+    HE: 'Lean Hogs futures', ES: 'E-mini S&P 500', NQ: 'E-mini Nasdaq',
+    YM: 'E-mini Dow'
+  };
+
+  function descriviCommodity(scheda) {
+    const isCustom = scheda.tipoNES === 'custom' || scheda.tipoMES === 'custom';
+    let ticker, molt;
+    if (isCustom) {
+      ticker = (scheda.tickerCommodity || '').toUpperCase();
+      const v = parseFloat(scheda.moltiplicatoreCommodity);
+      molt = (isFinite(v) && v > 0) ? v : (MOLTIPLICATORI[ticker] || MOLTIPLICATORI.ZW || 50);
+    } else {
+      ticker = scheda.tipoNES || scheda.tipoMES || 'ZW';
+      molt = MOLTIPLICATORI[ticker] || MOLTIPLICATORI.ZW || 50;
+    }
+    const nome = NOMI_COMMODITY[ticker] || (ticker ? ticker + ' futures' : 'Commodity');
+    return ticker + ' — ' + nome + ' (×' + molt + ') — metodo prezzo medio (IBKR)';
+  }
+
+  function aggiornaCampiCommodity(col) {
+    const scheda = schedaAttiva();
+    const isCustom = stato.modalita === 'futures-commodities' && scheda['tipo' + col] === 'custom';
+    const tInp = el('ticker' + col);
+    const mInp = el('moltiplicatore' + col);
+    if (tInp) {
+      tInp.style.display = isCustom ? '' : 'none';
+      if (isCustom) tInp.value = scheda.tickerCommodity || '';
+    }
+    if (mInp) {
+      mInp.style.display = isCustom ? '' : 'none';
+      if (isCustom) mInp.value = (scheda.moltiplicatoreCommodity !== null && scheda.moltiplicatoreCommodity !== undefined)
+        ? scheda.moltiplicatoreCommodity
+        : (MOLTIPLICATORI[scheda.tickerCommodity] || MOLTIPLICATORI.ZW || 50);
+    }
+  }
+
   el('tipoNES').addEventListener('change', e => {
     schedaAttiva().tipoNES = e.target.value;
+    aggiornaCampiCommodity('NES');
+    if (stato.modalita === 'futures-commodities') {
+      const sub = el('subtitle');
+      if (sub) sub.textContent = descriviCommodity(schedaAttiva());
+    }
     renderMovimenti('NES'); calcolaTutto();
   });
   el('tipoMES').addEventListener('change', e => {
     schedaAttiva().tipoMES = e.target.value;
+    aggiornaCampiCommodity('MES');
+    if (stato.modalita === 'futures-commodities') {
+      const sub = el('subtitle');
+      if (sub) sub.textContent = descriviCommodity(schedaAttiva());
+    }
     renderMovimenti('MES'); calcolaTutto();
+  });
+
+  // Ticker / moltiplicatore personalizzati (visibili solo in commodities+custom)
+  ['NES','MES'].forEach(col => {
+    const tInp = el('ticker' + col);
+    const mInp = el('moltiplicatore' + col);
+    if (tInp) tInp.addEventListener('input', () => {
+      if (stato.modalita !== 'futures-commodities') return;
+      schedaAttiva().tickerCommodity = tInp.value.trim().toUpperCase();
+      const sub = el('subtitle');
+      if (sub) sub.textContent = descriviCommodity(schedaAttiva());
+      renderMovimenti(col); calcolaTutto();
+    });
+    if (mInp) mInp.addEventListener('input', () => {
+      if (stato.modalita !== 'futures-commodities') return;
+      const v = parseFloat(mInp.value);
+      schedaAttiva().moltiplicatoreCommodity = (isFinite(v) && v > 0) ? v : null;
+      const sub = el('subtitle');
+      if (sub) sub.textContent = descriviCommodity(schedaAttiva());
+      renderMovimenti(col); calcolaTutto();
+    });
   });
 
   // ============================================================
   // SELETTORE MODALITÀ GLOBALE (menu padre)
   // ============================================================
-  // Azioni (default) → colonne e opzioni bloccate su AZIONI (molt. 100)
-  // Futures su indici → NES/MES/ES sbloccati (scelta libera)
-  // Futures su commodities → ZW (molt. 50)
   function _riempiSelectTipo(sel, opzioni, valore) {
     if (!sel) return;
     sel.innerHTML = '';
@@ -66,7 +134,6 @@
       opt.textContent = o.label;
       sel.appendChild(opt);
     });
-    // Imposta valore se presente tra le opzioni, altrimenti il primo
     const esiste = opzioni.some(o => o.value === valore);
     sel.value = esiste ? valore : (opzioni[0] ? opzioni[0].value : '');
   }
@@ -80,7 +147,6 @@
     const scheda = schedaAttiva();
 
     if (stato.modalita === 'azioni') {
-      // Unico asset: Azioni. Select bloccati su X / AZIONI.
       _riempiSelectTipo(selNES, [{ value: 'X', label: 'AZIONI' }], 'X');
       _riempiSelectTipo(selMES, [{ value: 'X', label: 'AZIONI' }], 'X');
       if (selNES) selNES.disabled = true;
@@ -101,15 +167,14 @@
       if (sub) sub.textContent = 'Azioni — simulatore azioni + opzioni su azioni — metodo prezzo medio (IBKR)';
 
     } else if (stato.modalita === 'futures-indici') {
-      // Futures su indici: NES / MES / ES — sbloccati, scelta libera
       const optsIndici = [
         { value: '-', label: '-' },
         { value: 'NES', label: 'NES' },
         { value: 'MES', label: 'MES' },
         { value: 'ES', label: 'ES' }
       ];
-      const curNES = (scheda.tipoNES === 'X' || scheda.tipoNES === 'ZW') ? 'NES' : (scheda.tipoNES || 'NES');
-      const curMES = (scheda.tipoMES === 'X' || scheda.tipoMES === 'ZW') ? 'MES' : (scheda.tipoMES || 'MES');
+      const curNES = (scheda.tipoNES === 'X' || scheda.tipoNES === 'ZW' || scheda.tipoNES === 'custom') ? 'NES' : (scheda.tipoNES || 'NES');
+      const curMES = (scheda.tipoMES === 'X' || scheda.tipoMES === 'ZW' || scheda.tipoMES === 'custom') ? 'MES' : (scheda.tipoMES || 'MES');
       _riempiSelectTipo(selNES, optsIndici, curNES);
       _riempiSelectTipo(selMES, optsIndici, curMES);
       if (selNES) selNES.disabled = false;
@@ -126,32 +191,31 @@
       if (sub) sub.textContent = 'NES / MES / ES — Nano, Micro & E-mini futures ES500 — metodo prezzo medio (IBKR)';
 
     } else if (stato.modalita === 'futures-commodities') {
-      // Commodities: ZW (Wheat) moltiplicatore 50
+      // v29 — Commodities libere: l'utente può scegliere ZW oppure "Personalizzato"
       const optsComm = [
         { value: '-', label: '-' },
-        { value: 'ZW', label: 'ZW' }
+        { value: 'ZW', label: 'ZW' },
+        { value: 'custom', label: 'Personalizzato' }
       ];
-      _riempiSelectTipo(selNES, optsComm, 'ZW');
-      _riempiSelectTipo(selMES, optsComm, 'ZW');
+      const curNES = (scheda.tipoNES && scheda.tipoNES !== 'X') ? scheda.tipoNES : 'ZW';
+      const curMES = (scheda.tipoMES && scheda.tipoMES !== 'X') ? scheda.tipoMES : 'ZW';
+      _riempiSelectTipo(selNES, optsComm, curNES);
+      _riempiSelectTipo(selMES, optsComm, curMES);
       if (selNES) selNES.disabled = false;
       if (selMES) selMES.disabled = false;
-      // Opzioni commodities: per ora non definite → menu disabilitato
       if (selOpz) {
-        selOpz.innerHTML = '<option value="ZW">ZW</option>';
-        selOpz.value = 'ZW';
-        selOpz.disabled = true;
+        selOpz.innerHTML = '<option value="ZW">ZW</option><option value="custom">Personalizzato</option>';
+        selOpz.value = scheda.strumentoOpzioni === 'custom' ? 'custom' : 'ZW';
+        selOpz.disabled = false;
       }
-      scheda.tipoNES = 'ZW';
-      scheda.tipoMES = 'ZW';
-      scheda.strumentoOpzioni = 'ZW';
-      stato.schede.forEach(s => {
-        s.tipoNES = 'ZW';
-        s.tipoMES = 'ZW';
-        s.strumentoOpzioni = 'ZW';
-      });
-      if (sub) sub.textContent = 'ZW — Wheat futures (×50) — metodo prezzo medio (IBKR)';
+      scheda.tipoNES = selNES ? selNES.value : 'ZW';
+      scheda.tipoMES = selMES ? selMES.value : 'ZW';
+      scheda.strumentoOpzioni = selOpz ? selOpz.value : 'ZW';
+      if (sub) sub.textContent = descriviCommodity(scheda);
     }
 
+    aggiornaCampiCommodity('NES');
+    aggiornaCampiCommodity('MES');
     renderMovimenti('NES');
     renderMovimenti('MES');
     renderOpzioni();
@@ -162,7 +226,6 @@
     el('modalitaGlobale').addEventListener('change', e => {
       applicaModalita(e.target.value);
     });
-    // Applica lo stato iniziale (Azioni di default)
     applicaModalita(el('modalitaGlobale').value || MODALITA_DEFAULT);
   }
 
@@ -175,7 +238,6 @@
     });
   });
   el('btnAddOpzione').addEventListener('click', () => {
-    // Scadenza di default: data analisi + 30 giorni
     const defaultScad = dataAnalisiDate();
     defaultScad.setDate(defaultScad.getDate() + 30);
     const yyyy = defaultScad.getFullYear();
@@ -190,17 +252,17 @@
     renderOpzioni(); calcolaTutto();
   });
   el('strumentoOpzioni').addEventListener('change', () => {
-    // Il menu a tendina dell'header cambia lo strumento della scheda
-    // (MES / ES / AZIONI): le righe degli altri strumenti restano dormienti
     schedaAttiva().strumentoOpzioni = el('strumentoOpzioni').value;
+    if (stato.modalita === 'futures-commodities') {
+      const sub = el('subtitle');
+      if (sub) sub.textContent = descriviCommodity(schedaAttiva());
+    }
     renderOpzioni();
     calcolaTutto();
   });
   el('btnCreaComp').addEventListener('click', creaComparazione);
   el('btnReset').addEventListener('click', reset);
-  // Strategie salvate: salvataggio multiplo con nome + export/import file
   if (el('btnSalvaCome')) el('btnSalvaCome').addEventListener('click', () => salvaConNome(el('nomeStrategia').value));
-  // Nome strategia forzato in MAIUSCOLO mentre si digita (cursore preservato)
   if (el('nomeStrategia')) el('nomeStrategia').addEventListener('input', e => {
     const inp = e.target;
     const pos = inp.selectionStart;
