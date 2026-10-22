@@ -8,7 +8,6 @@
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(() => salva(true), 800);
   }
-  // Flush immediato alla chiusura della pagina
   window.addEventListener('beforeunload', () => {
     if (autosaveTimer !== null) {
       clearTimeout(autosaveTimer);
@@ -62,7 +61,7 @@
   function deduciModalita(schedaODati) {
     const s = schedaODati || {};
     const t = s.tipoNES || s.tipoMES || '';
-    if (t === 'ZW') return 'futures-commodities';
+    if (t === 'ZW' || t === 'custom') return 'futures-commodities';
     if (t === 'NES' || t === 'MES' || t === 'ES') return 'futures-indici';
     if (t === 'X' || s.strumentoOpzioni === 'AZIONI') return 'azioni';
     return MODALITA_DEFAULT;
@@ -77,16 +76,12 @@
       if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
       stato.cashEscluso = dati.cashEscluso === true;
       if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
-      // v27 — il campo `commissioniOn` non esiste più: le commissioni non
-      // entrano nei calcoli. Eventuali valori salvati in precedenza sono
-      // ignorati (retrocompatibilità con i salvataggi vecchi).
       if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
 
       // Schede: prima carica lo stato, poi applica la modalità (che sistema i select globali)
       if (Array.isArray(dati.schede) && dati.schede.length) {
         stato.schede = dati.schede.map(migraScheda);
       } else if (Array.isArray(dati.NES) || Array.isArray(dati.MES) || Array.isArray(dati.opzioni)) {
-        // v18 e precedenti: una sola scheda → diventa la Matrice
         stato.schede = [migraScheda({
           nome: 'Matrice',
           tipoNES: dati.tipoNES || 'NES',
@@ -99,21 +94,17 @@
       stato.attiva = Math.max(0, Math.min(stato.schede.length - 1, dati.attiva || 0));
 
       // v28 — Determina la modalità da ripristinare.
-      // 1) Se salvata esplicitamente, usala.
-      // 2) Altrimenti deducila dal contenuto (retrocompatibilità con salvataggi vecchi).
       const modSalvata = dati.modalitaGlobale
         || deduciModalita(stato.schede[stato.attiva] || dati);
 
       const selMod = el('modalitaGlobale');
       if (selMod) selMod.value = modSalvata;
 
-      // applicaModalita ricostruisce i select, forza i valori in base alla modalità,
-      // riallinea le schede e chiama render + calcolaTutto.
       applicaModalita(modSalvata);
   }
 
   // ============================================================
-  // SUPABASE — client + test connessione (Step 1)
+  // SUPABASE — client + test connessione
   // ============================================================
   let _sbClient = null;
 
@@ -151,7 +142,7 @@
   }
 
   // ============================================================
-  // STRATEGIE SALVATE — Step 2: cloud Supabase + cache localStorage
+  // STRATEGIE SALVATE — cloud Supabase + cache localStorage
   // ============================================================
   const STORAGE_SALVATI = 'mastering_salvati_v1';
 
@@ -211,7 +202,6 @@
     const dati = raccogliDati();
     const salvatoIl = new Date().toISOString();
 
-    // Cache locale
     const map = leggiSalvatiLocal();
     const esisteLocale = !!(map[nome] && map[nome].dati);
     let esisteCloud = false;
@@ -303,7 +293,7 @@
   }
 
   // ============================================================
-  // EXPORT / IMPORT FILE JSON (backup e spostamento tra browser/PC)
+  // EXPORT / IMPORT FILE JSON
   // ============================================================
   function esportaFile() {
     const nome = (el('nomeStrategia') && el('nomeStrategia').value.trim()) || 'strategia';
@@ -352,7 +342,11 @@
       NES: Array.isArray(s.NES) ? s.NES.map(migraMov) : [],
       MES: Array.isArray(s.MES) ? s.MES.map(migraMov) : [],
       opzioni: Array.isArray(s.opzioni) ? s.opzioni.map(migraOpz) : [],
-      strumentoOpzioni: s.strumentoOpzioni || 'MES'
+      strumentoOpzioni: s.strumentoOpzioni || 'MES',
+      // v29 — override commodities
+      tickerCommodity: s.tickerCommodity || '',
+      moltiplicatoreCommodity: (s.moltiplicatoreCommodity !== undefined && s.moltiplicatoreCommodity !== null)
+        ? s.moltiplicatoreCommodity : null
     };
   }
 
@@ -384,7 +378,6 @@
     if (!confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.')) return;
     localStorage.removeItem(STORAGE_KEY);
     STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
-    // Rispetta la modalità globale corrente
     const mod = stato.modalita || MODALITA_DEFAULT;
     let tNES = '-', tMES = '-', sOpz = 'MES';
     if (mod === 'azioni') {
@@ -396,7 +389,9 @@
       nome: 'Matrice',
       tipoNES: tNES, tipoMES: tMES,
       NES: [], MES: [], opzioni: [],
-      strumentoOpzioni: sOpz
+      strumentoOpzioni: sOpz,
+      tickerCommodity: '',
+      moltiplicatoreCommodity: null
     }];
     stato.attiva = 0;
     el('prezzoSpot').value = '';
@@ -408,21 +403,18 @@
     aggiornaStileCash();
     stato.cashEscluso = false;
     if (el('cashEscludi')) el('cashEscludi').checked = false;
-    // v27 — il toggle commissioni è stato rimosso
     el('dataAnalisi').value = dataOggiIso();
     if (typeof chartView !== 'undefined') {
       chartView.xMin = null; chartView.xMax = null;
       chartView.baseMin = null; chartView.baseMax = null;
       chartView._sig = null;
     }
-    // Svuota il campo nome strategia
     if (el('nomeStrategia')) el('nomeStrategia').value = '';
-    // La lista delle strategie salvate resta disponibile; solo la cella di selezione torna vuota
     renderListaSalvate().then(() => {
       if (el('listaSalvate')) el('listaSalvate').selectedIndex = -1;
     });
     renderTabs();
-    renderScheda(); // applicaModalita ricostruisce i select
+    renderScheda();
     mostraStatus('✓ Foglio azzerato');
   }
 
