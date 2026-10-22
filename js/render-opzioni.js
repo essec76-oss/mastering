@@ -131,8 +131,7 @@
   }
 
   // ============================================================
-  // FOOTER TOTALI (come la versione di riferimento: riga viola
-  // in fondo alla tabella con i totali per colonna)
+  // FOOTER TOTALI
   // ============================================================
   function buildFooterOpzioni() {
     const tfoot = el('footOpzioni');
@@ -140,7 +139,6 @@
     tfoot.innerHTML = '';
     const tr = document.createElement('tr');
     tr.className = 'footer-opzioni';
-    // 10 colonne iniziali (☑, Stato, DEL, Pos, Tipo, Q.tà, Strike, Premio, Vol%, Scadenza)
     for (let i = 0; i < 10; i++) {
       const td = document.createElement('td');
       tr.appendChild(td);
@@ -345,8 +343,7 @@
       tdGG.appendChild(spanGG); tr.appendChild(tdGG);
       aggiornaGiorniResidui(tr, opz);
 
-      // M/S (non presente nel riferimento: rimuovere questo blocco per
-      // una tabella identica al 100% al riferimento)
+      // M/S
       const tdMS = document.createElement('td');
       tdMS.dataset.label = 'M/S';
       const wrapMS = document.createElement('div');
@@ -397,7 +394,7 @@
       spanTheta.style.fontVariantNumeric = 'tabular-nums';
       tdTheta.appendChild(spanTheta); tr.appendChild(tdTheta);
 
-      // PREZZO ATT. (ex Teorico)
+      // PREZZO ATT.
       const tdTeorico = document.createElement('td');
       tdTeorico.dataset.label = 'PREZZO ATT.';
       const spanTeorico = document.createElement('span');
@@ -406,7 +403,7 @@
       spanTeorico.style.fontVariantNumeric = 'tabular-nums';
       tdTeorico.appendChild(spanTeorico); tr.appendChild(tdTeorico);
 
-      // VAL. TEMP. (prima di VAL. INTR., come il riferimento)
+      // VAL. TEMP.
       const tdVtemp = document.createElement('td');
       tdVtemp.dataset.label = 'VAL. TEMP.';
       const spanVtemp = document.createElement('span');
@@ -507,7 +504,6 @@
         if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
         if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
         if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
-        // Totali footer: PREZZO ATT. / VAL. TEMP. / VAL. INTR. per singola gamba
         if (isFinite(g.price)) {
           totPrice += g.price;
           if (isFinite(g.intrinsic)) {
@@ -544,7 +540,6 @@
     el('pnlOpzScadTot').textContent = formatEuro(totPnlScad);
     el('pnlOpzDebCredTot').textContent = formatEuro(totDebCred);
 
-    // Riga footer: totali per colonna (come la versione di riferimento)
     aggiornaFooterOpzioni({
       delta: totDelta, gamma: totGamma, vega: totVega, theta: totTheta,
       price: totPrice, temp: totTemp, intr: totIntr,
