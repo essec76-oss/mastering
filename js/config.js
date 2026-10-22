@@ -8,10 +8,40 @@
 //   Le OPZIONI AZIONI restano ×100 (MOLTIPLICATORI_OPZ): un contratto di
 //   opzione muove sempre 100 azioni, quindi 100 q.tà di futures X coprono
 //   1 contratto di opzione.
-// Changelog precedente (v22 e precedenti): consultare la cronologia git.
+// v29 — Commodities: aggiunti tutti i ticker (ZM, ZW, ZC, ecc.) con i
+//   relativi moltiplicatori. Lo stesso moltiplicatore è replicato per le
+//   opzioni, così il cambio ticker non genera "NaN".
 
-// Moltiplicatori futures: X = azioni (q.tà 1 = 1 azione), ZW = Wheat (×50).
-const MOLTIPLICATORI = { NES: 0.5, MES: 5, ES: 50, X: 1, ZW: 50 };
+// Moltiplicatori futures
+const MOLTIPLICATORI = {
+  // Indici
+  NES: 0.5, MES: 5, ES: 50, 
+  // Azioni
+  X: 1, 
+  // Commodities
+  ZM: 100,
+  ZW: 50,
+  ZC: 50,
+  ZL: 600,
+  ZS: 50,
+  KE: 50,
+  LE: 400,
+  GF: 500,
+  HE: 400,
+  RB: 42000,
+  NG: 10000,
+  HO: 42000,
+  CL: 1000,
+  SI: 5000,
+  GC: 100,
+  PL: 50,
+  HG: 25000,
+  CC: 10,
+  KC: 375,
+  CT: 500,
+  OJ: 150,
+  SB: 1120
+};
 
 // Whitelist commissioni futures: solo NES paga fee in questa simulazione.
 const STRUMENTI_CON_COMMISSIONI = ['NES'];
@@ -21,8 +51,36 @@ const FEE_FUTURES_LATO = 1.205; // NES
 // FEE_OPTION_LATO non più usata: le opzioni sono commission-free in questa sim.
 // const FEE_OPTION_LATO = 1.00;
 
-// Moltiplicatori opzioni: un contratto eq. muove 100 azioni.
-const MOLTIPLICATORI_OPZ = { MES: 5, ES: 50, AZIONI: 100 };
+// Moltiplicatori opzioni
+const MOLTIPLICATORI_OPZ = { 
+  MES: 5, 
+  ES: 50, 
+  AZIONI: 100,
+  // Opzioni Commodities (stessi moltiplicatori dei futures)
+  ZM: 100,
+  ZW: 50,
+  ZC: 50,
+  ZL: 600,
+  ZS: 50,
+  KE: 50,
+  LE: 400,
+  GF: 500,
+  HE: 400,
+  RB: 42000,
+  NG: 10000,
+  HO: 42000,
+  CL: 1000,
+  SI: 5000,
+  GC: 100,
+  PL: 50,
+  HG: 25000,
+  CC: 10,
+  KC: 375,
+  CT: 500,
+  OJ: 150,
+  SB: 1120
+};
+
 function moltOpz(opz) { return MOLTIPLICATORI_OPZ[(opz && opz.strumento) || 'MES']; }
 
 function commissioniAttive() {
