@@ -1,8 +1,6 @@
 // render-opzioni.js — render opzioni: greche, colonne extra e P&L combinato
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-  // ============================================================
-  // OPZIONI RENDER
-  // ============================================================
+
   function formatGreek(v, digits = 3) {
     if (!isFinite(v)) return '—';
     return v.toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -12,8 +10,6 @@
     return v.toLocaleString('it-IT', { minimumFractionDigits: minDig, maximumFractionDigits: maxDig });
   }
 
-  // Prezzo di carico effettivo: premio scritto, altrimenti teorico allo spot
-  // corrente (fotografato). Coerente con premioCarico() in grafico.js.
   function premioEffettivo(opz) {
     if (opz.premio && opz.premio !== 0) return opz.premio;
     const spot = parseFloat(el('prezzoSpot').value) || 0;
@@ -130,9 +126,6 @@
     return sel ? sel.value : 'MES';
   }
 
-  // ============================================================
-  // FOOTER TOTALI
-  // ============================================================
   function buildFooterOpzioni() {
     const tfoot = el('footOpzioni');
     if (!tfoot) return;
