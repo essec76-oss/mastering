@@ -17,6 +17,25 @@
 //   effettuate da riduciPool() → P&L gonfiato dopo una chiusura parziale.
 //   Le righe APERTE ora mostrano pnlAperto = 0 (il totale è nel campo
 //   pnlAperto del risultato della colonna).
+//
+// NOTA v29 (override moltiplicatore commodities):
+//   In modalità 'futures-commodities' con tipo 'custom', il moltiplicatore
+//   contrattuale può essere forzato dalla scheda (scheda.moltiplicatoreCommodity).
+//   Se non impostato, fallback su MOLTIPLICATORI.ZW (default storico ZW ×50).
+
+  // Risolve il moltiplicatore contrattuale per la colonna `col` della scheda.
+  // In commodities "Personalizzato" usa l'override della scheda, altrimenti
+  // delega al dizionario MOLTIPLICATORI definito in config.js.
+  function risolviMoltiplicatore(scheda, col) {
+    const tipo = scheda['tipo' + col];
+    const isComm = (typeof stato !== 'undefined' && stato.modalita === 'futures-commodities');
+    if (isComm && tipo === 'custom') {
+      const v = parseFloat(scheda.moltiplicatoreCommodity);
+      if (isFinite(v) && v > 0) return v;
+      return MOLTIPLICATORI.ZW || 50; // fallback storico
+    }
+    return MOLTIPLICATORI[tipo];
+  }
 
   function calcolaColonna(scheda, col) {
     const movimenti = scheda[col];
@@ -27,7 +46,7 @@
         pnlTotale: 0, qtaNetta: 0, qtaAssolutaCorrente: 0, tipo };
     }
 
-    const molt = MOLTIPLICATORI[tipo];
+    const molt = risolviMoltiplicatore(scheda, col);
     const spot = parseFloat(el('prezzoSpot').value) || 0;
 
     let qtaNetta = 0;
