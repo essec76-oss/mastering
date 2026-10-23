@@ -222,6 +222,37 @@
     return { minS, maxS };
   }
 
+  function centeredChartRange(spot, bes) {
+    const valid = (bes || []).filter(b => isFinite(b) && b > 0).sort((a, b) => a - b);
+
+    let center, half;
+
+    if (valid.length === 0) {
+      const def = defaultChartRange(spot);
+      center = (def.minS + def.maxS) / 2;
+      half = (def.maxS - def.minS) / 2;
+    } else if (valid.length === 1) {
+      center = valid[0];
+      const dist = Math.abs(spot - center);
+      half = Math.max(dist * 1.6, spot * 0.10, 60);
+    } else {
+      const lo = valid[0];
+      const hi = valid[valid.length - 1];
+      center = (lo + hi) / 2;
+      const span = Math.max(hi - lo, 40);
+      half = (span / 2) * 1.45;
+    }
+
+    const distSpot = Math.abs(spot - center);
+    if (distSpot > half * 0.9) half = distSpot * 1.1;
+
+    let minS = center - half;
+    let maxS = center + half;
+    if (minS < 1) { minS = 1; maxS = 1 + half * 2; }
+
+    return { minS, maxS };
+  }
+
   function computeSmartChartRange(spot, breakevens) {
     const anchors = collectStructureAnchors(spot, schedaAttiva());
     const prec = schedaPrecedente();
@@ -314,11 +345,11 @@
     updateBreakevenLabels(bes, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, bes, resNES, resMES, scan.minS, scan.maxS));
     
-    const smart = computeSmartChartRange(spot, bes);
-    chartView.xMin = smart.minS;
-    chartView.xMax = smart.maxS;
-    chartView.baseMin = smart.minS;
-    chartView.baseMax = smart.maxS;
+    const centered = centeredChartRange(spot, bes);
+    chartView.xMin = centered.minS;
+    chartView.xMax = centered.maxS;
+    chartView.baseMin = centered.minS;
+    chartView.baseMax = centered.maxS;
     
     redrawChartFromView();
   }
@@ -578,11 +609,7 @@
     chartView.lastSpot = spot;
 
     const scan = scanRangeForBE(spot);
-    let scanMin = scan.minS, scanMax = scan.maxS;
-    if (chartView.xMin != null && chartView.xMax != null && chartView.xMax > chartView.xMin) {
-      scanMin = Math.min(scanMin, chartView.xMin);
-      scanMax = Math.max(scanMax, chartView.xMax);
-    }
+    const scanMin = scan.minS, scanMax = scan.maxS;
     chartView.breakevens = findBreakevensRobust(scheda, spot, scanMin, scanMax, resNES, resMES);
     updateBreakevenLabels(chartView.breakevens, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, chartView.breakevens, resNES, resMES, scanMin, scanMax));
@@ -592,11 +619,11 @@
     chartView._sig = sig;
 
     if (chartView.xMin == null || structureChanged) {
-      const smart = computeSmartChartRange(spot, chartView.breakevens);
-      chartView.xMin = smart.minS;
-      chartView.xMax = smart.maxS;
-      chartView.baseMin = smart.minS;
-      chartView.baseMax = smart.maxS;
+      const centered = centeredChartRange(spot, chartView.breakevens);
+      chartView.xMin = centered.minS;
+      chartView.xMax = centered.maxS;
+      chartView.baseMin = centered.minS;
+      chartView.baseMax = centered.maxS;
     }
 
     const showExpiryC = el('showExpiryCorrente')   ? el('showExpiryCorrente').checked   : true;
