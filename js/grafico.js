@@ -152,7 +152,8 @@
     lastResNESPrec: null, lastResMESPrec: null, hasPrecedente: false,
     breakevens: [],
     sigma: null,
-    _sig: null
+    _sig: null,
+    _sigContesto: null        // firma del contesto (scheda/sottostante/mondo)
   };
   let chartGeom = null;
   let chartHoverSvg = null;
@@ -524,6 +525,20 @@
     return parts.join('|');
   }
 
+  function _firmaContesto() {
+    // Cambia quando l'utente passa ad un'altra scheda, cambia sottostante o cambia mondo
+    const scheda = schedaAttiva();
+    const nomeScheda = scheda ? (scheda.nome || '') : '';
+    const spotEl = el('prezzoSpot');
+    const spot = spotEl ? (parseFloat(spotEl.value) || 0) : 0;
+    return [
+      stato.attiva,
+      nomeScheda,
+      mondoAttivo(),
+      spot
+    ].join('|');
+  }
+
   function aggiornaPayoffPreview(scheda, resNES, resMES) {
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const deltaEl = el('payoffDeltaNetto');
@@ -534,6 +549,7 @@
       chartView.lastSpot = 0;
       chartView.breakevens = [];
       chartView._sig = null;
+      chartView._sigContesto = null;
       chartView.hasPrecedente = false;
       updateBreakevenLabels([], 0);
       updatePOPLabel(null);
@@ -556,6 +572,13 @@
     chartView.lastResMESPrec = resMESPrec;
     chartView.hasPrecedente = !!prec;
     chartView.lastSpot = spot;
+
+    // Se cambia il contesto (scheda attiva, sottostante, mondo), sblocca il ri-centraggio
+    const sigContesto = _firmaContesto();
+    if (sigContesto !== chartView._sigContesto) {
+      chartView._sigContesto = sigContesto;
+      chartView.userMoved = false;
+    }
 
     const scan = scanRangeForBE(spot);
     const scanMin = scan.minS, scanMax = scan.maxS;
