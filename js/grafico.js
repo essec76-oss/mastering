@@ -145,17 +145,20 @@
   }
 
   let chartView = {
+    userMoved: false,
     xMin: null, xMax: null,
     baseMin: null, baseMax: null,
     lastResNES: null, lastResMES: null, lastSpot: 0,
     lastResNESPrec: null, lastResMESPrec: null, hasPrecedente: false,
     breakevens: [],
     sigma: null,
-    _sig: null
+    _sig: null,
+    _sigContesto: null        // firma del contesto (scheda/sottostante/mondo)
   };
   let chartGeom = null;
-  let chartHoverBound = false;
-  let chartInteractBound = false;
+  let chartHoverSvg = null;
+  let chartInteractSvg = null;
+  let windowInteractBound = false;
   let isPanning = false;
   let panStartX = 0;
   let panStartMin = 0;
@@ -176,10 +179,11 @@
     const rangePct = 0.12;
     let minS = spot * (1 - rangePct);
     let maxS = spot * (1 + rangePct);
-    const minRange = 80;
-    if (maxS - minS < minRange * 2) {
-      minS = spot - minRange;
-      maxS = spot + minRange;
+    // minimo proporzionale al prezzo (vale per futures, azioni e titoli a basso prezzo)
+    const minHalf = Math.max(spot * 0.04, 0.01);
+    if (maxS - minS < minHalf * 2) {
+      minS = spot - minHalf;
+      maxS = spot + minHalf;
     }
     return { minS: Math.max(1, minS), maxS };
   }
@@ -222,64 +226,39 @@
     return { minS, maxS };
   }
 
-  function computeSmartChartRange(spot, breakevens) {
-    const anchors = collectStructureAnchors(spot, schedaAttiva());
-    const prec = schedaPrecedente();
-    if (prec) {
-      collectStructureAnchors(spot, prec).forEach(a => anchors.push(a));
-    }
-    
-    // Filtra i BE: accetta solo quelli entro il 20% dal prezzo spot
-    const bes = (breakevens || []).filter(b => {
-      if (!isFinite(b) || b <= 0) return false;
-      const distPct = Math.abs(b - spot) / spot;
-      return distPct <= 0.20;
-    });
+  function centeredChartRange(spot, bes) {
+    const valid = (bes || []).filter(b => isFinite(b) && b > 0).sort((a, b) => a - b);
+    // scala di riferimento della struttura: usa il BE se c'è, altrimenti lo spot.
+    // Serve per minimi proporzionali al prezzo (5$ come 5000$).
+    const ref = valid.length ? valid[valid.length - 1] : spot;
+    const minHalf = Math.max(ref * 0.04, 0.01);
 
-    let minS, maxS;
+    let center, half;
 
-    if (bes.length >= 2) {
-      const lo = Math.min(...bes);
-      const hi = Math.max(...bes);
-      const span = Math.max(hi - lo, 40);
-      const pad = span * 0.35;
-      minS = lo - pad;
-      maxS = hi + pad;
-      if (spot < minS) minS = spot - span * 0.15;
-      if (spot > maxS) maxS = spot + span * 0.15;
-    } else if (bes.length === 1) {
-      const be = bes[0];
-      const dist = Math.abs(be - spot);
-      const pad = Math.max(dist * 0.45, 50);
-      if (be < spot) {
-        minS = be - pad;
-        maxS = spot + Math.max(pad * 0.7, 40);
-      } else {
-        minS = spot - Math.max(pad * 0.7, 40);
-        maxS = be + pad;
-      }
-    } else {
-      // Se non ci sono BE validi, usa il default
+    if (valid.length === 0) {
       const def = defaultChartRange(spot);
-      minS = def.minS;
-      maxS = def.maxS;
-      if (anchors.length > 1) {
-        const lo = Math.min(...anchors);
-        const hi = Math.max(...anchors);
-        const span = Math.max(hi - lo, 60);
-        minS = Math.min(minS, lo - span * 0.25);
-        maxS = Math.max(maxS, hi + span * 0.25);
-      }
+      center = (def.minS + def.maxS) / 2;
+      half = (def.maxS - def.minS) / 2;
+    } else if (valid.length === 1) {
+      center = valid[0];
+      const dist = Math.abs(spot - center);
+      half = Math.max(dist * 1.6, minHalf);
+    } else {
+      const lo = valid[0];
+      const hi = valid[valid.length - 1];
+      center = (lo + hi) / 2;
+      const span = Math.max(hi - lo, minHalf * 2);
+      half = (span / 2) * 1.45;
     }
 
-    const minWidth = Math.max(60, spot * 0.04);
-    if (maxS - minS < minWidth) {
-      const mid = (minS + maxS) / 2;
-      minS = mid - minWidth / 2;
-      maxS = mid + minWidth / 2;
-    }
+    // lo spot deve restare visibile, allargando in modo simmetrico
+    const distSpot = Math.abs(spot - center);
+    if (distSpot > half * 0.9) half = distSpot * 1.1;
 
-    minS = Math.max(1, minS);
+    let minS = center - half;
+    let maxS = center + half;
+    if (minS < 1) { minS = 1; maxS = 1 + half * 2; }
+
     return { minS, maxS };
   }
 
@@ -297,6 +276,7 @@
     }
     chartView.xMin = newMin;
     chartView.xMax = newMax;
+    chartView.userMoved = true;
     redrawChartFromView();
   }
 
@@ -314,11 +294,12 @@
     updateBreakevenLabels(bes, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, bes, resNES, resMES, scan.minS, scan.maxS));
     
-    const smart = computeSmartChartRange(spot, bes);
-    chartView.xMin = smart.minS;
-    chartView.xMax = smart.maxS;
-    chartView.baseMin = smart.minS;
-    chartView.baseMax = smart.maxS;
+    const centered = centeredChartRange(spot, bes);
+    chartView.userMoved = false;
+    chartView.xMin = centered.minS;
+    chartView.xMax = centered.maxS;
+    chartView.baseMin = centered.minS;
+    chartView.baseMax = centered.maxS;
     
     redrawChartFromView();
   }
@@ -544,6 +525,20 @@
     return parts.join('|');
   }
 
+  function _firmaContesto() {
+    // Cambia quando l'utente passa ad un'altra scheda, cambia sottostante o cambia mondo
+    const scheda = schedaAttiva();
+    const nomeScheda = scheda ? (scheda.nome || '') : '';
+    const spotEl = el('prezzoSpot');
+    const spot = spotEl ? (parseFloat(spotEl.value) || 0) : 0;
+    return [
+      stato.attiva,
+      nomeScheda,
+      mondoAttivo(),
+      spot
+    ].join('|');
+  }
+
   function aggiornaPayoffPreview(scheda, resNES, resMES) {
     const spot = parseFloat(el('prezzoSpot').value) || 0;
     const deltaEl = el('payoffDeltaNetto');
@@ -554,6 +549,7 @@
       chartView.lastSpot = 0;
       chartView.breakevens = [];
       chartView._sig = null;
+      chartView._sigContesto = null;
       chartView.hasPrecedente = false;
       updateBreakevenLabels([], 0);
       updatePOPLabel(null);
@@ -577,12 +573,15 @@
     chartView.hasPrecedente = !!prec;
     chartView.lastSpot = spot;
 
-    const scan = scanRangeForBE(spot);
-    let scanMin = scan.minS, scanMax = scan.maxS;
-    if (chartView.xMin != null && chartView.xMax != null && chartView.xMax > chartView.xMin) {
-      scanMin = Math.min(scanMin, chartView.xMin);
-      scanMax = Math.max(scanMax, chartView.xMax);
+    // Se cambia il contesto (scheda attiva, sottostante, mondo), sblocca il ri-centraggio
+    const sigContesto = _firmaContesto();
+    if (sigContesto !== chartView._sigContesto) {
+      chartView._sigContesto = sigContesto;
+      chartView.userMoved = false;
     }
+
+    const scan = scanRangeForBE(spot);
+    const scanMin = scan.minS, scanMax = scan.maxS;
     chartView.breakevens = findBreakevensRobust(scheda, spot, scanMin, scanMax, resNES, resMES);
     updateBreakevenLabels(chartView.breakevens, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, chartView.breakevens, resNES, resMES, scanMin, scanMax));
@@ -591,12 +590,12 @@
     const structureChanged = sig !== chartView._sig;
     chartView._sig = sig;
 
-    if (chartView.xMin == null || structureChanged) {
-      const smart = computeSmartChartRange(spot, chartView.breakevens);
-      chartView.xMin = smart.minS;
-      chartView.xMax = smart.maxS;
-      chartView.baseMin = smart.minS;
-      chartView.baseMax = smart.maxS;
+    if (chartView.xMin == null || (structureChanged && !chartView.userMoved)) {
+      const centered = centeredChartRange(spot, chartView.breakevens);
+      chartView.xMin = centered.minS;
+      chartView.xMax = centered.maxS;
+      chartView.baseMin = centered.minS;
+      chartView.baseMax = centered.maxS;
     }
 
     const showExpiryC = el('showExpiryCorrente')   ? el('showExpiryCorrente').checked   : true;
@@ -981,7 +980,8 @@
     const svg = el('payoffChart');
     if (!svg) return;
 
-    if (!chartHoverBound) {
+    // --- Listener hover: riagganciati se l'SVG è stato ricreato ---
+    if (chartHoverSvg !== svg) {
       svg.addEventListener('mousemove', (e) => {
         if (isPanning || touchGesture) return;
         handleChartHover(e);
@@ -993,10 +993,11 @@
           svg.style.cursor = 'crosshair';
         }
       });
-      chartHoverBound = true;
+      chartHoverSvg = svg;
     }
 
-    if (!chartInteractBound) {
+    // --- Listener interazione su SVG e bottoni: riagganciati se ricreati ---
+    if (chartInteractSvg !== svg) {
       svg.addEventListener('wheel', (e) => {
         e.preventDefault();
         if (!chartGeom || chartView.xMin == null) return;
@@ -1023,6 +1024,7 @@
 
         chartView.xMin = newMin;
         chartView.xMax = newMax;
+        chartView.userMoved = true;
         clearChartHover();
         scheduleChartRedraw();
       }, { passive: false });
@@ -1036,31 +1038,6 @@
         svg.style.cursor = 'grabbing';
         clearChartHover();
         e.preventDefault();
-      });
-
-      window.addEventListener('mousemove', (e) => {
-        if (!isPanning || !chartGeom) return;
-        const { plotW } = chartGeom;
-        const dxPx = e.clientX - panStartX;
-        const range = panStartMax - panStartMin;
-        const dxS = -(dxPx / plotW) * range;
-        let newMin = panStartMin + dxS;
-        let newMax = panStartMax + dxS;
-        if (newMin < 1) {
-          const shift = 1 - newMin;
-          newMin += shift;
-          newMax += shift;
-        }
-        chartView.xMin = newMin;
-        chartView.xMax = newMax;
-        scheduleChartRedraw();
-      });
-
-      window.addEventListener('mouseup', () => {
-        if (!isPanning) return;
-        isPanning = false;
-        const svgEl = el('payoffChart');
-        if (svgEl) svgEl.style.cursor = 'crosshair';
       });
 
       svg.addEventListener('touchstart', (e) => {
@@ -1100,6 +1077,7 @@
           if (newMin < 1) { newMin = 1; newMax = newMin + newW; }
           chartView.xMin = newMin;
           chartView.xMax = newMax;
+          chartView.userMoved = true;
           scheduleChartRedraw();
         }
       }, { passive: false });
@@ -1113,6 +1091,7 @@
           handleChartHover(e.touches[0]);
         }
       }, { passive: true });
+
       svg.addEventListener('touchcancel', () => { touchGesture = null; clearChartHover(); }, { passive: true });
 
       svg.addEventListener('dblclick', (e) => {
@@ -1129,6 +1108,37 @@
       const btnOut = el('btnZoomOut');
       if (btnOut) btnOut.addEventListener('click', () => zoomChartByFactor(1.35));
 
-      chartInteractBound = true;
+      chartInteractSvg = svg;
+    }
+
+    // --- Listener su window: una sola volta, mai duplicati ---
+    if (!windowInteractBound) {
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanning || !chartGeom) return;
+        const { plotW } = chartGeom;
+        const dxPx = e.clientX - panStartX;
+        const range = panStartMax - panStartMin;
+        const dxS = -(dxPx / plotW) * range;
+        let newMin = panStartMin + dxS;
+        let newMax = panStartMax + dxS;
+        if (newMin < 1) {
+          const shift = 1 - newMin;
+          newMin += shift;
+          newMax += shift;
+        }
+        chartView.xMin = newMin;
+        chartView.xMax = newMax;
+        chartView.userMoved = true;
+        scheduleChartRedraw();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isPanning) return;
+        isPanning = false;
+        const svgEl = el('payoffChart');
+        if (svgEl) svgEl.style.cursor = 'crosshair';
+      });
+
+      windowInteractBound = true;
     }
   }

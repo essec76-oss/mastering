@@ -407,6 +407,7 @@
     if (typeof chartView !== 'undefined') {
       chartView.xMin = null; chartView.xMax = null;
       chartView.baseMin = null; chartView.baseMax = null;
+      chartView.userMoved = false;
       chartView._sig = null;
     }
     if (el('nomeStrategia')) el('nomeStrategia').value = '';
