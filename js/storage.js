@@ -1,8 +1,6 @@
 // storage.js — persistenza localStorage + strategie cloud Supabase
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-  // ============================================================
-  // UTILITY
-  // ============================================================
+
   let autosaveTimer = null;
   function autosalva() {
     clearTimeout(autosaveTimer);
@@ -29,7 +27,6 @@
       tipoMES: el('tipoMES').value,
       attiva: stato.attiva,
       schede: stato.schede,
-      // v28 — modalità globale: necessaria per riallineare il menu padre al load
       modalitaGlobale: (el('modalitaGlobale') ? el('modalitaGlobale').value : (stato.modalita || MODALITA_DEFAULT))
     };
     return dati;
@@ -51,23 +48,20 @@
       }
       if (!raw) return false;
       applicaDati(JSON.parse(raw));
-
       return true;
     } catch (e) { return false; }
   }
 
-  // Deduce la modalità globale da una scheda (o da un dato legacy) quando il campo
-  // `modalitaGlobale` non è presente nei salvataggi precedenti alla v28.
+  // Deduce la modalità globale per strategie vecchie
   function deduciModalita(schedaODati) {
     const s = schedaODati || {};
     const t = s.tipoNES || s.tipoMES || '';
-    if (t === 'ZW' || t === 'custom') return 'futures-commodities';
+    if (typeof COMMODITIES !== 'undefined' && COMMODITIES[t]) return 'futures-commodities';
     if (t === 'NES' || t === 'MES' || t === 'ES') return 'futures-indici';
     if (t === 'X' || s.strumentoOpzioni === 'AZIONI') return 'azioni';
     return MODALITA_DEFAULT;
   }
 
-  // Applica un oggetto dati (corrente, salvato o importato) ai controlli della pagina
   function applicaDati(dati) {
       if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
       if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
@@ -78,7 +72,6 @@
       if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
       if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
 
-      // Schede: prima carica lo stato, poi applica la modalità (che sistema i select globali)
       if (Array.isArray(dati.schede) && dati.schede.length) {
         stato.schede = dati.schede.map(migraScheda);
       } else if (Array.isArray(dati.NES) || Array.isArray(dati.MES) || Array.isArray(dati.opzioni)) {
@@ -93,9 +86,7 @@
       }
       stato.attiva = Math.max(0, Math.min(stato.schede.length - 1, dati.attiva || 0));
 
-      // v28 — Determina la modalità da ripristinare.
-      const modSalvata = dati.modalitaGlobale
-        || deduciModalita(stato.schede[stato.attiva] || dati);
+      const modSalvata = dati.modalitaGlobale || deduciModalita(stato.schede[stato.attiva] || dati);
 
       const selMod = el('modalitaGlobale');
       if (selMod) selMod.value = modSalvata;
@@ -103,18 +94,14 @@
       applicaModalita(modSalvata);
   }
 
-  // ============================================================
-  // SUPABASE — client + test connessione
-  // ============================================================
+  // SUPABASE
   let _sbClient = null;
-
   function supabaseConfigurato() {
     return !!(SUPABASE_URL && SUPABASE_ANON_KEY
       && SUPABASE_URL.indexOf('YOUR_') === -1
       && SUPABASE_ANON_KEY.indexOf('YOUR_') === -1
       && window.supabase && typeof window.supabase.createClient === 'function');
   }
-
   function getSupabase() {
     if (!supabaseConfigurato()) return null;
     if (!_sbClient) {
@@ -123,29 +110,8 @@
     return _sbClient;
   }
 
-  async function testaConnessioneSupabase() {
-    if (!supabaseConfigurato()) return;
-    const sb = getSupabase();
-    if (!sb) return;
-    try {
-      const { error } = await sb.from('strategie').select('nome').limit(1);
-      if (error) {
-        mostraStatus('Supabase: ' + (error.message || 'errore'), true);
-        return false;
-      }
-      mostraStatus('✓ Supabase collegato');
-      return true;
-    } catch (e) {
-      mostraStatus('Supabase: rete o chiave non valide', true);
-      return false;
-    }
-  }
-
-  // ============================================================
-  // STRATEGIE SALVATE — cloud Supabase + cache localStorage
-  // ============================================================
+  // STRATEGIE SALVATE
   const STORAGE_SALVATI = 'mastering_salvati_v1';
-
   function leggiSalvatiLocal() {
     try { return JSON.parse(localStorage.getItem(STORAGE_SALVATI)) || {}; }
     catch (e) { return {}; }
@@ -158,10 +124,7 @@
     const sb = getSupabase();
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('strategie')
-          .select('nome')
-          .order('nome', { ascending: true });
+        const { data, error } = await sb.from('strategie').select('nome').order('nome', { ascending: true });
         if (error) throw error;
         return (data || []).map(r => r.nome);
       } catch (e) {
@@ -180,9 +143,7 @@
     if (!nomi.length) {
       const o = document.createElement('option');
       o.value = '';
-      o.textContent = getSupabase()
-        ? '— nessuna strategia in cloud —'
-        : '— nessuna strategia salvata —';
+      o.textContent = getSupabase() ? '— nessuna strategia in cloud —' : '— nessuna strategia salvata —';
       sel.appendChild(o);
       return;
     }
@@ -215,14 +176,11 @@
     if ((esisteLocale || esisteCloud) && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
 
     map[nome] = { salvatoIl: salvatoIl, dati: dati };
-    try { scriviSalvatiLocal(map); }
-    catch (e) { mostraStatus('Errore salvataggio locale', true); return; }
+    try { scriviSalvatiLocal(map); } catch (e) { mostraStatus('Errore salvataggio locale', true); return; }
 
     if (sb) {
       try {
-        const { error } = await sb
-          .from('strategie')
-          .upsert({ nome: nome, dati: dati, salvato_il: salvatoIl }, { onConflict: 'nome' });
+        const { error } = await sb.from('strategie').upsert({ nome: nome, dati: dati, salvato_il: salvatoIl }, { onConflict: 'nome' });
         if (error) throw error;
         mostraStatus('✓ "' + nome + '" salvata in cloud');
       } catch (e) {
@@ -238,11 +196,7 @@
     const sb = getSupabase();
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('strategie')
-          .select('nome, dati, salvato_il')
-          .eq('nome', nome)
-          .maybeSingle();
+        const { data, error } = await sb.from('strategie').select('nome, dati, salvato_il').eq('nome', nome).maybeSingle();
         if (error) throw error;
         if (data && data.dati) {
           applicaDati(data.dati);
@@ -255,9 +209,7 @@
           mostraStatus('✓ "' + nome + '" caricata da cloud');
           return;
         }
-      } catch (e) {
-        // fallback locale
-      }
+      } catch (e) { /* fallback locale */ }
     }
 
     const entry = leggiSalvatiLocal()[nome];
@@ -283,33 +235,23 @@
         const { error } = await sb.from('strategie').delete().eq('nome', nome);
         if (error) throw error;
         mostraStatus('✓ "' + nome + '" eliminata da cloud');
-      } catch (e) {
-        mostraStatus('Eliminata in locale; cloud non aggiornato', true);
-      }
+      } catch (e) { mostraStatus('Eliminata in locale; cloud non aggiornato', true); }
     } else {
       mostraStatus('✓ "' + nome + '" eliminata');
     }
     await renderListaSalvate();
   }
 
-  // ============================================================
-  // EXPORT / IMPORT FILE JSON
-  // ============================================================
+  // EXPORT / IMPORT
   function esportaFile() {
     const nome = (el('nomeStrategia') && el('nomeStrategia').value.trim()) || 'strategia';
-    const payload = {
-      formato: 'mastering-strategia', versione: 1,
-      nome, esportatoIl: new Date().toISOString(),
-      dati: raccogliDati()
-    };
+    const payload = { formato: 'mastering-strategia', versione: 1, nome, esportatoIl: new Date().toISOString(), dati: raccogliDati() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     const oggi = new Date().toISOString().slice(0, 10);
     a.download = 'mastering-' + nome.replace(/[^a-z0-9_-]+/gi, '_') + '-' + oggi + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
     mostraStatus('✓ File esportato');
   }
@@ -333,7 +275,7 @@
     reader.readAsText(file);
   }
 
-  // Migrazione di una scheda (dati vecchi/corrotti non rompono nulla)
+  // MIGRAZIONE
   function migraScheda(s) {
     return {
       nome: s.nome || 'Matrice',
@@ -342,11 +284,7 @@
       NES: Array.isArray(s.NES) ? s.NES.map(migraMov) : [],
       MES: Array.isArray(s.MES) ? s.MES.map(migraMov) : [],
       opzioni: Array.isArray(s.opzioni) ? s.opzioni.map(migraOpz) : [],
-      strumentoOpzioni: s.strumentoOpzioni || 'MES',
-      // v29 — override commodities
-      tickerCommodity: s.tickerCommodity || '',
-      moltiplicatoreCommodity: (s.moltiplicatoreCommodity !== undefined && s.moltiplicatoreCommodity !== null)
-        ? s.moltiplicatoreCommodity : null
+      strumentoOpzioni: s.strumentoOpzioni || 'MES'
     };
   }
 
@@ -389,9 +327,7 @@
       nome: 'Matrice',
       tipoNES: tNES, tipoMES: tMES,
       NES: [], MES: [], opzioni: [],
-      strumentoOpzioni: sOpz,
-      tickerCommodity: '',
-      moltiplicatoreCommodity: null
+      strumentoOpzioni: sOpz
     }];
     stato.attiva = 0;
     el('prezzoSpot').value = '';
@@ -413,8 +349,7 @@
     renderListaSalvate().then(() => {
       if (el('listaSalvate')) el('listaSalvate').selectedIndex = -1;
     });
-    renderTabs();
-    renderScheda();
+    renderTabs(); renderScheda();
     mostraStatus('✓ Foglio azzerato');
   }
 
