@@ -155,8 +155,9 @@
     _sig: null
   };
   let chartGeom = null;
-  let chartHoverBound = false;
-  let chartInteractBound = false;
+  let chartHoverSvg = null;
+  let chartInteractSvg = null;
+  let windowInteractBound = false;
   let isPanning = false;
   let panStartX = 0;
   let panStartMin = 0;
@@ -950,7 +951,8 @@
     const svg = el('payoffChart');
     if (!svg) return;
 
-    if (!chartHoverBound) {
+    // --- Listener hover: riagganciati se l'SVG è stato ricreato ---
+    if (chartHoverSvg !== svg) {
       svg.addEventListener('mousemove', (e) => {
         if (isPanning || touchGesture) return;
         handleChartHover(e);
@@ -962,10 +964,11 @@
           svg.style.cursor = 'crosshair';
         }
       });
-      chartHoverBound = true;
+      chartHoverSvg = svg;
     }
 
-    if (!chartInteractBound) {
+    // --- Listener interazione su SVG e bottoni: riagganciati se ricreati ---
+    if (chartInteractSvg !== svg) {
       svg.addEventListener('wheel', (e) => {
         e.preventDefault();
         if (!chartGeom || chartView.xMin == null) return;
@@ -1006,32 +1009,6 @@
         svg.style.cursor = 'grabbing';
         clearChartHover();
         e.preventDefault();
-      });
-
-      window.addEventListener('mousemove', (e) => {
-        if (!isPanning || !chartGeom) return;
-        const { plotW } = chartGeom;
-        const dxPx = e.clientX - panStartX;
-        const range = panStartMax - panStartMin;
-        const dxS = -(dxPx / plotW) * range;
-        let newMin = panStartMin + dxS;
-        let newMax = panStartMax + dxS;
-        if (newMin < 1) {
-          const shift = 1 - newMin;
-          newMin += shift;
-          newMax += shift;
-        }
-        chartView.xMin = newMin;
-        chartView.xMax = newMax;
-        chartView.userMoved = true;
-        scheduleChartRedraw();
-      });
-
-      window.addEventListener('mouseup', () => {
-        if (!isPanning) return;
-        isPanning = false;
-        const svgEl = el('payoffChart');
-        if (svgEl) svgEl.style.cursor = 'crosshair';
       });
 
       svg.addEventListener('touchstart', (e) => {
@@ -1085,6 +1062,7 @@
           handleChartHover(e.touches[0]);
         }
       }, { passive: true });
+
       svg.addEventListener('touchcancel', () => { touchGesture = null; clearChartHover(); }, { passive: true });
 
       svg.addEventListener('dblclick', (e) => {
@@ -1101,6 +1079,37 @@
       const btnOut = el('btnZoomOut');
       if (btnOut) btnOut.addEventListener('click', () => zoomChartByFactor(1.35));
 
-      chartInteractBound = true;
+      chartInteractSvg = svg;
+    }
+
+    // --- Listener su window: una sola volta, mai duplicati ---
+    if (!windowInteractBound) {
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanning || !chartGeom) return;
+        const { plotW } = chartGeom;
+        const dxPx = e.clientX - panStartX;
+        const range = panStartMax - panStartMin;
+        const dxS = -(dxPx / plotW) * range;
+        let newMin = panStartMin + dxS;
+        let newMax = panStartMax + dxS;
+        if (newMin < 1) {
+          const shift = 1 - newMin;
+          newMin += shift;
+          newMax += shift;
+        }
+        chartView.xMin = newMin;
+        chartView.xMax = newMax;
+        chartView.userMoved = true;
+        scheduleChartRedraw();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isPanning) return;
+        isPanning = false;
+        const svgEl = el('payoffChart');
+        if (svgEl) svgEl.style.cursor = 'crosshair';
+      });
+
+      windowInteractBound = true;
     }
   }
