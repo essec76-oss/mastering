@@ -145,6 +145,7 @@
   }
 
   let chartView = {
+    userMoved: false,
     xMin: null, xMax: null,
     baseMin: null, baseMax: null,
     lastResNES: null, lastResMES: null, lastSpot: 0,
@@ -253,67 +254,6 @@
     return { minS, maxS };
   }
 
-  function computeSmartChartRange(spot, breakevens) {
-    const anchors = collectStructureAnchors(spot, schedaAttiva());
-    const prec = schedaPrecedente();
-    if (prec) {
-      collectStructureAnchors(spot, prec).forEach(a => anchors.push(a));
-    }
-    
-    // Filtra i BE: accetta solo quelli entro il 20% dal prezzo spot
-    const bes = (breakevens || []).filter(b => {
-      if (!isFinite(b) || b <= 0) return false;
-      const distPct = Math.abs(b - spot) / spot;
-      return distPct <= 0.20;
-    });
-
-    let minS, maxS;
-
-    if (bes.length >= 2) {
-      const lo = Math.min(...bes);
-      const hi = Math.max(...bes);
-      const span = Math.max(hi - lo, 40);
-      const pad = span * 0.35;
-      minS = lo - pad;
-      maxS = hi + pad;
-      if (spot < minS) minS = spot - span * 0.15;
-      if (spot > maxS) maxS = spot + span * 0.15;
-    } else if (bes.length === 1) {
-      const be = bes[0];
-      const dist = Math.abs(be - spot);
-      const pad = Math.max(dist * 0.45, 50);
-      if (be < spot) {
-        minS = be - pad;
-        maxS = spot + Math.max(pad * 0.7, 40);
-      } else {
-        minS = spot - Math.max(pad * 0.7, 40);
-        maxS = be + pad;
-      }
-    } else {
-      // Se non ci sono BE validi, usa il default
-      const def = defaultChartRange(spot);
-      minS = def.minS;
-      maxS = def.maxS;
-      if (anchors.length > 1) {
-        const lo = Math.min(...anchors);
-        const hi = Math.max(...anchors);
-        const span = Math.max(hi - lo, 60);
-        minS = Math.min(minS, lo - span * 0.25);
-        maxS = Math.max(maxS, hi + span * 0.25);
-      }
-    }
-
-    const minWidth = Math.max(60, spot * 0.04);
-    if (maxS - minS < minWidth) {
-      const mid = (minS + maxS) / 2;
-      minS = mid - minWidth / 2;
-      maxS = mid + minWidth / 2;
-    }
-
-    minS = Math.max(1, minS);
-    return { minS, maxS };
-  }
-
   function zoomChartByFactor(factor) {
     if (chartView.xMin == null || chartView.xMax == null) return;
     const mid = (chartView.xMin + chartView.xMax) / 2;
@@ -328,6 +268,7 @@
     }
     chartView.xMin = newMin;
     chartView.xMax = newMax;
+    chartView.userMoved = true;
     redrawChartFromView();
   }
 
@@ -346,6 +287,7 @@
     updatePOPLabel(calcolaPOP(scheda, spot, bes, resNES, resMES, scan.minS, scan.maxS));
     
     const centered = centeredChartRange(spot, bes);
+    chartView.userMoved = false;
     chartView.xMin = centered.minS;
     chartView.xMax = centered.maxS;
     chartView.baseMin = centered.minS;
@@ -618,7 +560,7 @@
     const structureChanged = sig !== chartView._sig;
     chartView._sig = sig;
 
-    if (chartView.xMin == null || structureChanged) {
+    if (chartView.xMin == null || (structureChanged && !chartView.userMoved)) {
       const centered = centeredChartRange(spot, chartView.breakevens);
       chartView.xMin = centered.minS;
       chartView.xMax = centered.maxS;
@@ -1050,6 +992,7 @@
 
         chartView.xMin = newMin;
         chartView.xMax = newMax;
+        chartView.userMoved = true;
         clearChartHover();
         scheduleChartRedraw();
       }, { passive: false });
@@ -1080,6 +1023,7 @@
         }
         chartView.xMin = newMin;
         chartView.xMax = newMax;
+        chartView.userMoved = true;
         scheduleChartRedraw();
       });
 
@@ -1127,6 +1071,7 @@
           if (newMin < 1) { newMin = 1; newMax = newMin + newW; }
           chartView.xMin = newMin;
           chartView.xMax = newMax;
+          chartView.userMoved = true;
           scheduleChartRedraw();
         }
       }, { passive: false });
