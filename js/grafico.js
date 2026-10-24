@@ -650,7 +650,7 @@ function deltaNettoTotale(scheda, resNES, resMES) {
     curveSets = curveSets || [];
     flags = flags || { showExpiryC: true, showNowC: true, showExpiryP: true, showNowP: true };
 
-    const W = 920, H = 380;
+    const W = 920, H = 570;
     const padL = 58, padR = 18, padT = 28, padB = 32;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
@@ -692,7 +692,7 @@ function deltaNettoTotale(scheda, resNES, resMES) {
 
     let svgContent = '';
 
-    const nGridY = 6;
+    const nGridY = 9;
     for (let i = 0; i <= nGridY; i++) {
       const y = yMin + (i / nGridY) * (yMax - yMin);
       const py = yPix(y);
@@ -700,7 +700,7 @@ function deltaNettoTotale(scheda, resNES, resMES) {
       svgContent += `<text x="${padL - 6}" y="${py + 3}" fill="#8b93a7" font-size="10" text-anchor="end">${y.toFixed(0)}</text>`;
     }
 
-    const nGridX = 8;
+    const nGridX = 12;
     for (let i = 0; i <= nGridX; i++) {
       const x = xMin + (i / nGridX) * (xMax - xMin);
       const px = xPix(x);
