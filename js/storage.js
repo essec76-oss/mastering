@@ -175,6 +175,106 @@ async function listaSalvate() {
 // Riempe la finestra di scelta strategie (#modalListaStrategie) con i nomi
 // disponibili (cloud, fallback locale). `filtro` (opzionale) filtra per nome,
 // come digitato nel campo di ricerca del modale.
+// Scarica nome+dati di tutte le strategie salvate (cloud, fallback locale)
+async function mappaSalvatiDati() {
+  const sb = getSupabase();
+  const out = {};
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('strategie').select('nome, dati');
+      if (!error && Array.isArray(data)) {
+        data.forEach(r => { if (r && r.nome && r.dati) out[r.nome] = r.dati; });
+        return out;
+      }
+    } catch (e) { /* fallback locale sotto */ }
+  }
+  const map = leggiSalvatiLocal();
+  Object.keys(map).forEach(n => { if (map[n] && map[n].dati) out[n] = map[n].dati; });
+  return out;
+}
+
+// Sparkline di anteprima: payoff a scadenza della strategia salvata,
+// calcolato in un contesto temporaneo (input e stato vengono applicati,
+// usati e ripristinati — la pagina corrente non cambia).
+function sparklineSvg(dati) {
+  if (!dati || !Array.isArray(dati.schede) || !dati.schede.length) return '';
+
+  const campi = ['prezzoSpot', 'riskFree', 'volAtm', 'divYield', 'dataAnalisi',
+                 'strumentoOpzioni', 'tipoNES', 'tipoMES', 'cash', 'cashEscludi'];
+  const bk = {};
+  campi.forEach(id => {
+    const e = el(id);
+    if (e) bk[id] = (e.type === 'checkbox') ? e.checked : e.value;
+  });
+  const bkStato = {
+    schede: stato.schede, attiva: stato.attiva,
+    cash: stato.cash, cashEscluso: stato.cashEscluso
+  };
+
+  let svg = '';
+  try {
+    // Applica i dati della strategia salvata
+    if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
+    if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
+    if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
+    if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
+    if (typeof dati.cash === 'number') el('cash').value = dati.cash;
+    if (dati.dataAnalisi && el('dataAnalisi')) el('dataAnalisi').value = dati.dataAnalisi;
+    stato.cash = dati.cash || 0;
+    stato.cashEscluso = dati.cashEscluso === true;
+    if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
+    stato.schede = dati.schede.map(migraScheda);
+    stato.attiva = 0;
+    const s0 = stato.schede[0] || {};
+    if (el('strumentoOpzioni')) el('strumentoOpzioni').value = s0.strumentoOpzioni || 'MES';
+    if (el('tipoNES')) el('tipoNES').value = s0.tipoNES || 'NES';
+    if (el('tipoMES')) el('tipoMES').value = s0.tipoMES || 'MES';
+
+    // Calcola il payoff a scadenza: spot ±15%
+    const scheda = s0;
+    const resNES = calcolaColonna(scheda, 'NES');
+    const resMES = calcolaColonna(scheda, 'MES');
+    const spot = (dati.prezzoSpot > 0) ? dati.prezzoSpot : 100;
+    const lo = spot * 0.85, hi = spot * 1.15;
+    const n = 40;
+    const pnl = [];
+    for (let i = 0; i <= n; i++) {
+      const S = lo + (hi - lo) * i / n;
+      pnl.push(pnlCombinatoAt(scheda, S, 'expiry', resNES, resMES));
+    }
+
+    // Costruisce la sparkline (linea zero + curva, colore per direzione)
+    const min = Math.min(0, ...pnl), max = Math.max(0, ...pnl);
+    const W = 110, H = 26;
+    const range = (max - min) || 1;
+    const y = v => H * (1 - (v - min) / range);
+    const x = i => (i / n) * W;
+    const zeroY = y(0).toFixed(1);
+    const poly = pnl.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const colore = pnl[n] >= pnl[0] ? '#2ecc71' : '#e74c3c';
+    svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="pointer-events:none;display:block;">` +
+          `<line x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}" stroke="#2a2f3a" stroke-width="1"/>` +
+          `<polyline points="${poly}" fill="none" stroke="${colore}" stroke-width="1.5" stroke-linejoin="round"/>` +
+          `</svg>`;
+  } catch (e) {
+    svg = '';
+  } finally {
+    // Ripristina SEMPRE il contesto della pagina corrente
+    campi.forEach(id => {
+      const e = el(id);
+      if (e) {
+        if (e.type === 'checkbox') e.checked = bk[id];
+        else e.value = bk[id];
+      }
+    });
+    stato.schede = bkStato.schede;
+    stato.attiva = bkStato.attiva;
+    stato.cash = bkStato.cash;
+    stato.cashEscluso = bkStato.cashEscluso;
+  }
+  return svg;
+}
+
 async function renderListaSalvate(filtro) {
   const nomi = await listaSalvate();
   const f = (filtro || '').trim().toLowerCase();
@@ -191,12 +291,25 @@ async function renderListaSalvate(filtro) {
         : '— nessuna strategia salvata —';
       box.appendChild(vuoto);
     } else {
+      // Scarica i dati una sola volta per tutte le righe
+      const datiPerNome = await mappaSalvatiDati();
       visibili.forEach(n => {
         const r = document.createElement('button');
         r.type = 'button';
         r.className = 'strategia-row';
         r.dataset.nome = n;
-        r.textContent = n;
+        const nm = document.createElement('span');
+        nm.className = 'strategia-nome';
+        nm.textContent = n;
+        r.appendChild(nm);
+        const dati = datiPerNome[n];
+        if (dati) {
+          const wrap = document.createElement('span');
+          wrap.className = 'strategia-spark';
+          wrap.title = 'Anteprima payoff a scadenza (spot ±15%)';
+          wrap.innerHTML = sparklineSvg(dati);
+          r.appendChild(wrap);
+        }
         box.appendChild(r);
       });
     }
