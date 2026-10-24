@@ -121,29 +121,44 @@
     return tot;
   }
 
-  function deltaNettoTotale(scheda, resNES, resMES) {
-    let d = 0;
-    const mondo = mondoAttivo();
-    if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
-      const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
-      d += resNES.qtaNetta * (molt / 5);
-    }
-    if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
-      const molt = MOLTIPLICATORI[resMES.tipo] || 5;
-      d += resMES.qtaNetta * (molt / 5);
-    }
+function deltaNettoTotale(scheda, resNES, resMES) {
+  let d = 0;
+  const mondo = mondoAttivo();
+  if (mondo === 'AZIONI') {
+    // Mondo AZIONI: delta espresso in AZIONI equivalenti
+    // colonna X: 1 azione = delta 1 · opzioni: qta × Δ × 100
+    if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) d += resNES.qtaNetta;
+    if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) d += resMES.qtaNetta;
     (scheda.opzioni || []).forEach(opz => {
       if (opz.attivo === false || opz.stato === 'CHIUSA') return;
-      if (mondoOpzione(opz) !== mondo) return;
+      if (mondoOpzione(opz) !== 'AZIONI') return;
       const g = calcolaGrecheOpzione(opz);
       if (!isFinite(g.delta)) return;
       const segno = opz.pos === 'SELL' ? -1 : 1;
-      const qta = opz.qta || 0;
-      d += segno * qta * g.delta * (moltOpz(opz) / 5);
+      d += segno * (opz.qta || 0) * g.delta * moltOpz(opz);
     });
     return d;
   }
-
+  // Mondo FUTURES: come prima, equivalenti MES (molt/5)
+  if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
+    const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
+    d += resNES.qtaNetta * (molt / 5);
+  }
+  if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
+    const molt = MOLTIPLICATORI[resMES.tipo] || 5;
+    d += resMES.qtaNetta * (molt / 5);
+  }
+  (scheda.opzioni || []).forEach(opz => {
+    if (opz.attivo === false || opz.stato === 'CHIUSA') return;
+    if (mondoOpzione(opz) !== mondo) return;
+    const g = calcolaGrecheOpzione(opz);
+    if (!isFinite(g.delta)) return;
+    const segno = opz.pos === 'SELL' ? -1 : 1;
+    const qta = opz.qta || 0;
+    d += segno * qta * g.delta * (moltOpz(opz) / 5);
+  });
+  return d;
+}
   let chartView = {
     userMoved: false,
     xMin: null, xMax: null,
