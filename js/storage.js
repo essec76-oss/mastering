@@ -243,18 +243,48 @@ function sparklineSvg(dati) {
       pnl.push(pnlCombinatoAt(scheda, S, 'expiry', resNES, resMES));
     }
 
-    // Costruisce la sparkline (linea zero + curva, colore per direzione)
+    // Costruisce l'anteprima: mini grafico payoff con aree verde/rosso,
+    // curva, spot (linea azzurra) e breakeven (tacche gialle)
     const min = Math.min(0, ...pnl), max = Math.max(0, ...pnl);
-    const W = 110, H = 26;
+    const W = 170, H = 54;
     const range = (max - min) || 1;
     const y = v => H * (1 - (v - min) / range);
     const x = i => (i / n) * W;
     const zeroY = y(0).toFixed(1);
-    const poly = pnl.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-    const colore = pnl[n] >= pnl[0] ? '#2ecc71' : '#e74c3c';
+    const curva = pnl.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+    const area = `M 0 ${zeroY} ` +
+      pnl.map((v, i) => `L ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ') +
+      ` L ${W} ${zeroY} Z`;
+
+    // Breakeven (cambi di segno del payoff, interpolati)
+    const bePts = [];
+    for (let i = 1; i <= n; i++) {
+      const a = pnl[i - 1], b = pnl[i];
+      if ((a <= 0 && b > 0) || (a >= 0 && b < 0)) {
+        const frac = a === b ? 0 : (0 - a) / (b - a);
+        bePts.push(x(i - 1 + frac));
+      }
+    }
+    const beSvg = bePts.map(bx =>
+      `<line x1="${bx.toFixed(1)}" y1="${zeroY - 5}" x2="${bx.toFixed(1)}" y2="${+zeroY + 5}" stroke="#f1c40f" stroke-width="1.6"/>`
+    ).join('');
+
+    // Spot: centro del range (±15% simmetrico)
+    const spotX = x(n / 2).toFixed(1);
+
+    const uid = 'ap' + Math.floor(Math.random() * 1e9);
     svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="pointer-events:none;display:block;">` +
+          `<rect x="0" y="0" width="${W}" height="${H}" rx="5" fill="#0c0e12"/>` +
+          `<defs>` +
+          `<clipPath id="${uid}pos"><rect x="0" y="0" width="${W}" height="${zeroY}"/></clipPath>` +
+          `<clipPath id="${uid}neg"><rect x="0" y="${zeroY}" width="${W}" height="${H - zeroY}"/></clipPath>` +
+          `</defs>` +
+          `<path d="${area}" fill="#2ecc71" fill-opacity="0.30" clip-path="url(#${uid}pos)"/>` +
+          `<path d="${area}" fill="#e74c3c" fill-opacity="0.30" clip-path="url(#${uid}neg)"/>` +
           `<line x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}" stroke="#2a2f3a" stroke-width="1"/>` +
-          `<polyline points="${poly}" fill="none" stroke="${colore}" stroke-width="1.5" stroke-linejoin="round"/>` +
+          beSvg +
+          `<line x1="${spotX}" y1="0" x2="${spotX}" y2="${H}" stroke="#4f8cff" stroke-width="1" stroke-dasharray="3,3" opacity="0.9"/>` +
+          `<path d="${curva}" fill="none" stroke="#e6e8ee" stroke-width="1.4" stroke-linejoin="round"/>` +
           `</svg>`;
   } catch (e) {
     svg = '';
@@ -306,7 +336,7 @@ async function renderListaSalvate(filtro) {
         if (dati) {
           const wrap = document.createElement('span');
           wrap.className = 'strategia-spark';
-          wrap.title = 'Anteprima payoff a scadenza (spot ±15%)';
+          wrap.title = 'Anteprima payoff a scadenza (spot ±15%) · linea azzurra = spot · tacche gialle = breakeven';
           wrap.innerHTML = sparklineSvg(dati);
           r.appendChild(wrap);
         }
