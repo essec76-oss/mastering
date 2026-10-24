@@ -742,17 +742,17 @@ function deltaNettoTotale(scheda, resNES, resMES) {
 
     if (precedente) {
       if (vis.precedente.expiry) {
-        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlExpiry')}" fill="none" stroke="${precedente.colore}" stroke-width="2" stroke-dasharray="6,3" opacity="0.9"/>`;
+        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlExpiry')}" fill="none" stroke="${precedente.colore}" stroke-width="1.4" stroke-dasharray="6,3" opacity="0.9"/>`;
       }
       if (vis.precedente.now) {
-        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlNow')}" fill="none" stroke="${precedente.colore}" stroke-width="1.6" stroke-dasharray="3,3" opacity="0.7"/>`;
+        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlNow')}" fill="none" stroke="${precedente.colore}" stroke-width="1.1" stroke-dasharray="3,3" opacity="0.7"/>`;
       }
     }
     if (vis.corrente.expiry) {
-      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlExpiry')}" fill="none" stroke="${corrente.colore}" stroke-width="2.6"/>`;
+      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlExpiry')}" fill="none" stroke="${corrente.colore}" stroke-width="1.8"/>`;
     }
     if (vis.corrente.now) {
-      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.8" stroke-dasharray="5,4" opacity="0.85"/>`;
+      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.2" stroke-dasharray="5,4" opacity="0.85"/>`;
     }
 
     const showBEFlag = el('showBE') ? el('showBE').checked : true;
