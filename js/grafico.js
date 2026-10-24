@@ -123,18 +123,22 @@
 
 function deltaNettoTotale(scheda, resNES, resMES) {
   // Delta netto = somma dei delta di posizione, ciascuno nel proprio mondo:
-  //   futures/azioni colonna: qtaNetta (1 contratto/azione = delta 1)
+  //   futures: qtaNetta (1 contratto = delta 1)
+  //   azioni:  qtaNetta / 100 (100 azioni = 1 lotto = delta 1, 200 azioni = delta 2, ...)
   //   opzioni: qta × delta × segno (senza moltiplicatore)
-  // Nessun coefficiente aggiuntivo: è il totale dei delta di tutte le operazioni
-  // del mondo attivo.
+  // Nessun coefficiente aggiuntivo oltre alla normalizzazione azioni.
   let d = 0;
   const mondo = mondoAttivo();
+  // Nel mondo AZIONI i pezzi vanno espressi in lotti da 100 (100 azioni = delta 1)
+  const divLotto = (mondo === 'AZIONI') ? 100 : 1;
+
   if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
-    d += resNES.qtaNetta;
+    d += resNES.qtaNetta / divLotto;
   }
   if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
-    d += resMES.qtaNetta;
+    d += resMES.qtaNetta / divLotto;
   }
+
   (scheda.opzioni || []).forEach(opz => {
     if (opz.attivo === false || opz.stato === 'CHIUSA') return;
     if (mondoOpzione(opz) !== mondo) return;
