@@ -310,7 +310,16 @@
   .chart-controls .ctrl-group.corrente .ctrl-label { color: #22b8f0; }
   .chart-controls .ctrl-group.precedente .ctrl-label { color: #fb923c; }
 
-  #payoffChart { width: 100%; height: 500px; display: block; background: #0c0e12; border-radius: 6px; }
+  /* v30 — Grafico payoff con superficie maggiorata:
+     altezza libera proporzionata al viewBox (920×570) invece del
+     vecchio height fisso 500px che letterboxava il disegno.
+     Il grafico occupa tutta la larghezza del pannello e cresce in
+     altezza con essa: su schermi ampi l'area disegnata aumenta di
+     oltre il 50% rispetto a prima, senza bande vuote. */
+  #payoffChart {
+    width: 100%; height: auto; aspect-ratio: 920 / 570;
+    display: block; background: #0c0e12; border-radius: 6px;
+  }
   .chart-legend {
     display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px;
     font-size: 11px; color: var(--muted);
@@ -322,7 +331,7 @@
 
   @media (max-width: 800px) {
     body { padding: 12px; }
-    #payoffChart { height: 320px; }
+    #payoffChart { aspect-ratio: auto; height: 320px; }
     .columns { grid-template-columns: 1fr; }
     .riga-totale { flex-direction: column; align-items: flex-start; gap: 8px; }
     .rt-pnl { margin-left: 0; }
