@@ -453,13 +453,11 @@ function deltaNettoTotale(scheda, resNES, resMES) {
   function updateBreakevenLabels(bes, spot) {
     const beInfEl = el('beInf');
     const beSupEl = el('beSup');
-    const beDistEl = el('beDistanza');
     if (!beInfEl || !beSupEl) return;
 
     if (!bes.length || !(spot > 0)) {
       beInfEl.textContent = '—';
       beSupEl.textContent = '—';
-      if (beDistEl) { beDistEl.textContent = '—'; beDistEl.title = ''; }
       return;
     }
 
@@ -471,21 +469,6 @@ function deltaNettoTotale(scheda, resNES, resMES) {
       const sign = dist >= 0 ? '+' : '';
       return `${v.toFixed(1)} (${sign}${dist.toFixed(1)})`;
     };
-
-    // DISTANZA PUNTI BREAKEVEN: valore numerico puro (senza segno)
-    // = distanza in punti tra lo spot e il breakeven più vicino.
-    // Es. spot 7670, BE 7700 → 30
-    if (beDistEl) {
-      const dists = sorted.map(b => Math.abs(b - spot));
-      const minDist = Math.min(...dists);
-      const idxMin = dists.indexOf(minDist);
-      beDistEl.textContent = minDist.toLocaleString('it-IT', { maximumFractionDigits: 2 });
-      const dettaglio = sorted.map((b, i) =>
-        `BE ${b.toFixed(1)} → distanza ${Math.abs(b - spot).toLocaleString('it-IT', { maximumFractionDigits: 2 })} punti` +
-        (i === idxMin ? ' (il più vicino)' : '')
-      ).join('\n');
-      beDistEl.title = `Spot ${spot}\n${dettaglio}`;
-    }
 
     if (sorted.length === 1) {
       if (sorted[0] < spot) {
