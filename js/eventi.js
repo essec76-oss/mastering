@@ -331,7 +331,10 @@ function _modaleEvidenziaSelezione() {
       r.style.borderLeft = sel ? '4px solid var(--accent, #4f8cff)' : '4px solid transparent';
       r.style.color = sel ? 'var(--text, #e6e8ee)' : '';
       r.style.fontWeight = sel ? '700' : '';
-      r.textContent = (sel ? '✓ ' : '') + r.dataset.nome;
+      // Aggiorna solo il nome (la sparkline nella riga non viene toccata)
+      const nm = r.querySelector('.strategia-nome');
+      if (nm) nm.textContent = (sel ? '✓ ' : '') + r.dataset.nome;
+      else r.textContent = (sel ? '✓ ' : '') + r.dataset.nome;
     });
   }
   const conferma = el('modalStrategieConferma');
