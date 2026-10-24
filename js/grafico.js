@@ -122,21 +122,26 @@
   }
 
 function deltaNettoTotale(scheda, resNES, resMES) {
-  // Delta netto = somma dei delta di posizione, ciascuno nel proprio mondo:
-  //   futures: qtaNetta (1 contratto = delta 1)
-  //   azioni:  qtaNetta / 100 (100 azioni = 1 lotto = delta 1, 200 azioni = delta 2, ...)
-  //   opzioni: qta × delta × segno (senza moltiplicatore)
-  // Nessun coefficiente aggiuntivo oltre alla normalizzazione azioni.
+  // Delta netto = somma dei delta di posizione, ciascuno nel proprio mondo.
+  // Riferimenti:
+  //   Mondo FUT:  riferimento = MES  → 1 MES = delta 1, 1 NES = delta 0,1
+  //   Mondo AZIONI: riferimento = lotto da 100 azioni → 100 azioni = delta 1
+  //   Opzioni: qta × delta × segno, scalate come lo strumento sottostante
   let d = 0;
   const mondo = mondoAttivo();
-  // Nel mondo AZIONI i pezzi vanno espressi in lotti da 100 (100 azioni = delta 1)
+
+  // Mondo AZIONI: 100 azioni = delta 1
   const divLotto = (mondo === 'AZIONI') ? 100 : 1;
 
+  // Mondo FUT: riferimento MES → 1 NES = 0,1 MES, 1 MES = 1
+  const scalaNES = (mondo === 'FUT') ? 0.1 : 1;
+  const scalaMES = 1;
+
   if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
-    d += resNES.qtaNetta / divLotto;
+    d += (resNES.qtaNetta / divLotto) * scalaNES;
   }
   if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
-    d += resMES.qtaNetta / divLotto;
+    d += (resMES.qtaNetta / divLotto) * scalaMES;
   }
 
   (scheda.opzioni || []).forEach(opz => {
@@ -145,8 +150,11 @@ function deltaNettoTotale(scheda, resNES, resMES) {
     const g = calcolaGrecheOpzione(opz);
     if (!isFinite(g.delta)) return;
     const segno = opz.pos === 'SELL' ? -1 : 1;
-    d += segno * (opz.qta || 0) * g.delta;
+    // Se l'opzione è su NES, il suo delta va scalato come il NES
+    const scalaOpz = (mondo === 'FUT' && (opz.strumento || 'MES') === 'NES') ? 0.1 : 1;
+    d += segno * (opz.qta || 0) * g.delta * scalaOpz;
   });
+
   return d;
 }  let chartView = {
     userMoved: false,
