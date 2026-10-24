@@ -453,36 +453,48 @@ function deltaNettoTotale(scheda, resNES, resMES) {
   function updateBreakevenLabels(bes, spot) {
     const beInfEl = el('beInf');
     const beSupEl = el('beSup');
+    const beInfDistEl = el('beInfDist');
+    const beSupDistEl = el('beSupDist');
     if (!beInfEl || !beSupEl) return;
+
+    const fmtVal = (v) => (v == null || !isFinite(v))
+      ? '—'
+      : v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Distanza dallo spot in punti e in percentuale: valore puro con segno
+    const fmtDist = (v) => {
+      if (v == null || !isFinite(v) || !(spot > 0)) return '—';
+      const dist = v - spot;
+      const pct = (dist / spot) * 100;
+      const sign = dist >= 0 ? '+' : '−';
+      const pt = Math.abs(dist).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const pc = Math.abs(pct).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `distanza ${sign}${pt} pt · ${sign}${pc}%`;
+    };
 
     if (!bes.length || !(spot > 0)) {
       beInfEl.textContent = '—';
       beSupEl.textContent = '—';
+      if (beInfDistEl) beInfDistEl.textContent = '—';
+      if (beSupDistEl) beSupDistEl.textContent = '—';
       return;
     }
 
     const sorted = [...bes].filter(Number.isFinite).sort((a, b) => a - b);
 
-    const fmtBe = (v) => {
-      if (v == null || !isFinite(v)) return '—';
-      const dist = v - spot;
-      const sign = dist >= 0 ? '+' : '';
-      return `${v.toFixed(1)} (${sign}${dist.toFixed(1)})`;
-    };
-
+    let inf = null, sup = null;
     if (sorted.length === 1) {
-      if (sorted[0] < spot) {
-        beInfEl.textContent = fmtBe(sorted[0]);
-        beSupEl.textContent = '—';
-      } else {
-        beInfEl.textContent = '—';
-        beSupEl.textContent = fmtBe(sorted[0]);
-      }
-      return;
+      if (sorted[0] < spot) inf = sorted[0];
+      else sup = sorted[0];
+    } else {
+      inf = sorted[0];
+      sup = sorted[sorted.length - 1];
     }
 
-    beInfEl.textContent = fmtBe(sorted[0]);
-    beSupEl.textContent = fmtBe(sorted[sorted.length - 1]);
+    beInfEl.textContent = fmtVal(inf);
+    if (beInfDistEl) beInfDistEl.textContent = fmtDist(inf);
+    beSupEl.textContent = fmtVal(sup);
+    if (beSupDistEl) beSupDistEl.textContent = fmtDist(sup);
   }
 
   function aggiornaTogglePrecedente() {
