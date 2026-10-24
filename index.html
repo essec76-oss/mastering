@@ -27,16 +27,26 @@
   <div class="schede-tabs" id="schedeTabs"></div>
 </div>
 <div class="salvati-bar">
-  <span class="label">Strategie salvate</span>
-  <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare/caricare la strategia corrente">
+  <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare la strategia corrente">
   <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva in cloud</button>
-  <select id="listaSalvate" title="Strategie salvate in questo browser"></select>
-  <button class="btn" id="btnCaricaSalvato" title="Carica la strategia selezionata (sostituisce il lavoro corrente)">Carica</button>
-  <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata dall'elenco salvato">Elimina</button>
+  <button class="btn" id="btnCaricaSalvato" title="Apre la finestra di scelta delle strategie salvate in cloud: seleziona una strategia e conferma per caricarla">Carica da cloud</button>
+  <button class="btn danger" id="btnEliminaSalvato" title="Apre la finestra di scelta delle strategie salvate: seleziona una strategia e conferma per eliminarla">Elimina</button>
   <span style="width:1px; height:24px; background:var(--border);"></span>
   <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
   <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
   <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
+</div>
+<!-- Modale scelta strategia salvata -->
+<div class="modal-overlay" id="modalStrategieOverlay" style="display:none;">
+  <div class="modal-strategie">
+    <h3 id="modalStrategieTitolo">Carica strategia da cloud</h3>
+    <input type="text" id="modalStrategieCerca" placeholder="Cerca strategia…" autocomplete="off">
+    <div class="modal-lista" id="modalListaStrategie"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="modalStrategieAnnulla">Annulla</button>
+      <button type="button" class="btn primary" id="modalStrategieConferma" disabled>Carica</button>
+    </div>
+  </div>
 </div>
 <div class="price-bar">
   <span class="label">Prezzo Spot</span>
