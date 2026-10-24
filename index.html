@@ -12,7 +12,9 @@
   .modal-strategie h3{margin:0;font-size:16px;color:var(--text);}
   #modalStrategieCerca{width:100%;}
   .modal-lista{overflow-y:auto;border:1px solid var(--border);border-radius:8px;min-height:120px;max-height:45vh;background:rgba(0,0,0,.15);}
-  .strategia-row{display:block;width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;cursor:pointer;}
+  .strategia-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;cursor:pointer;}
+  .strategia-nome{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .strategia-spark{margin-left:auto;flex-shrink:0;display:inline-flex;}
   .strategia-row:last-child{border-bottom:none;}
   .strategia-row:hover{background:rgba(79,140,255,.12);}
   .strategia-row.selected{background:rgba(79,140,255,.22) !important;border-left:4px solid var(--accent,#4f8cff) !important;color:var(--text,#e6e8ee) !important;font-weight:700 !important;}
