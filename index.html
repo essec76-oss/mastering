@@ -239,6 +239,14 @@
       <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <span class="big-value" id="pnlScadenzaTot">—</span>
     </div>
+    <div class="row" style="border:none; padding:6px 0;">
+      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Breakeven inferiore (valore e distanza dallo spot)">BE inf.</span>
+      <span class="big-value"><strong id="beInf" style="color:var(--text);">—</strong></span>
+    </div>
+    <div class="row" style="border:none; padding:6px 0 2px 0;">
+      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Breakeven superiore (valore e distanza dallo spot)">BE sup.</span>
+      <span class="big-value"><strong id="beSup" style="color:var(--text);">—</strong></span>
+    </div>
   </div>
 </div>
 <!-- Grafico Payoff Combinato -->
@@ -261,9 +269,6 @@
     <span style="margin-left:8px;" title="Mondo AZIONI: azioni equivalenti (1 opzione = 100 azioni). Mondo FUTURES: contratti MES equivalenti.">Delta netto: <strong id="payoffDeltaNetto" style="color:var(--text);">—</strong></span>
   </div>
   <div class="chart-controls" style="margin-top:-4px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
-    <span>BE inf. <strong id="beInf" style="color:var(--text);">—</strong></span>
-    <span>BE sup. <strong id="beSup" style="color:var(--text);">—</strong></span>
-    <span title="Distanza in punti (valore numerico puro) tra il prezzo spot e il breakeven più vicino. Es. spot 7670, BE 7700 → 30">DISTANZA PUNTI BREAKEVEN <strong id="beDistanza" style="color:var(--text);">—</strong></span>
     <span>POP <strong id="popValue" style="color:var(--purple);">—</strong></span>
     <span id="popZoneWrap" style="display:inline-flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted);" title="Probabilità di profitto nelle zone delimitate dai breakeven (lognormale, Vol ATM, orizzonte prima scadenza)"></span>
     <label style="display:inline-flex; gap:5px; align-items:center; cursor:pointer;">
