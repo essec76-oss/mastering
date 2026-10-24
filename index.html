@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mastering</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  /* Modale scelta strategia (carica / elimina da cloud) */
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,7,10,.65);display:flex;align-items:center;justify-content:center;z-index:1000;}
+  .modal-strategie{background:var(--bg,#14171d);border:1px solid var(--border);border-radius:12px;padding:20px;width:min(480px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);}
+  .modal-strategie h3{margin:0;font-size:16px;color:var(--text);}
+  #modalStrategieCerca{width:100%;}
+  .modal-lista{overflow-y:auto;border:1px solid var(--border);border-radius:8px;min-height:120px;max-height:45vh;background:rgba(0,0,0,.15);}
+  .strategia-row{display:block;width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;cursor:pointer;}
+  .strategia-row:last-child{border-bottom:none;}
+  .strategia-row:hover{background:rgba(79,140,255,.12);}
+  .strategia-row.selected{background:rgba(79,140,255,.22) !important;border-left:4px solid var(--accent,#4f8cff) !important;color:var(--text,#e6e8ee) !important;font-weight:700 !important;}
+  .strategia-row:focus{outline:1px solid var(--accent,#4f8cff);}
+  .strategia-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+</style>
 </head>
 <body>
 <div class="top-bar">
