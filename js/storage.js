@@ -1,4 +1,4 @@
-// storage.js — persistenza localStorage + strategie cloud Supabase
+  // storage.js — persistenza localStorage + strategie cloud Supabase
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
 
 // ============================================================
@@ -230,13 +230,18 @@ function sparklineSvg(dati) {
     if (el('tipoNES')) el('tipoNES').value = s0.tipoNES || 'NES';
     if (el('tipoMES')) el('tipoMES').value = s0.tipoMES || 'MES';
 
-    // Calcola il payoff a scadenza: spot ±15%
+    // Calcola il payoff a scadenza usando la stessa centratura del grafico
+    // principale: si aggancia a breakeven e struttura (strike/medie) della
+    // strategia, così l'anteprima è sempre centrata su ciò che conta.
     const scheda = s0;
     const resNES = calcolaColonna(scheda, 'NES');
     const resMES = calcolaColonna(scheda, 'MES');
     const spot = (dati.prezzoSpot > 0) ? dati.prezzoSpot : 100;
-    const lo = spot * 0.85, hi = spot * 1.15;
-    const n = 40;
+    const scan = scanRangeForBE(spot);
+    const bes = findBreakevensRobust(scheda, spot, scan.minS, scan.maxS, resNES, resMES);
+    const rng = centeredChartRange(spot, bes);
+    const lo = rng.minS, hi = rng.maxS;
+    const n = 60;
     const pnl = [];
     for (let i = 0; i <= n; i++) {
       const S = lo + (hi - lo) * i / n;
@@ -269,8 +274,8 @@ function sparklineSvg(dati) {
       `<line x1="${bx.toFixed(1)}" y1="${zeroY - 5}" x2="${bx.toFixed(1)}" y2="${+zeroY + 5}" stroke="#f1c40f" stroke-width="1.6"/>`
     ).join('');
 
-    // Spot: centro del range (±15% simmetrico)
-    const spotX = x(n / 2).toFixed(1);
+    // Spot: posizione reale dello spot dentro il range centrato
+    const spotX = (Math.max(0, Math.min(1, (spot - lo) / ((hi - lo) || 1))) * W).toFixed(1);
 
     const uid = 'ap' + Math.floor(Math.random() * 1e9);
     svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="pointer-events:none;display:block;">` +
