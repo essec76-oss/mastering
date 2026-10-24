@@ -256,23 +256,27 @@
 </div>
 <div class="riepilogo">
   <div class="highlight" style="margin-top:0;">
-    <div class="row" style="border:none; padding:6px 0; display:flex; flex-direction:column; gap:2px;">
-      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;">PL AT NOW</span>
+    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
+      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;">PL AT NOW</span>
       <span class="big-value" id="pnlNowTot">—</span>
     </div>
-    <div class="row" style="border:none; padding:6px 0 2px 0; display:flex; flex-direction:column; gap:2px;">
-      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
+    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
+      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <span class="big-value" id="pnlScadenzaTot">—</span>
     </div>
-    <div class="row" style="border:none; padding:6px 0; display:flex; flex-direction:column; gap:2px;">
-      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Breakeven inferiore">BE inf.</span>
-      <span class="big-value"><strong id="beInf" style="color:var(--text);">—</strong></span>
-      <span class="value" id="beInfDist" style="font-size:12px; color:var(--muted);">—</span>
+    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
+      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;" title="Breakeven inferiore: valore, distanza dallo spot in punti e in percentuale">BE inf.</span>
+      <span style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap;">
+        <strong id="beInf" class="big-value" style="color:var(--text);">—</strong>
+        <strong id="beInfDist" class="big-value" style="color:var(--text);">—</strong>
+      </span>
     </div>
-    <div class="row" style="border:none; padding:6px 0 2px 0; display:flex; flex-direction:column; gap:2px;">
-      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Breakeven superiore">BE sup.</span>
-      <span class="big-value"><strong id="beSup" style="color:var(--text);">—</strong></span>
-      <span class="value" id="beSupDist" style="font-size:12px; color:var(--muted);">—</span>
+    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
+      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;" title="Breakeven superiore: valore, distanza dallo spot in punti e in percentuale">BE sup.</span>
+      <span style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap;">
+        <strong id="beSup" class="big-value" style="color:var(--text);">—</strong>
+        <strong id="beSupDist" class="big-value" style="color:var(--text);">—</strong>
+      </span>
     </div>
   </div>
 </div>
