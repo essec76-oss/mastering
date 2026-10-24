@@ -324,7 +324,14 @@ function _modaleEvidenziaSelezione() {
   const box = el('modalListaStrategie');
   if (box) {
     box.querySelectorAll('.strategia-row').forEach(r => {
-      r.classList.toggle('selected', r.dataset.nome === _modaleStrategieSelezione);
+      const sel = r.dataset.nome === _modaleStrategieSelezione;
+      r.classList.toggle('selected', sel);
+      // Feedback visivo diretto (inline style, immune a conflitti CSS)
+      r.style.background = sel ? 'rgba(79,140,255,.22)' : '';
+      r.style.borderLeft = sel ? '4px solid var(--accent, #4f8cff)' : '4px solid transparent';
+      r.style.color = sel ? 'var(--text, #e6e8ee)' : '';
+      r.style.fontWeight = sel ? '700' : '';
+      r.textContent = (sel ? '✓ ' : '') + r.dataset.nome;
     });
   }
   const conferma = el('modalStrategieConferma');
