@@ -469,7 +469,7 @@ function deltaNettoTotale(scheda, resNES, resMES) {
       const sign = dist >= 0 ? '+' : '−';
       const pt = Math.abs(dist).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const pc = Math.abs(pct).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      return `distanza ${sign}${pt} pt · ${sign}${pc}%`;
+      return `${sign}${pt} pt · ${sign}${pc}%`;
     };
 
     if (!bes.length || !(spot > 0)) {
