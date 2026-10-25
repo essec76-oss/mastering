@@ -22,21 +22,19 @@
   .strategia-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
 
-  /* Riepilogo: PL e breakeven in riquadri uniformi */
-  .riepilogo-box{display:flex;flex-direction:column;gap:12px;padding:6px 0 2px;}
-  .pl-block{display:flex;flex-direction:column;align-items:center;gap:6px;}
-  .pl-label{font-size:12px;color:var(--text);font-weight:600;text-align:center;}
-  .pl-box{width:min(260px,100%);box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 8px;text-align:center;overflow:hidden;}
+  /* Riepilogo su righe: PL, BE e delta totale */
+  .riepilogo-box{display:flex;flex-direction:column;gap:8px;padding:4px 0;}
+  .pl-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .pl-label{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap;}
+  .pl-box{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 12px;text-align:center;}
   .pl-box .big-value{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap;}
-
-  /* Breakeven: etichetta a sinistra, valore / punti / % in riquadri a destra */
-  .be-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-  .be-label{font-size:12px;color:var(--text);font-weight:600;white-space:nowrap;}
-  .be-vals{display:grid;grid-template-columns:repeat(3,minmax(0,auto));gap:6px;max-width:100%;}
-  .be-val{font-size:13px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 6px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-variant-numeric:tabular-nums;}
+  .be-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:2px 0;}
+  .be-label{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap;}
+  .be-vals{display:flex;gap:6px;flex-wrap:wrap;}
+  .be-val{font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 10px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:0;overflow:hidden;text-overflow:ellipsis;}
   @media (max-width:480px){
-    .be-val{font-size:12px;padding:4px 5px;}
-    .be-vals{gap:4px;}
+    .be-val{font-size:12px;padding:4px 8px;}
+    .pl-row{gap:8px;}
   }
 </style>
 </head>
@@ -210,36 +208,6 @@
         <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
       </div>
     </div>
-    <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
-      <div class="pnl-opz">
-        <span class="label">P&amp;L Opzioni</span>
-        <span class="value" id="pnlOpzioni">0,00</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Delta di posizione in contratti (q.tà × delta × segno). Non include il moltiplicatore.">Delta tot</span>
-        <span class="value" id="greeksDelta" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Gamma di posizione in contratti (q.tà × gamma × segno)">Gamma tot</span>
-        <span class="value" id="greeksGamma" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Vega di posizione in contratti (q.tà × vega × segno)">Vega tot</span>
-        <span class="value" id="greeksVega" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Theta di posizione in contratti (q.tà × theta × segno)">Theta tot</span>
-        <span class="value" id="greeksTheta" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="P&amp;L a scadenza della gamba opzioni più corta (metodo calendar)">P&amp;L Scad.</span>
-        <span class="value" id="pnlOpzScadTot" style="font-size:14px;">0,00</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Totale debit/credit: premi × q.tà × moltiplicatore">Deb/Cred tot</span>
-        <span class="value" id="pnlOpzDebCredTot" style="font-size:14px;">0,00</span>
-      </div>
-    </div>
   </div>
   <div class="movimenti">
     <div class="table-scroll">
@@ -276,16 +244,22 @@
 <div class="riepilogo">
   <div class="highlight" style="margin-top:0;">
     <div class="riepilogo-box">
-      <div class="pl-block">
+      <div class="pl-row">
         <span class="pl-label">PL AT NOW</span>
         <div class="pl-box"><span class="big-value" id="pnlNowTot">—</span></div>
-      </div>
-      <div class="pl-block">
         <span class="pl-label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
         <div class="pl-box"><span class="big-value" id="pnlScadenzaTot">—</span></div>
       </div>
       <div class="be-row">
-        <span class="be-label" title="Breakeven inferiore: valore, distanza dallo spot in punti e in percentuale">BE inf.</span>
+        <span class="be-label" title="Breakeven superiore: valore, distanza dallo spot in punti e in percentuale">BE SUPERIORE</span>
+        <div class="be-vals">
+          <strong id="beSup" class="be-val">—</strong>
+          <strong id="beSupDist" class="be-val">—</strong>
+          <strong id="beSupPct" class="be-val">—</strong>
+        </div>
+      </div>
+      <div class="be-row">
+        <span class="be-label" title="Breakeven inferiore: valore, distanza dallo spot in punti e in percentuale">BE INFERIORE</span>
         <div class="be-vals">
           <strong id="beInf" class="be-val">—</strong>
           <strong id="beInfDist" class="be-val">—</strong>
@@ -293,11 +267,10 @@
         </div>
       </div>
       <div class="be-row">
-        <span class="be-label" title="Breakeven superiore: valore, distanza dallo spot in punti e in percentuale">BE sup.</span>
+        <span class="be-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&amp;L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
         <div class="be-vals">
-          <strong id="beSup" class="be-val">—</strong>
-          <strong id="beSupDist" class="be-val">—</strong>
-          <strong id="beSupPct" class="be-val">—</strong>
+          <strong id="deltaTot" class="be-val">—</strong>
+          <strong id="deltaSens" class="be-val">—</strong>
         </div>
       </div>
     </div>
@@ -320,7 +293,6 @@
       <label><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
     </div>
     <label><input type="checkbox" id="showBE" checked> Breakeven</label>
-    <span style="margin-left:8px;" title="Mondo AZIONI: azioni equivalenti (1 opzione = 100 azioni). Mondo FUTURES: contratti MES equivalenti.">Delta netto: <strong id="payoffDeltaNetto" style="color:var(--text);">—</strong></span>
   </div>
   <div class="chart-controls" style="margin-top:-4px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
     <span>POP <strong id="popValue" style="color:var(--purple);">—</strong></span>
