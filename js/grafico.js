@@ -158,6 +158,21 @@ function deltaNettoTotale(scheda, resNES, resMES) {
   return d;
 }
 
+  // v27 — Sensibilità del P&L per punto di movimento del sottostante.
+  // deltaNettoTotale usa come riferimento: mondo AZIONI = lotto da 100 azioni
+  // (delta 1 = 100 azioni → 100 per punto), mondo FUT = contratto MES
+  // (delta 1 = 1 MES → moltiplicatore MES per punto).
+  function deltaSensibilitaPerPunto(delta) {
+    const molt = (mondoAttivo() === 'AZIONI')
+      ? 100
+      : ((typeof MOLTIPLICATORI !== 'undefined' && MOLTIPLICATORI['MES']) || 5);
+    const sens = delta * molt;
+    if (!isFinite(sens)) return null;
+    const sign = sens >= 0 ? '+' : '−';
+    return `(${sign}${Math.abs(sens).toLocaleString('it-IT',
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per punto)`;
+  }
+
   let chartView = {
     userMoved: false,
     xMin: null, xMax: null,
@@ -577,11 +592,15 @@ function deltaNettoTotale(scheda, resNES, resMES) {
 
   function aggiornaPayoffPreview(scheda, resNES, resMES) {
     const spot = parseFloat(el('prezzoSpot').value) || 0;
-    const deltaEl = el('payoffDeltaNetto');
+    // v27 — Delta netto spostato nel riepilogo (#deltaTot + #deltaSens),
+    // rimosso il vecchio #payoffDeltaNetto dai controlli del grafico.
+    const deltaEl = el('deltaTot');
+    const deltaSensEl = el('deltaSens');
     aggiornaTogglePrecedente();
 
     if (!(spot > 0)) {
-      deltaEl.textContent = '—';
+      if (deltaEl) deltaEl.textContent = '—';
+      if (deltaSensEl) deltaSensEl.textContent = '';
       chartView.lastSpot = 0;
       chartView.breakevens = [];
       chartView._sig = null;
@@ -595,8 +614,15 @@ function deltaNettoTotale(scheda, resNES, resMES) {
     }
 
     const delta = deltaNettoTotale(scheda, resNES, resMES);
-    deltaEl.textContent = formatGreek(delta, 3);
-    deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    if (deltaEl) {
+      deltaEl.textContent = formatGreek(delta, 3);
+      deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (deltaSensEl) {
+      const sensTxt = deltaSensibilitaPerPunto(delta);
+      deltaSensEl.textContent = sensTxt || '';
+      deltaSensEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    }
 
     const prec = schedaPrecedente();
     const resNESPrec = prec ? calcolaColonna(prec, 'NES') : null;
