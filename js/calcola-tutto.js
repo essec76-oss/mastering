@@ -20,15 +20,12 @@
     renderRigaTotale('NES', resNES);
     renderRigaTotale('MES', resMES);
 
-    // Header scheda: P&L delle opzioni dello strumento selezionato nel menu
-    const pnlOpz = calcolaPnlOpzioniTotale(strumentoOpzSelezionato());
-    el('pnlOpzioni').textContent = formatEuro(pnlOpz);
-    el('pnlOpzioni').className = 'value ' + (pnlOpz >= 0 ? 'green' : 'red');
-
-    // Aggiorna greche e P&L di ogni riga opzione
+    // v27 — il riquadro "P&L Opzioni" dell'header è stato rimosso:
+    // il totale P&L NOW delle opzioni vive solo nel footer della tabella.
+    // Aggiorna greche e P&L di ogni riga opzione (popola anche il footer).
     aggiornaPnlOpzioni();
 
-    // Riepilogo minimale: solo PL AT NOW e PL A SCADENZA
+    // Riepilogo minimale: PL AT NOW e PL A SCADENZA
     // AT NOW  = teorico Black-76 allo spot attuale (profitto se chiudessi ora)
     // A SCADENZA = intrinseco alle scadenze + teorico residuale (calendar)
     // Entrambi includono futures + opzioni + cash (se non escluso)
@@ -42,7 +39,8 @@
     pnlScadEl.textContent = formatEuro(pnlScad);
     pnlScadEl.className = 'big-value value ' + (!isFinite(pnlScad) ? 'muted' : (pnlScad >= 0 ? 'green' : 'red'));
 
-    // Aggiorna anteprima payoff (tutte le schede) e legenda colori
+    // Aggiorna anteprima payoff (tutte le schede), breakeven,
+    // delta totale nel riepilogo e legenda colori
     aggiornaPayoffPreview(scheda, resNES, resMES);
     aggiornaLegendaGrafico();
 
