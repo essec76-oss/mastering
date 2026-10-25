@@ -346,10 +346,9 @@ async function _modaleConfermaAzione() {
   if (!nome) return;
   if (_modaleStrategieModo === 'elimina') {
     await eliminaSalvato(nome);
-    // chiude la finestra e svuota il campo nome, così la pagina resta pulita
     chiudiModaleStrategie();
-    const campoNome = el('nomeStrategia');
-    if (campoNome) campoNome.value = '';
+    // azzera la pagina di lavoro come «Reset», senza una seconda conferma
+    reset(true);
   } else {
     chiudiModaleStrategie();
     await caricaSalvato(nome);
