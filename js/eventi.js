@@ -346,8 +346,10 @@ async function _modaleConfermaAzione() {
   if (!nome) return;
   if (_modaleStrategieModo === 'elimina') {
     await eliminaSalvato(nome);
-    // chiude la finestra dopo l'eliminazione
+    // chiude la finestra e svuota il campo nome, così la pagina resta pulita
     chiudiModaleStrategie();
+    const campoNome = el('nomeStrategia');
+    if (campoNome) campoNome.value = '';
   } else {
     chiudiModaleStrategie();
     await caricaSalvato(nome);
