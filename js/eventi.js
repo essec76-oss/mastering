@@ -346,8 +346,8 @@ async function _modaleConfermaAzione() {
   if (!nome) return;
   if (_modaleStrategieModo === 'elimina') {
     await eliminaSalvato(nome);
-    // riapre la finestra aggiornata per eventuali eliminazioni multiple
-    apriModaleStrategie('elimina');
+    // chiude la finestra dopo l'eliminazione
+    chiudiModaleStrategie();
   } else {
     chiudiModaleStrategie();
     await caricaSalvato(nome);
