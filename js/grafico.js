@@ -1,5 +1,7 @@
 // grafico.js — grafico payoff: range, breakeven, POP, zoom e touch
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// v28 — delta a taglia relativa: vedi tipoRiferimentoFut / deltaInRiferimento
+//       in render-futures.js (caricato prima di questo file).
   // ============================================================
   // MONDI SEPARATI: AZIONI vs FUTURES (NES/MES/ES)
   // ============================================================
@@ -121,51 +123,57 @@
     return tot;
   }
 
-function deltaNettoTotale(scheda, resNES, resMES) {
-  // Delta netto = somma dei delta di posizione, ciascuno nel proprio mondo.
-  // Riferimenti:
-  //   Mondo FUT:  riferimento = MES  → 1 MES = delta 1, 1 NES = delta 0,1
-  //   Mondo AZIONI: riferimento = lotto da 100 azioni → 100 azioni = delta 1
-  //   Opzioni: qta × delta × segno, scalate come lo strumento sottostante
-  let d = 0;
-  const mondo = mondoAttivo();
+  // ============================================================
+  // DELTA NETTO (v28)
+  // ============================================================
+  // Mondo FUT: delta nell'unità del contratto di taglia maggiore della scheda
+  //            (NES/MES/ES, opzioni incluse). Scheda con un solo tipo: 1 per contratto.
+  // Mondo AZIONI: 100 azioni = delta 1.
+  // Opzioni: qta × delta × segno, scalate come lo strumento sottostante.
+  function deltaNettoTotale(scheda, resNES, resMES) {
+    let d = 0;
+    const mondo = mondoAttivo();
 
-  // Mondo AZIONI: 100 azioni = delta 1
-  const divLotto = (mondo === 'AZIONI') ? 100 : 1;
+    // Mondo AZIONI: 100 azioni = delta 1
+    const divLotto = (mondo === 'AZIONI') ? 100 : 1;
 
-  // Mondo FUT: riferimento MES → 1 NES = 0,1 MES, 1 MES = 1
-  const scalaNES = (mondo === 'FUT') ? 0.1 : 1;
-  const scalaMES = 1;
+    // Riferimento FUT: contratto di taglia maggiore presente nella scheda
+    const tipoRif = (mondo === 'FUT') ? tipoRiferimentoFut(scheda) : null;
+    const scala = (tipo) => {
+      if (mondo !== 'FUT' || !tipoRif || !TAGLIA_FUT[tipo]) return 1;
+      return TAGLIA_FUT[tipo] / TAGLIA_FUT[tipoRif];
+    };
 
-  if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
-    d += (resNES.qtaNetta / divLotto) * scalaNES;
+    if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
+      d += (resNES.qtaNetta / divLotto) * scala(resNES.tipo);
+    }
+    if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
+      d += (resMES.qtaNetta / divLotto) * scala(resMES.tipo);
+    }
+
+    (scheda.opzioni || []).forEach(opz => {
+      if (opz.attivo === false || opz.stato === 'CHIUSA') return;
+      if (mondoOpzione(opz) !== mondo) return;
+      const g = calcolaGrecheOpzione(opz);
+      if (!isFinite(g.delta)) return;
+      const segno = opz.pos === 'SELL' ? -1 : 1;
+      d += segno * (opz.qta || 0) * g.delta * scala(opz.strumento || 'MES');
+    });
+
+    return d;
   }
-  if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
-    d += (resMES.qtaNetta / divLotto) * scalaMES;
-  }
 
-  (scheda.opzioni || []).forEach(opz => {
-    if (opz.attivo === false || opz.stato === 'CHIUSA') return;
-    if (mondoOpzione(opz) !== mondo) return;
-    const g = calcolaGrecheOpzione(opz);
-    if (!isFinite(g.delta)) return;
-    const segno = opz.pos === 'SELL' ? -1 : 1;
-    // Se l'opzione è su NES, il suo delta va scalato come il NES
-    const scalaOpz = (mondo === 'FUT' && (opz.strumento || 'MES') === 'NES') ? 0.1 : 1;
-    d += segno * (opz.qta || 0) * g.delta * scalaOpz;
-  });
-
-  return d;
-}
-
-  // v27 — Sensibilità del P&L per punto di movimento del sottostante.
-  // deltaNettoTotale usa come riferimento: mondo AZIONI = lotto da 100 azioni
-  // (delta 1 = 100 azioni → 100 per punto), mondo FUT = contratto MES
-  // (delta 1 = 1 MES → moltiplicatore MES per punto).
+  // v28 — Sensibilità del P&L per punto di movimento del sottostante.
+  // Il delta è nell'unità del contratto di riferimento: il P&L per punto
+  // è delta × moltiplicatore di quel contratto (mondo AZIONI: lotto da 100).
   function deltaSensibilitaPerPunto(delta) {
-    const molt = (mondoAttivo() === 'AZIONI')
-      ? 100
-      : ((typeof MOLTIPLICATORI !== 'undefined' && MOLTIPLICATORI['MES']) || 5);
+    let molt;
+    if (mondoAttivo() === 'AZIONI') {
+      molt = 100;
+    } else {
+      const tipoRif = tipoRiferimentoFut(schedaAttiva());
+      molt = (tipoRif && MOLTIPLICATORI[tipoRif]) || MOLTIPLICATORI['MES'] || 5;
+    }
     const sens = delta * molt;
     if (!isFinite(sens)) return null;
     const sign = sens >= 0 ? '+' : '−';
