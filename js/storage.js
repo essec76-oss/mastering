@@ -531,8 +531,8 @@ function migraOpz(o) {
   };
 }
 
-function reset() {
-  if (!confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.')) return;
+function reset(senzaConferma) {
+  if (!senzaConferma && !confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.')) return;
   localStorage.removeItem(STORAGE_KEY);
   STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
   const mod = stato.modalita || MODALITA_DEFAULT;
