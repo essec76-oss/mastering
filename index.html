@@ -21,6 +21,13 @@
   .strategia-row:focus{outline:1px solid var(--accent,#4f8cff);}
   .strategia-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+
+  /* Breakeven: etichetta a sinistra, valore / punti / % allineati a destra */
+  .be-section{display:flex;flex-direction:column;gap:10px;padding:6px 0 2px;}
+  .be-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .be-label{font-size:12px;color:var(--text);font-weight:600;white-space:nowrap;}
+  .be-vals{display:grid;grid-template-columns:repeat(3,96px);gap:8px;}
+  .be-val{font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 8px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
 </style>
 </head>
 <body>
@@ -266,19 +273,23 @@
       <span class="label" style="font-size:12px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <span class="big-value" id="pnlScadenzaTot">—</span>
     </div>
-    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
-      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;" title="Breakeven inferiore: valore, distanza dallo spot in punti e in percentuale">BE inf.</span>
-      <span style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap;">
-        <strong id="beInf" class="big-value" style="color:var(--text);">—</strong>
-        <strong id="beInfDist" class="big-value" style="color:var(--text);">—</strong>
-      </span>
-    </div>
-    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
-      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;" title="Breakeven superiore: valore, distanza dallo spot in punti e in percentuale">BE sup.</span>
-      <span style="display:flex; gap:12px; align-items:baseline; flex-wrap:wrap;">
-        <strong id="beSup" class="big-value" style="color:var(--text);">—</strong>
-        <strong id="beSupDist" class="big-value" style="color:var(--text);">—</strong>
-      </span>
+    <div class="be-section">
+      <div class="be-row">
+        <span class="be-label" title="Breakeven inferiore: valore, distanza dallo spot in punti e in percentuale">BE inf.</span>
+        <div class="be-vals">
+          <strong id="beInf" class="be-val">—</strong>
+          <strong id="beInfDist" class="be-val">—</strong>
+          <strong id="beInfPct" class="be-val">—</strong>
+        </div>
+      </div>
+      <div class="be-row">
+        <span class="be-label" title="Breakeven superiore: valore, distanza dallo spot in punti e in percentuale">BE sup.</span>
+        <div class="be-vals">
+          <strong id="beSup" class="be-val">—</strong>
+          <strong id="beSupDist" class="be-val">—</strong>
+          <strong id="beSupPct" class="be-val">—</strong>
+        </div>
+      </div>
     </div>
   </div>
 </div>
