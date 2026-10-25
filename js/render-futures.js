@@ -16,6 +16,15 @@
 //   - Le fee stimate (N aperture × 2 lati × 1,205 $/lato, solo NES)
 //     sono mostrate nell'header della colonna come promemoria.
 //   - Il toggle "Commissioni (solo NES)" è stato rimosso.
+//
+// v28 — Delta a taglia relativa (logica nuova):
+//   - Il delta di una scheda si esprime nell'unità del contratto di taglia
+//     maggiore presente (NES/MES/ES, anche tra le opzioni).
+//   - Scheda con un solo tipo: delta = quantità netta (1 per contratto).
+//   - Taglie fisse in unità ES: NES 0,01 · MES 0,1 · ES 1.
+
+  // Taglie relative in unità ES (fisse, indipendenti dai moltiplicatori)
+  const TAGLIA_FUT = { NES: 0.01, MES: 0.1, ES: 1 };
 
   function _tipoLabelCol(tipo, col) {
     if (tipo === 'X') return 'AZIONI';
@@ -31,6 +40,33 @@
     if (!molt) return NaN;
     const segno = info.direzione === 'LONG' ? 1 : -1;
     return segno * info.qAperta * (molt / MOLTIPLICATORI.MES);
+  }
+
+  // Contratto di taglia maggiore presente nella scheda (NES/MES/ES),
+  // considerando colonne con posizione attiva e opzioni FUT non chiuse.
+  function tipoRiferimentoFut(scheda) {
+    const candidati = [];
+    ['NES', 'MES'].forEach(col => {
+      const tipo = scheda['tipo' + col];
+      const haPosizione = (scheda[col] || []).some(m => m.attivo !== false && (m.quantita || 0) > 0);
+      if (haPosizione && TAGLIA_FUT[tipo]) candidati.push(tipo);
+    });
+    (scheda.opzioni || []).forEach(o => {
+      if (o.attivo === false || o.stato === 'CHIUSA') return;
+      const s = o.strumento || 'MES';
+      if (TAGLIA_FUT[s]) candidati.push(s);
+    });
+    let best = null;
+    candidati.forEach(t => {
+      if (!best || TAGLIA_FUT[t] > TAGLIA_FUT[best]) best = t;
+    });
+    return best;
+  }
+
+  // Converte una quantità netta di un tipo nell'unità del riferimento
+  function deltaInRiferimento(qtaNetta, tipo, tipoRif) {
+    if (!tipoRif || !TAGLIA_FUT[tipo]) return qtaNetta;
+    return qtaNetta * TAGLIA_FUT[tipo] / TAGLIA_FUT[tipoRif];
   }
 
   // ============================================================
@@ -141,10 +177,11 @@
       } else {
         if (dLabelEl) dLabelEl.textContent = 'Delta ' + tipoLabel;
         if (res.qtaNetta !== 0) {
-          const molt = MOLTIPLICATORI[res.tipo] || 0;
-          const dMES = res.qtaNetta * (molt / MOLTIPLICATORI.MES);
-          dEl.textContent = formatGreek(dMES, 2);
-          dEl.className = 'value ' + (dMES >= 0 ? 'green' : 'red');
+          // v28 — delta espresso nell'unità del contratto di riferimento della scheda
+          const tipoRif = tipoRiferimentoFut(schedaAttiva());
+          const dRif = deltaInRiferimento(res.qtaNetta, res.tipo, tipoRif);
+          dEl.textContent = formatGreek(dRif, 2);
+          dEl.className = 'value ' + (dRif >= 0 ? 'green' : 'red');
         } else {
           dEl.textContent = '—';
           dEl.className = 'value muted';
