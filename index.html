@@ -22,12 +22,22 @@
   .strategia-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
 
-  /* Breakeven: etichetta a sinistra, valore / punti / % allineati a destra */
-  .be-section{display:flex;flex-direction:column;gap:10px;padding:6px 0 2px;}
-  .be-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  /* Riepilogo: PL e breakeven in riquadri uniformi */
+  .riepilogo-box{display:flex;flex-direction:column;gap:12px;padding:6px 0 2px;}
+  .pl-block{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .pl-label{font-size:12px;color:var(--text);font-weight:600;text-align:center;}
+  .pl-box{width:min(260px,100%);box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 8px;text-align:center;overflow:hidden;}
+  .pl-box .big-value{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+  /* Breakeven: etichetta a sinistra, valore / punti / % in riquadri a destra */
+  .be-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
   .be-label{font-size:12px;color:var(--text);font-weight:600;white-space:nowrap;}
-  .be-vals{display:grid;grid-template-columns:repeat(3,96px);gap:8px;}
-  .be-val{font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 8px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .be-vals{display:grid;grid-template-columns:repeat(3,minmax(0,auto));gap:6px;max-width:100%;}
+  .be-val{font-size:13px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 6px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-variant-numeric:tabular-nums;}
+  @media (max-width:480px){
+    .be-val{font-size:12px;padding:4px 5px;}
+    .be-vals{gap:4px;}
+  }
 </style>
 </head>
 <body>
@@ -265,15 +275,15 @@
 </div>
 <div class="riepilogo">
   <div class="highlight" style="margin-top:0;">
-    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
-      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;">PL AT NOW</span>
-      <span class="big-value" id="pnlNowTot">—</span>
-    </div>
-    <div class="row" style="border:none; padding:3px 0; display:flex; flex-direction:column; gap:1px;">
-      <span class="label" style="font-size:12px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
-      <span class="big-value" id="pnlScadenzaTot">—</span>
-    </div>
-    <div class="be-section">
+    <div class="riepilogo-box">
+      <div class="pl-block">
+        <span class="pl-label">PL AT NOW</span>
+        <div class="pl-box"><span class="big-value" id="pnlNowTot">—</span></div>
+      </div>
+      <div class="pl-block">
+        <span class="pl-label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
+        <div class="pl-box"><span class="big-value" id="pnlScadenzaTot">—</span></div>
+      </div>
       <div class="be-row">
         <span class="be-label" title="Breakeven inferiore: valore, distanza dallo spot in punti e in percentuale">BE inf.</span>
         <div class="be-vals">
