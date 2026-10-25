@@ -525,13 +525,9 @@
       }
     });
 
-    el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
-    el('greeksGamma').textContent = formatGreekAuto(totGamma, 2, 4);
-    el('greeksVega').textContent  = formatGreekAuto(totVega, 2, 3);
-    el('greeksTheta').textContent = formatGreekAuto(totTheta, 2, 3);
-    el('pnlOpzioni').textContent  = formatEuro(totPnlNow);
-    el('pnlOpzScadTot').textContent = formatEuro(totPnlScad);
-    el('pnlOpzDebCredTot').textContent = formatEuro(totDebCred);
+    // v27 — i totali vivono SOLO nel footer della tabella opzioni (#footOpzioni).
+    // I riquadri duplicati nell'header della card sono stati rimossi da index.html;
+    // il delta totale è mostrato nel riepilogo (vedi grafico.js → aggiornaPayoffPreview).
 
     aggiornaFooterOpzioni({
       delta: totDelta, gamma: totGamma, vega: totVega, theta: totTheta,
