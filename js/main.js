@@ -1,98 +1,20 @@
 // main.js — avvio: valori di default e primo render
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
   // ============================================================
-  // OVERLAY DELTA — DUE MONDI DISTINTI (futures / azioni)
+  // DELTA — DUE MONDI DISTINTI (futures / azioni)
   // ============================================================
-  // Mondo FUTURES: delta in unità MES (1 MES = 1.0; 1 ES = 10; 1 NES = 0.1;
-  //   opzioni MES/ES contribuiscono col proprio delta × moltiplicatore/5).
-  // Mondo AZIONI: convenzione TWS (100 azioni = 1.00; 50 azioni = 0.50;
-  //   1 contratto di opzione = 100 azioni, quindi un'opzione con delta 0.50
-  //   conta 0.50). Mai sommato al delta futures: metriche diverse.
-  // Nota CI: gli id del display dinamico sono letti con
-  // document.getElementById (creati via innerHTML nel wrapper, non in
-  // index.html): el() è riservato agli id statici tracciati dal lint.
+  // Mondo FUTURES: delta in unità MES (1 MES = 1.0; 1 ES = 10; 1 NES = 0.1).
+  // Mondo AZIONI: convenzione TWS (100 azioni = 1.00; opzione delta 0.50 = 0.50).
+  // v27 — i display separati "Delta netto" / "Delta azioni" accanto al grafico
+  // sono stati rimossi: il delta totale è mostrato nel riepilogo (#deltaTot,
+  // con sensibilità per punto in #deltaSens). In grafico.js, deltaNettoTotale()
+  // è l'unica fonte di verità (mondo AZIONI: qta/100 + delta opzioni = TWS).
+  // Il wrapper di aggiornaPnlOpzioni che riscriveva #greeksDelta è stato
+  // eliminato: i totali vivono solo nel footer della tabella opzioni.
 
   // Versione visibile (verifica deploy): titolo del tab del browser
-  function _appVersion() { return 'v24.2'; }
+  function _appVersion() { return 'v24.3'; }
   document.title = 'Mastering — ' + _appVersion();
-
-  // Crea (una sola volta) il display "Delta azioni" accanto a "Delta netto".
-  // Sempre visibile: 0,00 quando il mondo azioni è piatto, mai nascosto.
-  function _ensureDeltaAzioniUI() {
-    var wrap = document.getElementById('deltaAzioniWrap');
-    if (wrap) return wrap;
-    var dn = el('payoffDeltaNetto');
-    if (!dn || !dn.parentElement) return null;
-    wrap = document.createElement('span');
-    wrap.id = 'deltaAzioniWrap';
-    wrap.style.marginLeft = '8px';
-    wrap.innerHTML = 'Delta azioni: <strong id="payoffDeltaAzioni" style="color:var(--text);">—</strong>';
-    dn.parentElement.after(wrap);
-    return wrap;
-  }
-
-  function _renderDeltaAzioni(dAz) {
-    var wrap = _ensureDeltaAzioniUI();
-    if (!wrap) return;
-    var e = document.getElementById('payoffDeltaAzioni');
-    if (!e) return;
-    wrap.style.display = '';
-    e.textContent = formatGreek(dAz, 2);
-    e.style.color = dAz >= 0 ? 'var(--green)' : 'var(--red)';
-  }
-
-  // Delta del mondo AZIONI in convenzione TWS (100 azioni = 1.00):
-  // - futures X (azioni): q.tà netta / 100 (segno incluso: SHORT = negativo)
-  // - opzioni AZIONI: 1 contratto muove 100 azioni → delta del contratto
-  //   già in unità eq. (opzione delta 0.50 = 0.50)
-  function deltaAzioniTotale(scheda, resNES, resMES) {
-    let d = 0;
-    [resNES, resMES].forEach(res => {
-      if (res && res.qtaNetta !== 0 && res.tipo === 'X') d += res.qtaNetta / 100;
-    });
-    (scheda.opzioni || []).forEach(opz => {
-      if (opz.attivo === false || opz.stato === 'CHIUSA') return;
-      if ((opz.strumento || 'MES') !== 'AZIONI') return;
-      const g = calcolaGrecheOpzione(opz);
-      if (!isFinite(g.delta)) return;
-      const segno = opz.pos === 'SELL' ? -1 : 1;
-      d += segno * (opz.qta || 0) * g.delta;
-    });
-    return d;
-  }
-
-  // NOTA: deltaNettoTotale() è definita in grafico.js (unica fonte di verità).
-  // Il wrapper aggiorna anche il display separato del delta azioni.
-
-  // Wrapper di aggiornaPayoffPreview: reset delta azioni se spot <= 0
-  var _origAggiornaPayoffPreview = aggiornaPayoffPreview;
-  aggiornaPayoffPreview = function (scheda, resNES, resMES) {
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
-    if (!(spot > 0)) _renderDeltaAzioni(0); // mondo azioni a zero
-    _origAggiornaPayoffPreview(scheda, resNES, resMES);
-  };
-
-  // Nella vista opzioni AZIONI: delta in eq. 100 azioni (0.50, non 50 $/pt),
-  // coerente con la convenzione TWS usata per le coperture azionarie.
-  var _origAggiornaPnlOpzioni = aggiornaPnlOpzioni;
-  aggiornaPnlOpzioni = function () {
-    _origAggiornaPnlOpzioni();
-    if (strumentoOpzSelezionato() !== 'AZIONI') return;
-    let totDelta = 0;
-    el('bodyOpzioni').querySelectorAll('tr').forEach(tr => {
-      const idx = Number(tr.dataset.idx);
-      const opz = schedaAttiva().opzioni[idx];
-      if (!opz || opz.attivo === false || opz.stato === 'CHIUSA') return;
-      const g = calcolaGrecheOpzione(opz);
-      if (!isFinite(g.delta)) return;
-      const segno = opz.pos === 'SELL' ? -1 : 1;
-      const v = segno * (opz.qta || 0) * g.delta; // eq. 100 azioni, senza ×100
-      totDelta += v;
-      const cell = tr.querySelector('[data-field="delta"]');
-      if (cell) cell.textContent = formatGreekAuto(v, 2, 3);
-    });
-    el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
-  };
 
   // ============================================================
   // AVVIO
