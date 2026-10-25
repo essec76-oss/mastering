@@ -92,6 +92,14 @@
     }
   }
 
+  // Scheda di riferimento per la comparazione: la precedente nella lista.
+  // null quando la scheda attiva è la Matrice (indice 0).
+  function schedaPrecedente() {
+    if (!stato || !Array.isArray(stato.schede)) return null;
+    if (stato.attiva <= 0) return null;
+    return stato.schede[stato.attiva - 1] || null;
+  }
+
   // Legenda del grafico: solo 2 voci (corrente azzurro / precedente ambra).
   // Sulla Matrice: solo la corrente.
   function aggiornaLegendaGrafico() {
