@@ -156,7 +156,9 @@ function deltaNettoTotale(scheda, resNES, resMES) {
   });
 
   return d;
-}  let chartView = {
+}
+
+  let chartView = {
     userMoved: false,
     xMin: null, xMax: null,
     baseMin: null, baseMax: null,
@@ -453,30 +455,42 @@ function deltaNettoTotale(scheda, resNES, resMES) {
   function updateBreakevenLabels(bes, spot) {
     const beInfEl = el('beInf');
     const beSupEl = el('beSup');
-    const beInfDistEl = el('beInfDist');
-    const beSupDistEl = el('beSupDist');
+    const beInfPtsEl = el('beInfDist');
+    const beSupPtsEl = el('beSupDist');
+    const beInfPctEl = el('beInfPct');
+    const beSupPctEl = el('beSupPct');
     if (!beInfEl || !beSupEl) return;
 
-    const fmtVal = (v) => (v == null || !isFinite(v))
-      ? '—'
-      : v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtNum = (v) => v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    // Distanza dallo spot in punti e in percentuale: valore puro con segno
-    const fmtDist = (v) => {
+    // Valore del breakeven (prezzo assoluto)
+    const fmtVal = (v) => (v == null || !isFinite(v)) ? '—' : fmtNum(v);
+
+    // Distanza dallo spot in punti (con segno)
+    const fmtPts = (v) => {
       if (v == null || !isFinite(v) || !(spot > 0)) return '—';
       const dist = v - spot;
-      const pct = (dist / spot) * 100;
       const sign = dist >= 0 ? '+' : '−';
-      const pt = Math.abs(dist).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const pc = Math.abs(pct).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      return `${sign}${pt} pt · ${sign}${pc}%`;
+      return `${sign}${fmtNum(Math.abs(dist))} pt`;
+    };
+
+    // Distanza dallo spot in percentuale (con segno)
+    const fmtPct = (v) => {
+      if (v == null || !isFinite(v) || !(spot > 0)) return '—';
+      const pct = ((v - spot) / spot) * 100;
+      const sign = pct >= 0 ? '+' : '−';
+      return `${sign}${fmtNum(Math.abs(pct))}%`;
+    };
+
+    const setBlock = (valEl, ptsEl, pctEl, v) => {
+      valEl.textContent = fmtVal(v);
+      if (ptsEl) ptsEl.textContent = fmtPts(v);
+      if (pctEl) pctEl.textContent = fmtPct(v);
     };
 
     if (!bes.length || !(spot > 0)) {
-      beInfEl.textContent = '—';
-      beSupEl.textContent = '—';
-      if (beInfDistEl) beInfDistEl.textContent = '—';
-      if (beSupDistEl) beSupDistEl.textContent = '—';
+      setBlock(beInfEl, beInfPtsEl, beInfPctEl, null);
+      setBlock(beSupEl, beSupPtsEl, beSupPctEl, null);
       return;
     }
 
@@ -491,10 +505,8 @@ function deltaNettoTotale(scheda, resNES, resMES) {
       sup = sorted[sorted.length - 1];
     }
 
-    beInfEl.textContent = fmtVal(inf);
-    if (beInfDistEl) beInfDistEl.textContent = fmtDist(inf);
-    beSupEl.textContent = fmtVal(sup);
-    if (beSupDistEl) beSupDistEl.textContent = fmtDist(sup);
+    setBlock(beInfEl, beInfPtsEl, beInfPctEl, inf);
+    setBlock(beSupEl, beSupPtsEl, beSupPctEl, sup);
   }
 
   function aggiornaTogglePrecedente() {
