@@ -194,6 +194,7 @@ function deltaNettoTotale(scheda, resNES, resMES) {
   let panStartMax = 0;
   let touchGesture = null;
   let chartRedrawScheduled = false;
+let rotellaZoomAttiva = false;
 
   function scheduleChartRedraw() {
     if (chartRedrawScheduled) return;
@@ -1103,6 +1104,7 @@ function deltaNettoTotale(scheda, resNES, resMES) {
     // --- Listener interazione su SVG e bottoni: riagganciati se ricreati ---
     if (chartInteractSvg !== svg) {
       svg.addEventListener('wheel', (e) => {
+        if (!rotellaZoomAttiva && !e.ctrlKey && !e.metaKey) return; // lascia scorrere la pagina
         e.preventDefault();
         if (!chartGeom || chartView.xMin == null) return;
 
