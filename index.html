@@ -261,9 +261,9 @@
       <span class="rg-head">Punti</span>
       <span class="rg-head">%</span>
       <span class="rg-head">σ</span>
-      <span class="rg-head">POP</span>
+      <span class="rg-head"></span>
 
-      <!-- P&L su due righe distinte -->
+      <!-- P&L -->
       <span class="rg-label" title="Mark-to-market attuale della posizione">PL AT NOW</span>
       <strong id="pnlNowTot" class="rg-val big">—</strong>
       <span class="rg-wide rg-empty"></span>
@@ -274,20 +274,30 @@
 
       <div class="rg-sep"></div>
 
-      <!-- Breakeven: valore, distanza, %, σ, POP della zona -->
-      <span class="rg-label" title="Breakeven superiore: valore, distanza dallo spot in punti, in percentuale, in deviazioni standard e probabilità di profitto oltre il BE">BE SUPERIORE</span>
+      <!-- Breakeven: valore, distanza, %, σ -->
+      <span class="rg-label" title="Breakeven superiore: valore, distanza dallo spot in punti, in percentuale e in deviazioni standard">BE SUPERIORE</span>
       <strong id="beSup" class="rg-val">—</strong>
       <strong id="beSupDist" class="rg-val">—</strong>
       <strong id="beSupPct" class="rg-val">—</strong>
       <strong id="beSupSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
-      <strong id="bePopSup" class="rg-val pop" title="Probabilità di profitto oltre il breakeven superiore">—</strong>
+      <span></span>
 
-      <span class="rg-label" title="Breakeven inferiore: valore, distanza dallo spot in punti, in percentuale, in deviazioni standard e probabilità di profitto sotto il BE">BE INFERIORE</span>
+      <span class="rg-label" title="Breakeven inferiore: valore, distanza dallo spot in punti, in percentuale e in deviazioni standard">BE INFERIORE</span>
       <strong id="beInf" class="rg-val">—</strong>
       <strong id="beInfDist" class="rg-val">—</strong>
       <strong id="beInfPct" class="rg-val">—</strong>
       <strong id="beInfSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
-      <strong id="bePopInf" class="rg-val pop" title="Probabilità di profitto sotto il breakeven inferiore">—</strong>
+      <span></span>
+
+      <div class="rg-sep"></div>
+
+      <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
+      <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&amp;L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
+      <strong id="popValue" class="rg-val pop">—</strong>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
 
       <div class="rg-sep"></div>
 
@@ -296,16 +306,15 @@
       <strong id="deltaTot" class="rg-val">—</strong>
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
-      <!-- Elementi non più visibili, mantenuti per il JS esistente (grafico.js li scrive ancora) -->
+      <!-- Elementi non visibili, mantenuti per il JS esistente -->
       <div style="display:none;">
-        <span id="popValue">—</span>
         <span id="popZoneWrap"></span>
         <span id="cmpHeader"></span>
       </div>
     </div>
   </div>
 </div>
-<!-- Grafico Payoff Combinato -->
+  <!-- Grafico Payoff Combinato -->
 <div class="chart-panel" id="payoffPanel">
   <h2>Payoff Combinato</h2>
   <div class="chart-controls">
