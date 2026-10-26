@@ -395,4 +395,7 @@ if (btnModalitaZoom) btnModalitaZoom.addEventListener('click', () => {
   btnModalitaZoom.classList.toggle('primary', rotellaZoomAttiva);
 });
 
-renderListaSalvate('');
+// NOTA (fix avvio): qui c'era `renderListaSalvate('')`, che a OGNI apertura
+// di pagina scaricava da Supabase tutte le strategie salvate e calcolava
+// le anteprime sparkline della modale. La lista ora viene scaricata e
+// costruita SOLO quando la modale viene aperta (vedi apriModaleStrategie).
