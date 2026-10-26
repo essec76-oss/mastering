@@ -29,6 +29,8 @@
     stato.schede[0].MES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true, stato: 'APERTA' });
   }
 
+  applicaModalita(stato.modalita || MODALITA_DEFAULT);
+  if (el('modalitaGlobale')) el('modalitaGlobale').value = stato.modalita || MODALITA_DEFAULT;
   renderTabs();
   renderScheda();
 
