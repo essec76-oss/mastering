@@ -32,6 +32,12 @@
   renderTabs();
   renderScheda();
 
+  // Fix: garanzia che la modale di scelta strategie non sia MAI visibile
+  // all'apertura della pagina (si apre solo su click di "Carica da cloud"
+  // o "Elimina", tramite apriModaleStrategie in eventi.js).
+  const _ovStartup = el('modalStrategieOverlay');
+  if (_ovStartup) _ovStartup.style.display = 'none';
+
   // Step 1 Supabase: se URL/chiave sono configurati, verifica la connessione
   if (typeof testaConnessioneSupabase === 'function') {
     testaConnessioneSupabase();
