@@ -105,9 +105,10 @@
     else if (v < 0) inp.classList.add('neg');
   }
 
+  // Box "Escludi cash" eliminato: il cash entra sempre nei conteggi
   function cashAttivo() {
     const c = (typeof stato.cash === 'number') ? stato.cash : 0;
-    return stato.cashEscluso ? 0 : c;
+    return c;
   }
 
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
@@ -476,6 +477,22 @@ let rotellaZoomAttiva = false;
     return out;
   }
 
+  // Richiesta 1 — Distanza del breakeven dallo spot in deviazioni standard.
+  // Stesso criterio delle bande σ del grafico: Vol ATM e orizzonte della
+  // prima scadenza opzioni attive (o 30 giorni se ci sono solo futures).
+  function beSigmaDistance(v, spot) {
+    if (v == null || !isFinite(v) || !(spot > 0)) return null;
+    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
+    const vol = volPct / 100;
+    if (!(vol > 0)) return null;
+    let T = nearestOptionYears(schedaAttiva());
+    if (T === null) T = 30 / 365.25;
+    if (!(T > 0)) return null;
+    const s1 = spot * vol * Math.sqrt(T);
+    if (!(s1 > 0)) return null;
+    return (v - spot) / s1;
+  }
+
   function updateBreakevenLabels(bes, spot) {
     const beInfEl = el('beInf');
     const beSupEl = el('beSup');
@@ -483,6 +500,8 @@ let rotellaZoomAttiva = false;
     const beSupPtsEl = el('beSupDist');
     const beInfPctEl = el('beInfPct');
     const beSupPctEl = el('beSupPct');
+    const beInfSigEl = el('beInfSigma');
+    const beSupSigEl = el('beSupSigma');
     if (!beInfEl || !beSupEl) return;
 
     const fmtNum = (v) => v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -506,15 +525,24 @@ let rotellaZoomAttiva = false;
       return `${sign}${fmtNum(Math.abs(pct))}%`;
     };
 
-    const setBlock = (valEl, ptsEl, pctEl, v) => {
+    // Richiesta 1 — Distanza dallo spot in deviazioni standard (con segno)
+    const fmtSigma = (v) => {
+      const sig = beSigmaDistance(v, spot);
+      if (sig === null || !isFinite(sig)) return '—';
+      const sign = sig >= 0 ? '+' : '−';
+      return `${sign}${Math.abs(sig).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}σ`;
+    };
+
+    const setBlock = (valEl, ptsEl, pctEl, sigEl, v) => {
       valEl.textContent = fmtVal(v);
       if (ptsEl) ptsEl.textContent = fmtPts(v);
       if (pctEl) pctEl.textContent = fmtPct(v);
+      if (sigEl) sigEl.textContent = fmtSigma(v);
     };
 
     if (!bes.length || !(spot > 0)) {
-      setBlock(beInfEl, beInfPtsEl, beInfPctEl, null);
-      setBlock(beSupEl, beSupPtsEl, beSupPctEl, null);
+      setBlock(beInfEl, beInfPtsEl, beInfPctEl, beInfSigEl, null);
+      setBlock(beSupEl, beSupPtsEl, beSupPctEl, beSupSigEl, null);
       return;
     }
 
@@ -529,8 +557,8 @@ let rotellaZoomAttiva = false;
       sup = sorted[sorted.length - 1];
     }
 
-    setBlock(beInfEl, beInfPtsEl, beInfPctEl, inf);
-    setBlock(beSupEl, beSupPtsEl, beSupPctEl, sup);
+    setBlock(beInfEl, beInfPtsEl, beInfPctEl, beInfSigEl, inf);
+    setBlock(beSupEl, beSupPtsEl, beSupPctEl, beSupSigEl, sup);
   }
 
   function aggiornaTogglePrecedente() {
@@ -621,7 +649,7 @@ let rotellaZoomAttiva = false;
     parts.push('C:' + _firmaScheda(schedaAttiva()));
     const prec = schedaPrecedente();
     if (prec) parts.push('P:' + _firmaScheda(prec));
-    parts.push(`cash:${(typeof stato.cash === 'number') ? stato.cash : 0}:${stato.cashEscluso ? 1 : 0}`);
+    parts.push(`cash:${(typeof stato.cash === 'number') ? stato.cash : 0}`);
     parts.push(`fee:${commissioniAttive() ? 1 : 0}`);
     return parts.join('|');
   }
