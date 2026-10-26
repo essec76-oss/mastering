@@ -22,6 +22,10 @@
 //     maggiore presente (NES/MES/ES, anche tra le opzioni).
 //   - Scheda con un solo tipo: delta = quantità netta (1 per contratto).
 //   - Taglie fisse in unità ES: NES 0,01 · MES 0,1 · ES 1.
+//
+// Richiesta 5 — Il vecchio checkbox "Escludi dai conteggi" è stato eliminato:
+// al suo posto il pulsante NASCONDI / MOSTRA (come nelle opzioni). La riga
+// resta visibile ma è esclusa da conteggi, valori e grafico.
 
   // Taglie relative in unità ES (fisse, indipendenti dai moltiplicatori)
   const TAGLIA_FUT = { NES: 0.01, MES: 0.1, ES: 1 };
@@ -255,20 +259,19 @@
       const isOn = mov.attivo !== false;
       if (!isOn) tr.classList.add('row-off');
 
-      // Nascondi (toggle)
+      // Nascondi (richiesta 5: sostituisce il vecchio checkbox "escludi")
       const tdAtt = document.createElement('td');
       tdAtt.dataset.label = 'Nascondi';
-      const inAtt = document.createElement('input');
-      inAtt.type = 'checkbox';
-      inAtt.className = 'toggle-on';
-      inAtt.checked = !isOn;
-      inAtt.title = 'Spunta per escludere dai conteggi (riga oscurata)';
-      inAtt.addEventListener('change', e => {
-        scheda[col][idx].attivo = !e.target.checked;
+      const btnNascondi = document.createElement('button');
+      btnNascondi.className = 'btn-stato' + (!isOn ? ' chiusa' : '');
+      btnNascondi.textContent = isOn ? 'NASCONDI' : 'MOSTRA';
+      btnNascondi.title = 'Clicca per nascondere la riga: resta visibile ma è esclusa da conteggi, valori numerici e grafico (clicca di nuovo per mostrarla)';
+      btnNascondi.addEventListener('click', () => {
+        scheda[col][idx].attivo = scheda[col][idx].attivo === false;
         renderMovimenti(col);
         calcolaTutto();
       });
-      tdAtt.appendChild(inAtt); tr.appendChild(tdAtt);
+      tdAtt.appendChild(btnNascondi); tr.appendChild(tdAtt);
 
       // DEL
       const tdDel = document.createElement('td');
