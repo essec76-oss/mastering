@@ -273,15 +273,15 @@
 
       <div class="rg-sep"></div>
 
-      <!-- Breakeven: valore, distanza, %, σ, POP -->
-      <span class="rg-label" title="Breakeven superiore: valore, distanza dallo spot in punti, in percentuale, in deviazioni standard e probabilità di profitto nella zona">BE SUPERIORE</span>
+      <!-- Breakeven: valore, distanza, %, σ, POP della zona -->
+      <span class="rg-label" title="Breakeven superiore: valore, distanza dallo spot in punti, in percentuale, in deviazioni standard e probabilità di profitto oltre il BE">BE SUPERIORE</span>
       <strong id="beSup" class="rg-val">—</strong>
       <strong id="beSupDist" class="rg-val">—</strong>
       <strong id="beSupPct" class="rg-val">—</strong>
       <strong id="beSupSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
       <strong id="bePopSup" class="rg-val pop" title="Probabilità di profitto oltre il breakeven superiore">—</strong>
 
-      <span class="rg-label" title="Breakeven inferiore: valore, distanza dallo spot in punti, in percentuale, in deviazioni standard e probabilità di profitto nella zona">BE INFERIORE</span>
+      <span class="rg-label" title="Breakeven inferiore: valore, distanza dallo spot in punti, in percentuale, in deviazioni standard e probabilità di profitto sotto il BE">BE INFERIORE</span>
       <strong id="beInf" class="rg-val">—</strong>
       <strong id="beInfDist" class="rg-val">—</strong>
       <strong id="beInfPct" class="rg-val">—</strong>
@@ -290,23 +290,20 @@
 
       <div class="rg-sep"></div>
 
-      <!-- POP complessiva e per zona (spostate dal payoff combinato) -->
-      <span class="rg-label">POP</span>
-      <strong id="popValue" class="rg-val pop">—</strong>
-      <span class="rg-wide" id="popZoneWrap" title="Probabilità di profitto nelle zone delimitate dai breakeven (lognormale, Vol ATM, orizzonte prima scadenza)"></span>
-
-      <span id="cmpHeader" style="display:none;"></span>
-
-      <div class="rg-sep"></div>
-
       <!-- Delta totale -->
       <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&amp;L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
       <strong id="deltaTot" class="rg-val">—</strong>
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
+
+      <!-- Elementi non più visibili, mantenuti per il JS esistente (grafico.js li scrive ancora) -->
+      <div style="display:none;">
+        <span id="popValue">—</span>
+        <span id="popZoneWrap"></span>
+        <span id="cmpHeader"></span>
+      </div>
     </div>
   </div>
 </div>
-
 <!-- Grafico Payoff Combinato -->
 <div class="chart-panel" id="payoffPanel">
   <h2>Payoff Combinato</h2>
