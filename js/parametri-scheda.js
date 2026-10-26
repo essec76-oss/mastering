@@ -38,12 +38,8 @@
   function applica() {
     const s = schedaAttiva();
     if (!s || s === _caricata) return;
-    if (!s.par) {
-      // Scheda nuova senza parametri: eredita quelli dell'ultima caricata
-      s.par = _caricata && _caricata.par
-        ? { ...(_caricata.par) }
-        : leggi();
-    }
+    // Scheda senza parametri (es. appena azzerata): usa i valori attualmente nei campi
+    if (!s.par) s.par = leggi();
     scrivi(s.par);
     _caricata = s;
   }
