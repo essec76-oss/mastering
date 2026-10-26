@@ -121,11 +121,49 @@
     }
     return {
       total: Math.min(1, Math.max(0, prob)),
-      zones
+      zones,
+      spot
     };
   }
 
+  // POP delle righe BE: la zona di profitto che sta oltre il breakeven.
+  // Usa la stessa assegnazione inf/sup di updateBreakevenLabels:
+  // con un solo BE conta la posizione rispetto allo spot.
+  function aggiornaPopBreakeven(popResult) {
+    const elSup = el('bePopSup');
+    const elInf = el('bePopInf');
+    if (!elSup || !elInf) return;
+    elSup.textContent = '—';
+    elInf.textContent = '—';
+    if (!popResult || typeof popResult !== 'object') return;
+    const zones = popResult.zones || [];
+    const spot = popResult.spot;
+    if (!zones.length || !(spot > 0)) return;
+
+    const bes = [...new Set(
+      zones.flatMap(z => [z.lo, z.hi]).filter(b => isFinite(b) && b > 0).map(b => +b.toFixed(6))
+    )].sort((a, b) => a - b);
+    if (!bes.length) return;
+
+    let inf = null, sup = null;
+    if (bes.length === 1) {
+      if (bes[0] < spot) inf = bes[0];
+      else sup = bes[0];
+    } else {
+      inf = bes[0];
+      sup = bes[bes.length - 1];
+    }
+
+    const fmt = p => (p * 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    const zonaInf = inf !== null ? zones.find(z => Math.abs(z.hi - inf) < 1e-6) : null;
+    const zonaSup = sup !== null ? zones.find(z => Math.abs(z.lo - sup) < 1e-6) : null;
+
+    if (zonaInf && zonaInf.profitable) elInf.textContent = fmt(zonaInf.prob);
+    if (zonaSup && zonaSup.profitable) elSup.textContent = fmt(zonaSup.prob);
+  }
+
   function updatePOPLabel(popResult) {
+    aggiornaPopBreakeven(popResult);
     const e = el('popValue');
     const wrap = el('popZoneWrap');
     if (!e) return;
