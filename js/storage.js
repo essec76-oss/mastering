@@ -503,7 +503,9 @@ function migraScheda(s) {
     // v29 — override commodities
     tickerCommodity: s.tickerCommodity || '',
     moltiplicatoreCommodity: (s.moltiplicatoreCommodity !== undefined && s.moltiplicatoreCommodity !== null)
-      ? s.moltiplicatoreCommodity : null
+      ? s.moltiplicatoreCommodity : null,
+    // parametri di mercato della scheda (spot, vol, tassi, cash, data)
+    par: (s.par && typeof s.par === 'object') ? { ...s.par } : null
   };
 }
 
