@@ -122,7 +122,8 @@
     return {
       total: Math.min(1, Math.max(0, prob)),
       zones,
-      spot
+      spot,
+      nBe: bes.length
     };
   }
 
@@ -163,7 +164,11 @@
   }
 
   function updatePOPLabel(popResult) {
-    aggiornaPopBreakeven(popResult);
+    const lab = el('popLabel');
+    if (lab) {
+      const nBe = (popResult && typeof popResult === 'object') ? (popResult.nBe || 0) : 0;
+      lab.textContent = nBe >= 2 ? "Probabilità di profitto nell'intervallo" : 'Probabilità di profitto';
+    }
     const e = el('popValue');
     const wrap = el('popZoneWrap');
     if (!e) return;
