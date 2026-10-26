@@ -64,10 +64,6 @@ if (el('cash')) el('cash').addEventListener('input', () => {
   aggiornaStileCash();
   calcolaTutto();
 });
-if (el('cashEscludi')) el('cashEscludi').addEventListener('change', () => {
-  stato.cashEscluso = el('cashEscludi').checked;
-  calcolaTutto();
-});
 if (el('dataAnalisi')) el('dataAnalisi').addEventListener('change', () => {
   calcolaTutto();
 });
