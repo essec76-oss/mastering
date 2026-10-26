@@ -330,7 +330,6 @@ function _modaleEvidenziaSelezione() {
       // Aggiorna solo il nome (la sparkline nella riga non viene toccata)
       const nm = r.querySelector('.strategia-nome');
       if (nm) nm.textContent = (sel ? '✓ ' : '') + r.dataset.nome;
-      else r.textContent = (sel ? '✓ ' : '') + r.dataset.nome;
     });
   }
   const conferma = el('modalStrategieConferma');
@@ -358,8 +357,12 @@ if (el('modalStrategieOverlay')) el('modalStrategieOverlay').addEventListener('c
   if (e.target === e.currentTarget) chiudiModaleStrategie();
 });
 if (el('modalStrategieConferma')) el('modalStrategieConferma').addEventListener('click', _modaleConfermaAzione);
+let _ricercaSeq = 0;
 if (el('modalStrategieCerca')) el('modalStrategieCerca').addEventListener('input', e => {
-  renderListaSalvate(e.target.value).then(_modaleEvidenziaSelezione);
+  const seq = ++_ricercaSeq;
+  renderListaSalvate(e.target.value).then(() => {
+    if (seq === _ricercaSeq) _modaleEvidenziaSelezione();
+  });
 });
 const _boxModaleStrategie = el('modalListaStrategie');
 if (_boxModaleStrategie) {
