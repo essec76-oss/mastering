@@ -7,34 +7,30 @@
 <link rel="stylesheet" href="css/style.css">
 <style>
   /* Modale scelta strategia (carica / elimina da cloud) */
-  .modal-overlay{position\:fixed;inset:0;background\:rgba(5,7,10,.65);display\:flex;align-items\:center;justify-content\:center;z-index:1000;}
-  .modal-strategie{background\:var(--bg,#14171d);border:1px solid var(--border);border-radius:12px;padding:20px;width\:min(480px,92vw);max-height:80vh;display\:flex;flex-direction\:column;gap:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);}
-  .modal-strategie h3{margin:0;font-size:16px;color\:var(--text);}
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,7,10,.65);display:flex;align-items:center;justify-content:center;z-index:1000;}
+  .modal-strategie{background:var(--bg,#14171d);border:1px solid var(--border);border-radius:12px;padding:20px;width:min(560px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);}
+  .modal-strategie h3{margin:0;font-size:16px;color:var(--text);}
   #modalStrategieCerca{width:100%;}
-  .modal-lista{overflow-y\:auto;border:1px solid var(--border);border-radius:8px;min-height:120px;max-height:45vh;background\:rgba(0,0,0,.15);}
-  .strategia-row{display\:flex;align-items\:center;gap:12px;width:100%;text-align\:left;background:transparent;border\:none;border-bottom:1px solid var(--border);color\:var(--text);padding:10px 12px;font-size:14px;cursor\:pointer;}
-  .strategia-nome{flex:0 1 auto;white-space\:nowrap;overflow\:hidden;text-overflow\:ellipsis;}
-  .strategia-spark{margin-left\:auto;flex-shrink:0;display\:inline-flex;}
-  .strategia-row\:last-child{border-bottom\:none;}
-  .strategia-row\:hover{background\:rgba(79,140,255,.12);}
-  .strategia-row.selected{background\:rgba(79,140,255,.22) !important;border-left:4px solid var(--accent,#4f8cff) !important;color\:var(--text,#e6e8ee) !important;font-weight:700 !important;}
-  .strategia-row\:focus{outline:1px solid var(--accent,#4f8cff);}
-  .strategia-empty{padding:18px;text-align\:center;color\:var(--muted);font-size:13px;}
-  .modal-actions{display\:flex;justify-content\:flex-end;gap:10px;}
+  .modal-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start;overflow-y:auto;min-height:120px;max-height:50vh;padding:6px;border:1px solid var(--border);border-radius:8px;background:rgba(0,0,0,.15);}
+  .strategia-row{display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);color:var(--text);font-size:13px;cursor:pointer;text-align:left;}
+  .strategia-row:hover{border-color:var(--accent,#4f8cff);}
+  .strategia-row svg{width:100%;height:50px;display:block;}
+  .strategia-nome{display:block;text-align:center;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .strategia-row.selected{border-color:var(--accent,#4f8cff);background:rgba(79,140,255,.18) !important;box-shadow:inset 0 0 0 1px var(--accent,#4f8cff);font-weight:700 !important;}
+  .strategia-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;grid-column:1/-1;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
 
-  /* Riepilogo su righe: PL, BE e delta totale.
-     Richiesta 3: valori raggruppati accanto alle etichette (niente
-     giustificazione agli estremi della riga a tutta pagina). */
-  .riepilogo-box{display\:flex;flex-direction\:column;gap:8px;padding:4px 0;}
-  .pl-row{display\:flex;align-items\:center;gap:14px;flex-wrap\:wrap;}
-  .pl-label{font-size:13px;color\:var(--text);font-weight:700;white-space\:nowrap;}
-  .pl-box{background\:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 12px;text-align\:center;}
-  .pl-box .big-value{font-size:20px;font-variant-numeric\:tabular-nums;white-space:nowrap;}
-  .be-row{display\:flex;align-items\:center;justify-content\:flex-start;gap:10px;flex-wrap:wrap;padding:2px 0;}
+  /* Riepilogo su righe: PL, BE e delta totale. */
+  .riepilogo-box{display:flex;flex-direction:column;gap:8px;padding:4px 0;}
+  .pl-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .pl-label{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap;}
+  .pl-box{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 12px;text-align:center;}
+  .pl-box .big-value{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .be-row{display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:wrap;padding:2px 0;}
   .be-label{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap;min-width:150px;}
-  .be-vals{display\:flex;gap:6px;flex-wrap\:wrap;}
-  .be-val{font-size:14px;font-weight:700;color\:var(--text);background\:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 10px;text-align\:right;white-space\:nowrap;font-variant-numeric\:tabular-nums;min-width:0;overflow\:hidden;text-overflow\:ellipsis;}
-  .be-val.sigma{color:var(--yellow);border-color\:rgba(241,196,15,.35);}
+  .be-vals{display:flex;gap:6px;flex-wrap:wrap;}
+  .be-val{font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 10px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .be-val.sigma{color:var(--yellow);border-color:rgba(241,196,15,.35);}
   @media (max-width:480px){
     .be-val{font-size:12px;padding:4px 8px;}
     .pl-row{gap:8px;}
@@ -67,13 +63,13 @@
   <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva in cloud</button>
   <button class="btn" id="btnCaricaSalvato" title="Apre la finestra di scelta delle strategie salvate in cloud: seleziona una strategia e conferma per caricarla">Carica da cloud</button>
   <button class="btn danger" id="btnEliminaSalvato" title="Apre la finestra di scelta delle strategie salvate: seleziona una strategia e conferma per eliminarla">Elimina</button>
-  <span style="width:1px; height:24px; background\:var(--border);"></span>
+  <span style="width:1px;height:24px;background:var(--border);"></span>
   <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
   <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
-  <input type="file" id="fileImporta" accept="application/json,.json" style="display\:none;">
+  <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
 </div>
 <!-- Modale scelta strategia salvata -->
-<div class="modal-overlay" id="modalStrategieOverlay" style="display\:none;">
+<div class="modal-overlay" id="modalStrategieOverlay" style="display:none;">
   <div class="modal-strategie">
     <h3 id="modalStrategieTitolo">Carica strategia da cloud</h3>
     <input type="text" id="modalStrategieCerca" placeholder="Cerca strategia…" autocomplete="off">
@@ -293,7 +289,7 @@
       <label><input type="checkbox" id="showExpiryCorrente" checked> A scadenza</label>
       <label><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
     </div>
-    <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display\:none;">
+    <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display:none;">
       <span class="dot"></span>
       <span class="ctrl-label">Precedente</span>
       <label><input type="checkbox" id="showExpiryPrecedente" checked> A scadenza</label>
@@ -301,13 +297,13 @@
     </div>
     <label><input type="checkbox" id="showBE" checked> Breakeven</label>
   </div>
-  <div class="chart-controls" style="margin-top:-4px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
+  <div class="chart-controls" style="margin-top:-4px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
     <span>POP <strong id="popValue" style="color:var(--purple);">—</strong></span>
-    <span id="cmpHeader" style="display\:none; gap:10px; flex-wrap\:wrap; font-size:12px;"></span>
-    <span id="popZoneWrap" style="display\:inline-flex; gap:10px; flex-wrap\:wrap; font-size:12px; color\:var(--muted);" title="Probabilità di profitto nelle zone delimitate dai breakeven (lognormale, Vol ATM, orizzonte prima scadenza)"></span>
-    <label style="display\:inline-flex; gap:5px; align-items\:center; cursor\:pointer;">
+    <span id="cmpHeader" style="display:none;gap:10px;flex-wrap:wrap;font-size:12px;"></span>
+    <span id="popZoneWrap" style="display:inline-flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);" title="Probabilità di profitto nelle zone delimitate dai breakeven (lognormale, Vol ATM, orizzonte prima scadenza)"></span>
+    <label style="display:inline-flex;gap:5px;align-items:center;cursor:pointer;">
       <input type="checkbox" id="showSigma" title="Spunta per nascondere le deviazioni standard dal grafico"> Dev. std
-      <select id="nSD" class="small" style="width\:auto; padding:2px 4px; font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
+      <select id="nSD" class="small" style="width:auto;padding:2px 4px;font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
         <option value="1">1° SD</option>
         <option value="2" selected>2° SD</option>
         <option value="3">3° SD</option>
@@ -320,23 +316,23 @@
         <option value="10">10° SD</option>
       </select>
     </label>
-    <span style="display\:inline-flex; gap:6px; margin-left\:auto; align-items\:center; flex-wrap:wrap;">
+    <span style="display:inline-flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
       <button type="button" class="btn" id="btnModalitaZoom" title="Attiva/disattiva lo zoom con la sola rotella">Rotella: pagina</button>
-      <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px; font-size:16px; min-width:42px;">−</button>
-      <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px; font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px; font-size:16px;">+</button>
-      <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px; font-size:11px;">Reset</button>
+      <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px;font-size:16px;min-width:42px;">−</button>
+      <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px;font-size:12px;">Centra</button>
+      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;">+</button>
+      <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px;font-size:11px;">Reset</button>
     </span>
   </div>
-  <svg id="payoffChart" viewBox="0 0 920 570" preserveAspectRatio="xMidYMid meet" style="cursor\:crosshair; touch-action\:none; width:100%;"></svg>
+  <svg id="payoffChart" viewBox="0 0 920 570" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair;touch-action:none;width:100%;"></svg>
   <div class="chart-legend">
-    <span id="legendSchede" style="display\:contents;"></span>
+    <span id="legendSchede" style="display:contents;"></span>
     <span><i style="background:#ffffff;"></i> P&amp;L a scadenza (linea piena)</span>
-    <span><i style="background:#ffffff; height:0; border-top:2px dashed #ffffff; width:18px;"></i> P&amp;L Now (linea tratteggiata)</span>
-    <span><i style="background\:var(--accent);"></i> Spot</span>
+    <span><i style="background:#ffffff;height:0;border-top:2px dashed #ffffff;width:18px;"></i> P&amp;L Now (linea tratteggiata)</span>
+    <span><i style="background:var(--accent);"></i> Spot</span>
     <span><i style="background:#f1c40f;"></i> Breakeven</span>
-    <span><i style="background:#2ecc71; opacity:0.4;"></i> Dev. standard</span>
-    <span style="color\:var(--muted); font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo (e solo per il NES)</span>
+    <span><i style="background:#2ecc71;opacity:0.4;"></i> Dev. standard</span>
+    <span style="color:var(--muted);font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo (e solo per il NES)</span>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
