@@ -108,9 +108,9 @@
     const corrente = schedaAttiva();
     const precedente = schedaPrecedente();
     const voci = [];
-    voci.push(`<span><i style="background:${COLORE_CORRENTE};"></i> ${corrente ? corrente.nome : 'Corrente'} (corrente)</span>`);
+    voci.push(`<span><i style="background:${COLORE_CORRENTE};"></i> ${corrente ? corrente.nome : 'Corrente'} (corrente — linea continua)</span>`);
     if (precedente) {
-      voci.push(`<span><i style="background:${COLORE_PRECEDENTE};"></i> ${precedente.nome} (precedente)</span>`);
+      voci.push(`<span><i style="background:${COLORE_PRECEDENTE};height:0;border-top:2px dashed ${COLORE_PRECEDENTE};width:18px;"></i> ${precedente.nome} (precedente — tratteggiata)</span>`);
     }
     wrap.innerHTML = voci.join('');
   }
