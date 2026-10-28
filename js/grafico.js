@@ -869,9 +869,12 @@ let rotellaZoomAttiva = false;
       svgContent += `<path d="${pathFrom(corrente.pts, 'pnlExpiry')}" fill="none" stroke="${corrente.colore}" stroke-width="1.8"/>`;
     }
     if (vis.corrente.now) {
-      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.2" stroke-dasharray="5,4" opacity="0.85"/>`;
+      // In comparazione: la scheda corrente è SEMPRE continua (sia Now che Scadenza);
+      // il tratteggio distingue solo la scheda precedente. Fuori comparazione
+      // il Now della corrente resta tratteggiato come prima.
+      const dashCorrente = precedente ? '' : ' stroke-dasharray="5,4"';
+      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.2"${dashCorrente} opacity="0.85"/>`;
     }
-
     const showBEFlag = el('showBE') ? el('showBE').checked : true;
     if (showBEFlag) breakevens.forEach((be) => {
       if (be < xMin || be > xMax) return;
