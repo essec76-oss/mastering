@@ -60,8 +60,20 @@
   // ============================================================
   // PmG — PROFITTO MEDIO GIORNALIERO
   // ============================================================
-  // Giorni totali dell'operazione: dalla data analisi alla PRIMA scadenza
-  // tra le opzioni attive della Matrice (stato.schede[0]).
+  // Data analisi della Matrice: la data analisi è per-scheda, quindi
+  // quando sei in una scheda di comparazione l'input globale contiene
+  // la data di QUELLA scheda. Per calcolare il PmG si usa sempre la
+  // data della Matrice, salvata nella scheda stessa.
+  function dataAnalisiMatrice(matrice) {
+    if (matrice) {
+      if (matrice.dataAnalisi) return matrice.dataAnalisi;
+      if (matrice.parametri && matrice.parametri.dataAnalisi) return matrice.parametri.dataAnalisi;
+    }
+    return el('dataAnalisi') ? el('dataAnalisi').value : dataOggiIso();
+  }
+
+  // Giorni totali dell'operazione: dalla data analisi della MATRICE
+  // alla PRIMA scadenza tra le opzioni attive della Matrice.
   // Con una sola opzione = suo DTE; con più opzioni = scadenza più corta.
   // In scheda comparazione NON si usano i giorni residui di quella scheda.
   function giorniTotaliMatrice() {
@@ -73,7 +85,7 @@
       .filter(d => !isNaN(d.getTime()));
     if (!scadenze.length) return 0;
     const prima = new Date(Math.min(...scadenze));
-    const analisi = dataAnalisiDate();
+    const analisi = new Date(dataAnalisiMatrice(matrice) + 'T00:00:00');
     return Math.max(0, Math.round((prima - analisi) / 86400000));
   }
 
@@ -97,15 +109,24 @@
 
     // PL a scadenza della Matrice: ricalcola le colonne della Matrice
     // (NON della scheda attiva) e valuta il payoff combinato a scadenza.
+    // IMPORTANTE: il calcolo usa la DATA ANALISI della Matrice — durante
+    // il calcolo l'input globale viene temporaneamente impostato sulla
+    // data della Matrice e poi ripristinato su quello della scheda attiva
+    // (il set programmatico NON fa scattare l'event listener 'change').
     let pnlScadMatrice = NaN;
     const spotVal = parseFloat(el('prezzoSpot').value) || 0;
+    const inpData = el('dataAnalisi');
+    const dataPrecedente = inpData ? inpData.value : null;
     if (matrice && spotVal > 0) {
       try {
+        if (inpData) inpData.value = dataAnalisiMatrice(matrice);
         const resM_NES = calcolaColonna(matrice, 'NES');
         const resM_MES = calcolaColonna(matrice, 'MES');
         pnlScadMatrice = pnlCombinatoAt(matrice, spotVal, 'expiry', resM_NES, resM_MES);
       } catch (e) {
         pnlScadMatrice = NaN;
+      } finally {
+        if (inpData) inpData.value = dataPrecedente;
       }
     }
 
