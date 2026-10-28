@@ -1,4 +1,4 @@
-  // storage.js — persistenza localStorage + strategie cloud Supabase
+// storage.js — persistenza localStorage + strategie cloud Supabase
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
 
 // ============================================================
@@ -25,6 +25,7 @@ function raccogliDati() {
     divYield: parseFloat(el('divYield') && el('divYield').value) || 0,
     cash: parseFloat(el('cash').value) || 0,
     cashEscluso: !!stato.cashEscluso,
+    dataAnalisiIniziale: el('dataAnalisiIniziale') ? (el('dataAnalisiIniziale').value || '') : '',
     dataAnalisi: el('dataAnalisi') ? (el('dataAnalisi').value || '') : '',
     tipoNES: el('tipoNES').value,
     tipoMES: el('tipoMES').value,
@@ -77,6 +78,9 @@ function applicaDati(dati) {
     if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
     stato.cashEscluso = dati.cashEscluso === true;
     if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
+    if (typeof dati.dataAnalisiIniziale === 'string' && dati.dataAnalisiIniziale && el('dataAnalisiIniziale')) {
+      el('dataAnalisiIniziale').value = dati.dataAnalisiIniziale;
+    }
     if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
 
     // Schede: prima carica lo stato, poi applica la modalità (che sistema i select globali)
@@ -504,7 +508,7 @@ function migraScheda(s) {
     tickerCommodity: s.tickerCommodity || '',
     moltiplicatoreCommodity: (s.moltiplicatoreCommodity !== undefined && s.moltiplicatoreCommodity !== null)
       ? s.moltiplicatoreCommodity : null,
-    // parametri di mercato della scheda (spot, vol, tassi, cash, data)
+    // parametri di mercato della scheda (spot, vol, tassi, cash, date)
     par: (s.par && typeof s.par === 'object') ? { ...s.par } : null
   };
 }
@@ -562,7 +566,9 @@ function reset(senzaConferma) {
   aggiornaStileCash();
   stato.cashEscluso = false;
   if (el('cashEscludi')) el('cashEscludi').checked = false;
-  el('dataAnalisi').value = dataOggiIso();
+  const oggi = dataOggiIso();
+  if (el('dataAnalisiIniziale')) el('dataAnalisiIniziale').value = oggi;
+  el('dataAnalisi').value = oggi;
   if (typeof chartView !== 'undefined') {
     chartView.xMin = null; chartView.xMax = null;
     chartView.baseMin = null; chartView.baseMax = null;
