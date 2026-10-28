@@ -113,8 +113,12 @@
     <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
   </div>
   <div class="param-group">
-    <span class="label">Data analisi</span>
-    <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui. Default: data odierna.">
+    <span class="label">Data analisi iniziale</span>
+    <input type="date" id="dataAnalisiIniziale" class="small" style="width:140px;" disabled title="Data di partenza dell'operazione: fissata alla creazione e non modificabile. Usata per i giorni totali (PmG).">
+  </div>
+  <div class="param-group">
+    <span class="label">Data analisi attuale</span>
+    <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui della scheda corrente. Modificabile, indipendente per ogni scheda.">
   </div>
 </div>
 <div class="columns">
@@ -307,7 +311,7 @@
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
       <!-- PmG: profitto medio giornaliero (visibile solo in futures-commodities) -->
-      <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza / giorni totali dell'operazione (dalla Matrice: data analisi → prima scadenza tra le opzioni attive). Non usa i giorni residui della scheda di comparazione." style="display:none;">PmG</span>
+      <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Non usa i giorni residui della scheda di comparazione." style="display:none;">PmG</span>
       <strong id="pmgValue" class="rg-val" style="display:none;" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
 
       <!-- Elementi non visibili, mantenuti per il JS esistente -->
