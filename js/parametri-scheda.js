@@ -1,15 +1,19 @@
-// parametri-scheda.js — parametri di mercato per scheda (spot, vol, tassi, cash, data)
+// parametri-scheda.js — parametri di mercato per scheda (spot, vol, tassi, cash, date)
 // Caricato dopo schede.js e storage.js, prima di eventi.js e main.js.
 (function () {
   const CAMPI = [
-    { id: 'prezzoSpot',  key: 'spot' },
-    { id: 'volStorica',  key: 'volStorica' },
-    { id: 'volAtm',      key: 'volAtm' },
-    { id: 'riskFree',    key: 'riskFree' },
-    { id: 'divYield',    key: 'divYield' },
-    { id: 'cash',        key: 'cash' },
-    { id: 'dataAnalisi', key: 'dataAnalisi' }
+    { id: 'prezzoSpot',          key: 'spot' },
+    { id: 'volStorica',          key: 'volStorica' },
+    { id: 'volAtm',              key: 'volAtm' },
+    { id: 'riskFree',            key: 'riskFree' },
+    { id: 'divYield',            key: 'divYield' },
+    { id: 'cash',                key: 'cash' },
+    { id: 'dataAnalisiIniziale', key: 'dataAnalisiIniziale' },
+    { id: 'dataAnalisi',         key: 'dataAnalisi' }
   ];
+
+  // Campi immutabili: una volta fissati non vengono più sovrascritti dai campi della pagina
+  const IMMUTABILI = ['dataAnalisiIniziale'];
 
   // Scheda i cui parametri sono attualmente nei campi della pagina
   let _caricata = null;
@@ -34,21 +38,43 @@
     if (typeof aggiornaStileCash === 'function') aggiornaStileCash();
   }
 
+  // Imposta la data analisi iniziale se manca.
+  // Comparazioni: la prendono dalla Matrice. Matrice: data attuale o di oggi.
+  function completaIniziale(s) {
+    if (!s || !s.par || s.par.dataAnalisiIniziale) return;
+    const m = stato.schede[0];
+    const daMatrice = (m && m !== s && m.par && m.par.dataAnalisiIniziale)
+      ? m.par.dataAnalisiIniziale
+      : null;
+    s.par.dataAnalisiIniziale = daMatrice || s.par.dataAnalisi || dataOggiIso();
+  }
+
   // Porta i campi sulla scheda attiva, se è cambiata
   function applica() {
     const s = schedaAttiva();
     if (!s || s === _caricata) return;
-    // Scheda senza parametri (es. appena azzerata): usa i valori attualmente nei campi
-    if (!s.par) s.par = leggi();
+    if (!s.par) {
+      // Scheda senza parametri (es. appena azzerata o da file vecchio):
+      // non riusare l'iniziale presente nei campi, verrà ricavata sotto
+      s.par = leggi();
+      delete s.par.dataAnalisiIniziale;
+    }
+    completaIniziale(s);
     scrivi(s.par);
     _caricata = s;
   }
 
   // Salva i campi nella scheda caricata. Non tocca mai una scheda diversa.
+  // La data analisi iniziale resta quella già fissata.
   function salva() {
     const s = schedaAttiva();
     if (!s || s !== _caricata) return;
-    s.par = leggi();
+    const precedente = s.par || {};
+    const nuovo = leggi();
+    IMMUTABILI.forEach(k => {
+      if (precedente[k]) nuovo[k] = precedente[k];
+    });
+    s.par = nuovo;
   }
 
   CAMPI.forEach(c => {
@@ -77,6 +103,7 @@
   }
 
   // Comparazione: la nuova scheda riceve una COPIA dei parametri della scheda di partenza
+  // (inclusa la data analisi iniziale, che resta quella della Matrice)
   if (typeof window.creaComparazione === 'function') {
     const _cc = window.creaComparazione;
     window.creaComparazione = function () {
