@@ -113,9 +113,10 @@ function aggiornaPmG() {
   // (NON della scheda attiva) con TUTTI i parametri della Matrice
   // (spot, vol, risk-free, div, cash, data analisi attuale — salvati in
   // matrice.par da parametri-scheda.js). Durante il calcolo gli input della
-  // pagina vengono temporaneamente impostati sui parametri della Matrice e
-  // poi ripristinati su quelli della scheda attiva (il set programmatico NON
-  // fa scattare gli event listener 'input'/'change', quindi nessun ricalcolo a catena).
+  // pagina vengono temporaneamente impostati sui parametri della Matrice
+  // e poi ripristinati su quelli della scheda attiva. Il campo con il focus
+  // non viene mai toccato, così la digitazione non viene interrotta.
+  // Il set programmatico NON fa scattare gli event listener 'input'/'change'.
   let pnlScadMatrice = NaN;
   const parM = parMatrice(matrice);
   if (matrice && parM) {
@@ -130,7 +131,7 @@ function aggiornaPmG() {
     try {
       CAMPI_SWAP.forEach(id => {
         const e = el(id);
-        if (!e) return;
+        if (!e || e === document.activeElement) return;
         const v = parM[id === 'prezzoSpot' ? 'spot' : id];
         if (v !== undefined && v !== null && v !== '') e.value = v;
       });
@@ -146,7 +147,7 @@ function aggiornaPmG() {
     } finally {
       CAMPI_SWAP.forEach(id => {
         const e = el(id);
-        if (e && precedenti[id] !== undefined) e.value = precedenti[id];
+        if (e && e !== document.activeElement && precedenti[id] !== undefined) e.value = precedenti[id];
       });
       stato.cash = cashPrecedente;
     }
