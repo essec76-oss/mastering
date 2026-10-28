@@ -60,22 +60,25 @@
   // ============================================================
   // PmG — PROFITTO MEDIO GIORNALIERO
   // ============================================================
-  // Data analisi della Matrice: la data analisi è per-scheda, quindi
-  // quando sei in una scheda di comparazione l'input globale contiene
-  // la data di QUELLA scheda. Per calcolare il PmG si usa sempre la
-  // data della Matrice, salvata nella scheda stessa.
+  // Data analisi della Matrice: i parametri sono per-scheda
+  // (parametri-scheda.js li salva in scheda.par). Quando sei in una
+  // comparazione gli input della pagina contengono i parametri di
+  // QUELLA scheda: per la Matrice si legge sempre da matrice.par.
+  function parMatrice(matrice) {
+    return (matrice && matrice.par) ? matrice.par : null;
+  }
+
   function dataAnalisiMatrice(matrice) {
-    if (matrice) {
-      if (matrice.dataAnalisi) return matrice.dataAnalisi;
-      if (matrice.parametri && matrice.parametri.dataAnalisi) return matrice.parametri.dataAnalisi;
-    }
+    const p = parMatrice(matrice);
+    if (p && p.dataAnalisi) return p.dataAnalisi;
     return el('dataAnalisi') ? el('dataAnalisi').value : dataOggiIso();
   }
 
   // Giorni totali dell'operazione: dalla data analisi della MATRICE
   // alla PRIMA scadenza tra le opzioni attive della Matrice.
-  // Con una sola opzione = suo DTE; con più opzioni = scadenza più corta.
-  // In scheda comparazione NON si usano i giorni residui di quella scheda.
+  // La data della Matrice resta quella di apertura dell'operazione,
+  // quindi il risultato è la durata COMPLETA originaria (es. 180 gg),
+  // a prescindere dal tempo trascorso e dalla scheda in cui ti trovi.
   function giorniTotaliMatrice() {
     const matrice = stato.schede[0];
     if (!matrice || !Array.isArray(matrice.opzioni)) return 0;
@@ -108,25 +111,46 @@
     const giorni = giorniTotaliMatrice();
 
     // PL a scadenza della Matrice: ricalcola le colonne della Matrice
-    // (NON della scheda attiva) e valuta il payoff combinato a scadenza.
-    // IMPORTANTE: il calcolo usa la DATA ANALISI della Matrice — durante
-    // il calcolo l'input globale viene temporaneamente impostato sulla
-    // data della Matrice e poi ripristinato su quello della scheda attiva
-    // (il set programmatico NON fa scattare l'event listener 'change').
+    // (NON della scheda attiva) con TUTTI i parametri della Matrice
+    // (spot, vol, risk-free, div, cash, data analisi — salvati in
+    // matrice.par da parametri-scheda.js). Durante il calcolo gli
+    // input della pagina vengono temporaneamente impostati sui
+    // parametri della Matrice e poi ripristinati su quelli della
+    // scheda attiva (il set programmatico NON fa scattare gli event
+    // listener 'input'/'change', quindi nessun ricalcolo a catena).
     let pnlScadMatrice = NaN;
-    const spotVal = parseFloat(el('prezzoSpot').value) || 0;
-    const inpData = el('dataAnalisi');
-    const dataPrecedente = inpData ? inpData.value : null;
-    if (matrice && spotVal > 0) {
+    const parM = parMatrice(matrice);
+    if (matrice && parM) {
+      const CAMPI_SWAP = ['prezzoSpot', 'volStorica', 'volAtm', 'riskFree',
+                          'divYield', 'cash', 'dataAnalisi'];
+      const precedenti = {};
+      CAMPI_SWAP.forEach(id => {
+        const e = el(id);
+        if (e) precedenti[id] = e.value;
+      });
+      const cashPrecedente = stato.cash;
       try {
-        if (inpData) inpData.value = dataAnalisiMatrice(matrice);
-        const resM_NES = calcolaColonna(matrice, 'NES');
-        const resM_MES = calcolaColonna(matrice, 'MES');
-        pnlScadMatrice = pnlCombinatoAt(matrice, spotVal, 'expiry', resM_NES, resM_MES);
+        CAMPI_SWAP.forEach(id => {
+          const e = el(id);
+          if (!e) return;
+          const v = parM[id === 'prezzoSpot' ? 'spot' : id];
+          if (v !== undefined && v !== null && v !== '') e.value = v;
+        });
+        const spotVal = parseFloat(el('prezzoSpot').value) || 0;
+        stato.cash = parseFloat(parM.cash) || 0;
+        if (spotVal > 0) {
+          const resM_NES = calcolaColonna(matrice, 'NES');
+          const resM_MES = calcolaColonna(matrice, 'MES');
+          pnlScadMatrice = pnlCombinatoAt(matrice, spotVal, 'expiry', resM_NES, resM_MES);
+        }
       } catch (e) {
         pnlScadMatrice = NaN;
       } finally {
-        if (inpData) inpData.value = dataPrecedente;
+        CAMPI_SWAP.forEach(id => {
+          const e = el(id);
+          if (e && precedenti[id] !== undefined) e.value = precedenti[id];
+        });
+        stato.cash = cashPrecedente;
       }
     }
 
