@@ -40,10 +40,12 @@
     pnlScadEl.className = 'big-value value ' + (!isFinite(pnlScad) ? 'muted' : (pnlScad >= 0 ? 'green' : 'red'));
 
     // v28 — PmG (Profitto medio giornaliero): visibile SOLO in modalità
-    // futures-commodities. Giorni totali presi sempre dalla Matrice
-    // (stato.schede[0]): data analisi → prima scadenza opzioni attive.
-    // Anche in scheda comparazione non si usano i DTE di quella scheda.
-    aggiornaPmG(scheda, pnlScad);
+    // futures-commodities. Riferimento SEMPRE la Matrice (stato.schede[0]):
+    // sia i giorni totali (data analisi → prima scadenza opzioni attive)
+    // sia il PL a scadenza. In qualunque scheda ti trovi (anche in
+    // comparazione, anche alterando la data) il PmG resta quello
+    // dell'operazione della Matrice.
+    aggiornaPmG();
 
     // Aggiorna anteprima payoff (tutte le schede), breakeven,
     // delta totale nel riepilogo e legenda colori
@@ -75,10 +77,13 @@
     return Math.max(0, Math.round((prima - analisi) / 86400000));
   }
 
-  // PmG = PL a scadenza della scheda corrente (anche comparazione)
-  //        / giorni totali dell'operazione presi dalla Matrice.
+  // PmG = PL a scadenza della MATRICE
+  //        / giorni totali dell'operazione della MATRICE.
+  // Tutto è calcolato sulla Matrice (stato.schede[0]): in qualunque
+  // scheda ti trovi (anche comparazione con data alterata) il valore
+  // resta quello dell'operazione della Matrice.
   // Mostra «—» se la Matrice non ha opzioni attive con scadenza.
-  function aggiornaPmG(scheda, pnlScad) {
+  function aggiornaPmG() {
     const label = el('pmgLabel');
     const val = el('pmgValue');
     if (!label || !val) return;
@@ -87,8 +92,24 @@
     val.style.display = visibile ? '' : 'none';
     if (!visibile) return;
 
+    const matrice = stato.schede[0];
     const giorni = giorniTotaliMatrice();
-    const pmg = (giorni > 0 && isFinite(pnlScad)) ? pnlScad / giorni : NaN;
+
+    // PL a scadenza della Matrice: ricalcola le colonne della Matrice
+    // (NON della scheda attiva) e valuta il payoff combinato a scadenza.
+    let pnlScadMatrice = NaN;
+    const spotVal = parseFloat(el('prezzoSpot').value) || 0;
+    if (matrice && spotVal > 0) {
+      try {
+        const resM_NES = calcolaColonna(matrice, 'NES');
+        const resM_MES = calcolaColonna(matrice, 'MES');
+        pnlScadMatrice = pnlCombinatoAt(matrice, spotVal, 'expiry', resM_NES, resM_MES);
+      } catch (e) {
+        pnlScadMatrice = NaN;
+      }
+    }
+
+    const pmg = (giorni > 0 && isFinite(pnlScadMatrice)) ? pnlScadMatrice / giorni : NaN;
     val.textContent = isFinite(pmg) ? formatEuro(pmg) + ' /gg' : '—';
     val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
   }
