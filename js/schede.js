@@ -72,13 +72,30 @@ function dataAnalisiInizialeMatrice() {
 // La nuova scheda diventa attiva; il grafico la confronterà con quella precedente.
 // Data analisi iniziale: presa dalla Matrice (immutabile).
 // Data analisi attuale: copiata dalla scheda di partenza, poi indipendente.
+// Premio vuoto o zero nella comparazione: prende il prezzo teorico attuale
+// della scheda di partenza (stessa funzione della colonna PREZZO ATT.).
 function creaComparazione() {
-  const clone = JSON.parse(JSON.stringify(schedaAttiva()));
+  const origine = schedaAttiva();
+
+  const prezziTeorici = (origine.opzioni || []).map(o => {
+    const g = calcolaGrecheOpzione(o);
+    return (g && isFinite(g.price)) ? g.price : null;
+  });
+
+  const clone = JSON.parse(JSON.stringify(origine));
   clone.nome = 'Comparazione ' + stato.schede.length;
+
   const iniziale = dataAnalisiInizialeMatrice();
   if (iniziale) {
     clone.par = { ...(clone.par || {}), dataAnalisiIniziale: iniziale };
   }
+
+  (clone.opzioni || []).forEach((o, i) => {
+    const vuoto = o.premio === '' || o.premio === null || o.premio === undefined || Number(o.premio) === 0;
+    const prezzo = prezziTeorici[i];
+    if (vuoto && prezzo !== null) o.premio = Number(prezzo.toFixed(2));
+  });
+
   stato.schede.push(clone);
   stato.attiva = stato.schede.length - 1;
   renderTabs();
