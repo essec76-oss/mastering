@@ -1,25 +1,25 @@
 // futures.js — calcolo colonna futures: prezzo medio e P&L
 // Parte di Mastering: l'ordine di caricamento è definito in index.html.
 //
-// v29 — Modello riga unica apertura+chiusura (con fee):
+// v30 — Modello riga unica apertura+chiusura, fee UNICA di riga:
 //   Ogni movimento è una riga unica che contiene ENTRAMBI i lati:
-//     APERTURA: dataOpen, direzione (BUY/SELL), quantita, prezzoPulito, feeOpen
-//     CHIUSURA: dataClose, direzioneClose (inversa automatica di direzione),
-//               quantitaChiusa, prezzoClose, feeClose
+//     APERTURA: direzione (BUY/SELL), quantita, prezzoPulito
+//     CHIUSURA: direzioneClose (inversa automatica di direzione),
+//               quantitaChiusa, prezzoClose
+//     FEE: una sola per riga (m.fee), sottratta pro-quota al P&L.
 //   - La chiusura può essere parziale: quantitaChiusa <= quantita.
 //     Il residuo (quantita - quantitaChiusa) resta aperto e forma la
 //     posizione netta / media carico della colonna.
 //   - P&L realizzato della riga (RLZD), fee INCLUSE:
 //       (prezzoClose - prezzoOpen) * qChiusa * segno * molt
-//       - feeClose - feeOpen * (qChiusa / qAperta)
-//     La parte di feeOpen proporzionale alla parte ancora aperta resta
-//     caricata sul P&L aperto (non si perde).
-//   - Fee defaults: se l'utente non ha modificato a mano il campo fee,
-//     il render (render-futures.js) lo stima automaticamente come
-//     feeLatoFutureAttiva(tipo) * quantita.
-//   - Retrocompatibilità: movimenti salvati senza campi chiusura
-//     (quantitaChiusa, prezzoClose, fee*) sono trattati come APERTE
-//     (fallback || 0). Nessuna migrazione richiesta.
+//       - fee * (qChiusa / qAperta)
+//   - P&L aperto di colonna, fee INCLUSE:
+//       (spot - mediaPulita) * qAssoluta * segnoAperto * molt
+//       - somma(fee * residuo/qAperta)
+//   - Fee: SEMPRE manuale (parte a 0, nessuna auto-stima).
+//   - Retrocompatibilità: strategie salvate col vecchio schema
+//     (feeOpen, feeClose, dataOpen, dataClose) vengono migrate in
+//     storage.js (migraMov): feeOpen+feeClose -> fee; date scartate.
 //
 // NOTA: STRUMENTI_CON_COMMISSIONI e feeLatoFutureAttiva() sono definiti in
 // config.js e condivisi da tutti i moduli. NON ridichiararli qui.
@@ -29,24 +29,18 @@
     return MOLTIPLICATORI[tipo];
   }
 
-  // Movimento di default (v29). Usalo quando in eventi.js si preme
+  // Movimento di default (v30). Usalo quando in eventi.js si preme
   // "+ Aggiungi movimento": scheda[col].push(nuovoMovimentoFutures()).
-  // I vecchi push senza questi campi continuano a funzionare (fallback || 0).
   function nuovoMovimentoFutures(direzione) {
     return {
       attivo: true,
-      dataOpen: '',
       direzione: direzione || 'LONG',
       quantita: 0,
       prezzoPulito: 0,
-      feeOpen: 0,
-      feeOpenManuale: false,
-      dataClose: '',
       direzioneClose: (direzione || 'LONG') === 'LONG' ? 'SHORT' : 'LONG',
       quantitaChiusa: 0,
       prezzoClose: 0,
-      feeClose: 0,
-      feeCloseManuale: false
+      fee: 0
     };
   }
 
@@ -72,7 +66,7 @@
     let qtaAssolutaCorrente = 0;
     let pnlRealizzatoTot = 0;
     let feeTotAttive = 0;
-    let feeOpenResidue = 0; // quota di feeOpen della parte ancora aperta
+    let feeResidue = 0; // quota di fee imputata alla parte ancora aperta
 
     const righe = movimenti.map(m => ({
       tipo: 'vuota', qOriginale: m.quantita || 0, prezzo: m.prezzoPulito || 0,
@@ -92,24 +86,22 @@
       const segno = m.direzione === 'LONG' ? 1 : -1;
       const qCh = Math.min(m.quantitaChiusa || 0, qAp);
       const prezzoClose = m.prezzoClose || 0;
-      const feeOpen = m.feeOpen || 0;
-      const feeClose = m.feeClose || 0;
+      const fee = m.fee || 0;
 
-      feeTotAttive += feeOpen + feeClose;
+      feeTotAttive += fee;
 
       if (qAp === 0) return;
 
       const residuo = qAp - qCh;
-      // Quota di feeOpen imputata alla parte chiusa (proporzionale)
+      // Quota di fee imputata alla parte chiusa (proporzionale)
       const frazChiusa = qCh / qAp;
-      const feeOpenRea = feeOpen * frazChiusa;
-      const feeOpenRes = feeOpen - feeOpenRea;
+      const feeRea = fee * frazChiusa;
+      const feeRes = fee - feeRea;
 
       // P&L realizzato del lato chiuso (fee incluse)
       let pnlRea = 0;
       if (qCh > 0) {
-        pnlRea = (prezzoClose - prezzoOpen) * qCh * segno * molt
-               - feeClose - feeOpenRea;
+        pnlRea = (prezzoClose - prezzoOpen) * qCh * segno * molt - feeRea;
         pnlRealizzatoTot += pnlRea;
       }
 
@@ -125,7 +117,7 @@
         sommaPulitaPesata += prezzoOpen * residuo;
         qtaAssolutaCorrente += residuo;
         qtaNetta += segno * residuo;
-        feeOpenResidue += feeOpenRes;
+        feeResidue += feeRes;
       } else {
         righe[idx].tipo = 'chiusura';
       }
@@ -134,7 +126,7 @@
     // ============================================================
     // P&L APERTO — calcolato UNA VOLTA sulle variabili aggregate
     // (metodo prezzo medio). Include la quota residua delle fee
-    // di apertura della parte ancora aperta.
+    // della parte ancora aperta.
     // ============================================================
     const segnoAperto = Math.sign(qtaNetta) || 1;
     const mediaAperta = qtaAssolutaCorrente > 0
@@ -142,7 +134,7 @@
     let pnlApertoTot = 0;
     if (qtaAssolutaCorrente > 0 && spot > 0 && isFinite(mediaAperta)) {
       pnlApertoTot = (spot - mediaAperta) * qtaAssolutaCorrente * segnoAperto * molt
-                   - feeOpenResidue;
+                   - feeResidue;
     }
 
     righe.forEach(r => {
