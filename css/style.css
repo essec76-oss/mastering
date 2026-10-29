@@ -158,6 +158,11 @@
     background: var(--panel-2); color: var(--yellow); font-weight: 700; border-color: #3a4150;
     font-size: 15px; }
 
+  /* v29 — riga unica apertura+chiusura futures */
+  .movimenti input[type="date"]{width:118px;}
+  .movimenti .in-fee{width:68px;}
+  tr.row-mista td{background:rgba(241,196,15,.06);}
+
   .movimenti .btn-del {
     background: rgba(231, 76, 60, 0.08);
     border: 1px solid rgba(231, 76, 60, 0.45);
