@@ -513,10 +513,31 @@ function migraScheda(s) {
   };
 }
 
+// v30 — Migrazione movimento:
+// - Rimuove i campi obsoleti (dataOpen, dataClose).
+// - Converte feeOpen + feeClose in un'unica fee di riga.
+// - Rimuove i flag di "manuale" non più necessari.
 function migraMov(m) {
+  // compatibilità prezzo (vecchia chiave "prezzo")
   if (m.prezzoPulito === undefined) m.prezzoPulito = m.prezzo || 0;
   delete m.prezzo;
   if (m.attivo === undefined) m.attivo = true;
+
+  // fee: se esistono feeOpen/feeClose li somma in fee, poi li elimina
+  if (m.fee === undefined) {
+    const fo = (typeof m.feeOpen === 'number') ? m.feeOpen : 0;
+    const fc = (typeof m.feeClose === 'number') ? m.feeClose : 0;
+    m.fee = fo + fc;
+  }
+  delete m.feeOpen;
+  delete m.feeClose;
+  delete m.feeOpenManuale;
+  delete m.feeCloseManuale;
+
+  // date: eliminate (non più usate)
+  delete m.dataOpen;
+  delete m.dataClose;
+
   return m;
 }
 
