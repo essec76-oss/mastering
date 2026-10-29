@@ -428,5 +428,29 @@
     });
   })();
 </script>
+<script>
+  /* Sicurezza scroll: il mouse wheel su un campo numerico modifica il valore
+     SOLO se tieni premuto SHIFT. Senza SHIFT la rotella scrolla normalmente
+     la pagina e non tocca nessun valore. */
+  (function(){
+    document.addEventListener('wheel', function(e){
+      var t = e.target;
+      var isNum = (t && t.tagName === 'INPUT' && t.type === 'number');
+      if(!isNum) return;
+      if(e.shiftKey){
+        e.preventDefault(); // con SHIFT: il valore cambia, la pagina non scrolla
+      }else{
+        // senza SHIFT: blocca l'handler che modifica il valore, lascia scorrere la pagina
+        e.stopPropagation();
+      }
+    }, {capture:true, passive:false});
+    // Alcuni script usano l'evento 'wheel' come alias: copriamo anche 'mousewheel' (vecchi browser)
+    document.addEventListener('mousewheel', function(e){
+      if(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number' && !e.shiftKey){
+        e.stopPropagation();
+      }
+    }, {capture:true, passive:false});
+  })();
+</script>
 </body>
 </html>
