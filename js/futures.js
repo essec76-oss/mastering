@@ -1,35 +1,67 @@
 // futures.js — calcolo colonna futures: prezzo medio e P&L
-// Modello: ogni riga ha uno stato APERTA / CHIUSA.
-//  - APERTE: formano la posizione netta (delta, P&L aperto, media carico)
-//  - CHIUSE: P&L realizzato congelato contro la media di carico corrente
-//    delle APERTE, scalano le APERTE. Il P&L realizzato entra nei totali
-//    e nel grafico (via pnlFutureApertoAt in grafico.js).
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering: l'ordine di caricamento è definito in index.html.
+//
+// v29 — Modello riga unica apertura+chiusura (con fee):
+//   Ogni movimento è una riga unica che contiene ENTRAMBI i lati:
+//     APERTURA: dataOpen, direzione (BUY/SELL), quantita, prezzoPulito, feeOpen
+//     CHIUSURA: dataClose, direzioneClose (inversa automatica di direzione),
+//               quantitaChiusa, prezzoClose, feeClose
+//   - La chiusura può essere parziale: quantitaChiusa <= quantita.
+//     Il residuo (quantita - quantitaChiusa) resta aperto e forma la
+//     posizione netta / media carico della colonna.
+//   - P&L realizzato della riga (RLZD), fee INCLUSE:
+//       (prezzoClose - prezzoOpen) * qChiusa * segno * molt
+//       - feeClose - feeOpen * (qChiusa / qAperta)
+//     La parte di feeOpen proporzionale alla parte ancora aperta resta
+//     caricata sul P&L aperto (non si perde).
+//   - Fee defaults: se l'utente non ha modificato a mano il campo fee,
+//     il render (render-futures.js) lo stima automaticamente come
+//     feeLatoFutureAttiva(tipo) * quantita.
+//   - Retrocompatibilità: movimenti salvati senza campi chiusura
+//     (quantitaChiusa, prezzoClose, fee*) sono trattati come APERTE
+//     (fallback || 0). Nessuna migrazione richiesta.
 //
 // NOTA: STRUMENTI_CON_COMMISSIONI e feeLatoFutureAttiva() sono definiti in
 // config.js e condivisi da tutti i moduli. NON ridichiararli qui.
-//
-// NOTA v25 (fix P&L aperto post-chiusura):
-//   Il P&L aperto delle posizioni residue è calcolato UNA VOLTA sulle
-//   variabili aggregate (qtaAssolutaCorrente, sommaPulitaPesata) e non
-//   riga per riga. In precedenza il calcolo riga per riga usava r.prezzo
-//   e r.qAperta "storici", che non riflettevano le riduzioni di pool
-//   effettuate da riduciPool() → P&L gonfiato dopo una chiusura parziale.
-//   Le righe APERTE ora mostrano pnlAperto = 0 (il totale è nel campo
-//   pnlAperto del risultato della colonna).
 
   function risolviMoltiplicatore(scheda, col) {
     const tipo = scheda['tipo' + col];
     return MOLTIPLICATORI[tipo];
   }
 
+  // Movimento di default (v29). Usalo quando in eventi.js si preme
+  // "+ Aggiungi movimento": scheda[col].push(nuovoMovimentoFutures()).
+  // I vecchi push senza questi campi continuano a funzionare (fallback || 0).
+  function nuovoMovimentoFutures(direzione) {
+    return {
+      attivo: true,
+      dataOpen: '',
+      direzione: direzione || 'LONG',
+      quantita: 0,
+      prezzoPulito: 0,
+      feeOpen: 0,
+      feeOpenManuale: false,
+      dataClose: '',
+      direzioneClose: (direzione || 'LONG') === 'LONG' ? 'SHORT' : 'LONG',
+      quantitaChiusa: 0,
+      prezzoClose: 0,
+      feeClose: 0,
+      feeCloseManuale: false
+    };
+  }
+
+  // Direzione inversa (BUY -> SELL, SELL -> BUY)
+  function direzioneInversa(d) {
+    return d === 'LONG' ? 'SHORT' : 'LONG';
+  }
+
   function calcolaColonna(scheda, col) {
     const movimenti = scheda[col];
     const tipo = scheda['tipo' + col];
 
-    if (tipo === '-' || movimenti.length === 0) {
+    if (tipo === '-' || !movimenti || movimenti.length === 0) {
       return { righe: [], mediaPulita: NaN, pnlAperto: 0, pnlRealizzato: 0,
-        pnlTotale: 0, qtaNetta: 0, qtaAssolutaCorrente: 0, tipo };
+        pnlTotale: 0, qtaNetta: 0, qtaAssolutaCorrente: 0, tipo, feeTotali: 0 };
     }
 
     const molt = risolviMoltiplicatore(scheda, col);
@@ -39,6 +71,8 @@
     let sommaPulitaPesata = 0;
     let qtaAssolutaCorrente = 0;
     let pnlRealizzatoTot = 0;
+    let feeTotAttive = 0;
+    let feeOpenResidue = 0; // quota di feeOpen della parte ancora aperta
 
     const righe = movimenti.map(m => ({
       tipo: 'vuota', qOriginale: m.quantita || 0, prezzo: m.prezzoPulito || 0,
@@ -47,111 +81,70 @@
       pnlRealizzato: 0, pnlAperto: 0, pnlTotale: 0
     }));
 
-    function mediaCorrente() {
-      if (qtaAssolutaCorrente === 0) return 0;
-      return sommaPulitaPesata / qtaAssolutaCorrente;
-    }
-
-    // Applica una chiusura: P&L realizzato + fee round-trip.
-    // Ritorna il P&L realizzato prodotto dalla parte di chiusura.
-    function applicaChiusura(qta, prezzoUscita) {
-      const media = mediaCorrente();
-      const qChiusa = Math.min(qta, qtaAssolutaCorrente);
-      if (qChiusa === 0) return 0;
-      const segnoAperta = Math.sign(qtaNetta) || 1;
-      const pnlRea = (prezzoUscita - media) * qChiusa * segnoAperta * molt;
-      const feeRt = feeLatoFutureAttiva(tipo) * 2 * qChiusa;
-      return pnlRea - feeRt;
-    }
-
-    // Riduce il pool APERTE di `qta` (in valore assoluto)
-    function riduciPool(qta) {
-      let da = qta;
-      while (da > 0 && qtaAssolutaCorrente > 0) {
-        const qRid = Math.min(da, qtaAssolutaCorrente);
-        const frazione = qRid / qtaAssolutaCorrente;
-        sommaPulitaPesata *= (1 - frazione);
-        qtaAssolutaCorrente -= qRid;
-        qtaNetta = (qtaNetta > 0 ? 1 : -1) * qtaAssolutaCorrente;
-        da -= qRid;
-      }
-    }
-
-    function aggiungiPool(qta, prezzo, segno) {
-      const qtaConSegno = segno * qta;
-      if (qtaNetta === 0 || Math.sign(qtaNetta) === segno) {
-        sommaPulitaPesata += prezzo * qta;
-        qtaAssolutaCorrente += qta;
-        qtaNetta += qtaConSegno;
-      } else {
-        const qChiusa = Math.min(qta, Math.abs(qtaNetta));
-        const pnl = applicaChiusura(qChiusa, prezzo);
-        pnlRealizzatoTot += pnl;
-        riduciPool(qChiusa);
-        const qResidua = qta - qChiusa;
-        if (qResidua > 0) {
-          sommaPulitaPesata = prezzo * qResidua;
-          qtaAssolutaCorrente = qResidua;
-          qtaNetta = segno * qResidua;
-        }
-      }
-    }
-
     movimenti.forEach((m, idx) => {
       if (m.attivo === false) {
         righe[idx].tipo = 'off';
         return;
       }
-      const q = m.quantita || 0;
-      const prezzo = m.prezzoPulito || 0;
-      const segno = m.direzione === 'LONG' ? 1 : -1;
-      const stato = m.stato || 'APERTA';
-      righe[idx].stato = stato;
-      if (q === 0) return;
 
-      if (stato === 'CHIUSA') {
-        righe[idx].tipo = 'chiusura';
-        const media = mediaCorrente();
-        righe[idx].mediaIngresso = media;
-        const qChiusa = Math.min(q, qtaAssolutaCorrente);
-        const qResidua = q - qChiusa;
-        if (qChiusa > 0) {
-          const pnlRea = applicaChiusura(qChiusa, prezzo);
-          righe[idx].pnlRealizzato = pnlRea;
-          righe[idx].qChiusa = qChiusa;
-          pnlRealizzatoTot += pnlRea;
-          riduciPool(qChiusa);
-        }
-        if (qResidua > 0) {
-          righe[idx].tipo = 'mista';
-          righe[idx].qAperta = qResidua;
-          aggiungiPool(qResidua, prezzo, segno);
-        }
+      const qAp = m.quantita || 0;
+      const prezzoOpen = m.prezzoPulito || 0;
+      const segno = m.direzione === 'LONG' ? 1 : -1;
+      const qCh = Math.min(m.quantitaChiusa || 0, qAp);
+      const prezzoClose = m.prezzoClose || 0;
+      const feeOpen = m.feeOpen || 0;
+      const feeClose = m.feeClose || 0;
+
+      feeTotAttive += feeOpen + feeClose;
+
+      if (qAp === 0) return;
+
+      const residuo = qAp - qCh;
+      // Quota di feeOpen imputata alla parte chiusa (proporzionale)
+      const frazChiusa = qCh / qAp;
+      const feeOpenRea = feeOpen * frazChiusa;
+      const feeOpenRes = feeOpen - feeOpenRea;
+
+      // P&L realizzato del lato chiuso (fee incluse)
+      let pnlRea = 0;
+      if (qCh > 0) {
+        pnlRea = (prezzoClose - prezzoOpen) * qCh * segno * molt
+               - feeClose - feeOpenRea;
+        pnlRealizzatoTot += pnlRea;
+      }
+
+      righe[idx].qChiusa = qCh;
+      righe[idx].pnlRealizzato = pnlRea;
+      righe[idx].mediaIngresso = prezzoOpen;
+      righe[idx].stato = qCh > 0 ? 'CHIUSA' : 'APERTA';
+
+      if (residuo > 0) {
+        // La parte residua resta aperta: forma media e posizione netta
+        righe[idx].tipo = qCh > 0 ? 'mista' : 'apertura';
+        righe[idx].qAperta = residuo;
+        sommaPulitaPesata += prezzoOpen * residuo;
+        qtaAssolutaCorrente += residuo;
+        qtaNetta += segno * residuo;
+        feeOpenResidue += feeOpenRes;
       } else {
-        righe[idx].tipo = 'apertura';
-        righe[idx].qAperta = q;
-        aggiungiPool(q, prezzo, segno);
+        righe[idx].tipo = 'chiusura';
       }
     });
 
     // ============================================================
-    // P&L APERTO (v25 — fix): calcolato UNA VOLTA sulle variabili
-    // aggregate, non riga per riga. Le righe APERTE mostrano
-    // pnlAperto = 0: il P&L aperto totale vive solo
-    // nel campo `pnlAperto` del risultato e nel totale colonna.
+    // P&L APERTO — calcolato UNA VOLTA sulle variabili aggregate
+    // (metodo prezzo medio). Include la quota residua delle fee
+    // di apertura della parte ancora aperta.
     // ============================================================
-    const feeAperto = feeLatoFutureAttiva(tipo);
-    let pnlApertoTot = 0;
     const segnoAperto = Math.sign(qtaNetta) || 1;
     const mediaAperta = qtaAssolutaCorrente > 0
       ? sommaPulitaPesata / qtaAssolutaCorrente : 0;
+    let pnlApertoTot = 0;
     if (qtaAssolutaCorrente > 0 && spot > 0 && isFinite(mediaAperta)) {
       pnlApertoTot = (spot - mediaAperta) * qtaAssolutaCorrente * segnoAperto * molt
-                   - feeAperto * qtaAssolutaCorrente;
+                   - feeOpenResidue;
     }
 
-    // Le righe mostrano solo il proprio P&L realizzato (o 0).
-    // Il P&L aperto è aggregato a livello di colonna.
     righe.forEach(r => {
       r.pnlAperto = 0;
       r.pnlTotale = r.pnlRealizzato;
@@ -164,6 +157,6 @@
 
     return {
       righe, mediaPulita, pnlAperto: pnlApertoTot, pnlRealizzato: pnlRealizzatoTot,
-      pnlTotale, qtaNetta, qtaAssolutaCorrente, tipo
+      pnlTotale, qtaNetta, qtaAssolutaCorrente, tipo, feeTotali: feeTotAttive
     };
   }
