@@ -1,31 +1,25 @@
-// render-futures.js — render righe futures/azioni (modello transazionale)
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// render-futures.js — render righe futures/azioni
+// Parte di Mastering: l'ordine di caricamento è definito in index.html.
 //
-// v26 — Modello transazionale:
-//   - Niente più pulsante APERTA/CHIUSA sulla riga: lo stato è calcolato
-//     automaticamente da ricalcolaStatiScheda() in base alla direzione
-//     rispetto alla posizione netta corrente.
-//   - Rimossa la colonna Delta dalla riga (resta nel footer).
-//   - Colonna P&L rinominata RLZD (P&L realizzato della riga).
-//     - Riga di apertura → "—"
-//     - Riga di chiusura → valore realizzato
-//     - Riga esclusa    → "—"
+// v29 — Riga unica apertura+chiusura:
+//   Colonne della riga, nell'ordine richiesto:
+//     DEL · NASCONDI/MOSTRA ·
+//     OPEN (data) · Pos · Q.tà · Prezzo Open · Fee ·
+//     CLOSE (data) · Pos (inversa automatica di Pos open) · Q.tà · Prezzo Close · Fee ·
+//     RLZD
+//   - DEL è il primo elemento della riga, subito seguito dal pulsante
+//     NASCONDI/MOSTRA (riga esclusa da conteggi/valori/grafico se nascosta).
+//   - Pos di chiusura: generata automaticamente come inversa della Pos di
+//     apertura (BUY -> SELL, SELL -> BUY). Se cambi la Pos open, la Pos close
+//     si aggiorna da sola all'inversa.
+//   - Fee: campi editabili per lato. Se non li tocchi, vengono stimati in
+//     automatico (fee per contratto per lato x q.tà) a ogni cambio q.tà.
+//     Le fee ENTRANO nel RLZD e nei P&L (vedi futures.js v29).
+//   - La q.tà close può essere minore della open: chiusura parziale, il
+//     residuo resta aperto (riga "mista").
 //
-// v27 — Fee stimate nell'header di colonna:
-//   - Le commissioni NON entrano più nei calcoli (P&L lordo).
-//   - Le fee stimate (N aperture × 2 lati × 1,205 $/lato, solo NES)
-//     sono mostrate nell'header della colonna come promemoria.
-//   - Il toggle "Commissioni (solo NES)" è stato rimosso.
-//
-// v28 — Delta a taglia relativa (logica nuova):
-//   - Il delta di una scheda si esprime nell'unità del contratto di taglia
-//     maggiore presente (NES/MES/ES, anche tra le opzioni).
-//   - Scheda con un solo tipo: delta = quantità netta (1 per contratto).
-//   - Taglie fisse in unità ES: NES 0,01 · MES 0,1 · ES 1.
-//
-// Richiesta 5 — Il vecchio checkbox "Escludi dai conteggi" è stato eliminato:
-// al suo posto il pulsante NASCONDI / MOSTRA (come nelle opzioni). La riga
-// resta visibile ma è esclusa da conteggi, valori e grafico.
+// Retrocompatibilità: movimenti salvati con il vecchio formato
+// (senza quantitaChiusa/prezzoClose/fee) si aprono come APERTE.
 
   // Taglie relative in unità ES (fisse, indipendenti dai moltiplicatori)
   const TAGLIA_FUT = { NES: 0.01, MES: 0.1, ES: 1 };
@@ -36,7 +30,7 @@
     return tipo;
   }
 
-  // Delta di riga (usato solo per il calcolo interno, non più mostrato).
+  // Delta di riga (solo per calcolo interno, non mostrato).
   function deltaRiga(info, tipo) {
     if (!info || !(info.qAperta > 0)) return NaN;
     if (tipo === 'X') return NaN;
@@ -52,7 +46,8 @@
     const candidati = [];
     ['NES', 'MES'].forEach(col => {
       const tipo = scheda['tipo' + col];
-      const haPosizione = (scheda[col] || []).some(m => m.attivo !== false && (m.quantita || 0) > 0);
+      const haPosizione = (scheda[col] || []).some(m =>
+        m.attivo !== false && ((m.quantita || 0) - (m.quantitaChiusa || 0)) > 0);
       if (haPosizione && TAGLIA_FUT[tipo]) candidati.push(tipo);
     });
     (scheda.opzioni || []).forEach(o => {
@@ -74,35 +69,20 @@
   }
 
   // ============================================================
-  // RICALCOLO STATI (modello transazionale)
+  // STATI (compatibilità con il resto dell'app)
+  // v29: lo stato non dipende più dalla posizione netta ma dalla
+  // coppia open/close della riga stessa. Mantenuta per i moduli
+  // che la chiamano (calcola-tutto, ecc.): è un no-op sicuro.
   // ============================================================
-  // Assegna automaticamente `stato` a ogni movimento in base alla
-  // direzione rispetto alla posizione netta corrente:
-  //   - direzione d'accordo con la posizione → APERTA (apertura/aggiunta)
-  //   - direzione opposta                    → CHIUSA (chiusura)
-  //   - riga mista (una parte chiude e una apre) → CHIUSA
-  //     (la parte che apre è gestita internamente da aggiungiPool)
-  // Il campo `stato` resta nel dato (compatibilità salvataggi), ma
-  // non è più editabile dall'utente.
   function ricalcolaStatiScheda(scheda, col) {
     const movimenti = scheda[col] || [];
-    let posizioneNetta = 0;
     movimenti.forEach(m => {
-      if (m.attivo === false) return;
-      const q = m.quantita || 0;
-      if (q === 0) { m.stato = 'APERTA'; return; }
-      const segno = m.direzione === 'LONG' ? 1 : -1;
-      const segnoAttuale = Math.sign(posizioneNetta);
-      if (segnoAttuale === 0 || segnoAttuale === segno) {
-        m.stato = 'APERTA';
-      } else {
-        m.stato = 'CHIUSA';
-      }
-      posizioneNetta += segno * q;
+      const qAp = m.quantita || 0;
+      const qCh = Math.min(m.quantitaChiusa || 0, qAp);
+      m.stato = qCh > 0 ? 'CHIUSA' : 'APERTA';
     });
   }
 
-  // Ricalcola gli stati di NES e MES della scheda attiva.
   function ricalcolaStatiSchedaAttiva() {
     const scheda = schedaAttiva();
     if (!scheda) return;
@@ -111,26 +91,25 @@
   }
 
   // ============================================================
-  // FEE STIMATE (v27)
+  // FEE TOTALI (v29)
+  // Somma delle fee inserite/stimate nelle righe ATTIVE della colonna.
+  // Le fee ora entrano nei P&L: il valore in header è quello pagato.
   // ============================================================
-  // Fee stimate per la colonna: N aperture × 2 lati × 1,205 $/lato.
-  // Solo NES (whitelist STRUMENTI_CON_COMMISSIONI). Per gli altri
-  // strumenti ritorna 0 (in futuro potranno avere fee proprie).
-  // N.B.: le fee NON entrano nei calcoli (P&L lordo).
   function calcolaFeeStimate(col) {
     const scheda = schedaAttiva();
     const tipo = scheda['tipo' + col];
     if (!tipo || tipo === '-') return 0;
-    if (!STRUMENTI_CON_COMMISSIONI.includes(tipo)) return 0;
-    let nAperture = 0;
+    let tot = 0;
     (scheda[col] || []).forEach(m => {
       if (m.attivo === false) return;
-      const stato = m.stato || 'APERTA';
-      if (stato !== 'CHIUSA') {
-        nAperture += (m.quantita || 0);
-      }
+      tot += (m.feeOpen || 0) + (m.feeClose || 0);
     });
-    return nAperture * 2 * FEE_FUTURES_LATO;
+    return tot;
+  }
+
+  // Fee stimata per un lato: fee per contratto per lato x quantità.
+  function _feeStimataLato(tipo, qta) {
+    return (feeLatoFutureAttiva(tipo) || 0) * (qta || 0);
   }
 
   function renderRigaTotale(col, res) {
@@ -139,7 +118,6 @@
       prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
     }
 
-    // Fee stimate (v27)
     const feeEl = el('fee' + col);
     if (feeEl) {
       const fee = calcolaFeeStimate(col);
@@ -181,7 +159,6 @@
       } else {
         if (dLabelEl) dLabelEl.textContent = 'Delta ' + tipoLabel;
         if (res.qtaNetta !== 0) {
-          // v28 — delta espresso nell'unità del contratto di riferimento della scheda
           const tipoRif = tipoRiferimentoFut(schedaAttiva());
           const dRif = deltaInRiferimento(res.qtaNetta, res.tipo, tipoRif);
           dEl.textContent = formatGreek(dRif, 2);
@@ -201,10 +178,9 @@
     }
   }
 
-  // Restituisce il valore da mostrare nella colonna RLZD per una riga.
-  // - off → "—"
-  // - apertura → "—"
-  // - chiusura → valore realizzato formattato
+  // Valore RLZD della riga:
+  // - off / apertura (nessuna chiusura) / vuota → "—"
+  // - chiusura / mista → P&L realizzato del lato chiuso, fee incluse
   function _valoreRlzdRiga(info, isOff) {
     if (isOff) return { testo: '—', classe: 'muted' };
     if (!info) return { testo: '—', classe: 'muted' };
@@ -239,13 +215,15 @@
     });
   }
 
+  // ============================================================
+  // RENDER RIGA — v29
+  // ============================================================
   function renderMovimenti(col) {
-    // Modello transazionale: ricalcola gli stati in base alla direzione
-    // rispetto alla posizione netta, prima di calcolare i P&L.
-    ricalcolaStatiScheda(schedaAttiva(), col);
-
     const scheda = schedaAttiva();
+    ricalcolaStatiScheda(scheda, col);
+
     const res = calcolaColonna(scheda, col);
+    const tipo = scheda['tipo' + col];
     renderRigaTotale(col, res);
 
     const tbody = el('body' + col);
@@ -254,26 +232,15 @@
     scheda[col].forEach((mov, idx) => {
       const info = res.righe[idx] || { tipo: 'vuota', qAperta: 0, qChiusa: 0, pnlRealizzato: 0, pnlTotale: 0 };
       const tr = document.createElement('tr');
-      const isChiusa = (mov.stato || 'APERTA') === 'CHIUSA';
-      if (isChiusa) tr.classList.add('row-chiusa');
+
       const isOn = mov.attivo !== false;
+      const qAp = mov.quantita || 0;
+      const qCh = Math.min(mov.quantitaChiusa || 0, qAp);
+      if (qCh > 0 && qCh < qAp) tr.classList.add('row-mista');
+      else if (qCh >= qAp && qCh > 0) tr.classList.add('row-chiusa');
       if (!isOn) tr.classList.add('row-off');
 
-      // Nascondi (richiesta 5: sostituisce il vecchio checkbox "escludi")
-      const tdAtt = document.createElement('td');
-      tdAtt.dataset.label = 'Nascondi';
-      const btnNascondi = document.createElement('button');
-      btnNascondi.className = 'btn-stato' + (!isOn ? ' chiusa' : '');
-      btnNascondi.textContent = isOn ? 'NASCONDI' : 'MOSTRA';
-      btnNascondi.title = 'Clicca per nascondere la riga: resta visibile ma è esclusa da conteggi, valori numerici e grafico (clicca di nuovo per mostrarla)';
-      btnNascondi.addEventListener('click', () => {
-        scheda[col][idx].attivo = scheda[col][idx].attivo === false;
-        renderMovimenti(col);
-        calcolaTutto();
-      });
-      tdAtt.appendChild(btnNascondi); tr.appendChild(tdAtt);
-
-      // DEL
+      // ---- 1. DEL (primo pulsante della riga) ----
       const tdDel = document.createElement('td');
       tdDel.className = 'td-del';
       tdDel.dataset.label = 'DEL';
@@ -287,41 +254,82 @@
       });
       tdDel.appendChild(btnDel); tr.appendChild(tdDel);
 
-      // Pos
+      // ---- 2. NASCONDI / MOSTRA ----
+      const tdAtt = document.createElement('td');
+      tdAtt.dataset.label = 'Nascondi';
+      const btnNascondi = document.createElement('button');
+      btnNascondi.className = 'btn-stato' + (!isOn ? ' chiusa' : '');
+      btnNascondi.textContent = isOn ? 'NASCONDI' : 'MOSTRA';
+      btnNascondi.title = 'Clicca per nascondere la riga: resta visibile ma è esclusa da conteggi, valori numerici e grafico (clicca di nuovo per mostrarla)';
+      btnNascondi.addEventListener('click', () => {
+        scheda[col][idx].attivo = scheda[col][idx].attivo === false;
+        renderMovimenti(col);
+        calcolaTutto();
+      });
+      tdAtt.appendChild(btnNascondi); tr.appendChild(tdAtt);
+
+      // ---- BLOCCO APERTURA ----
+
+      // OPEN (data)
+      const tdDataO = document.createElement('td');
+      tdDataO.dataset.label = 'Open';
+      const inDataO = document.createElement('input');
+      inDataO.type = 'date';
+      inDataO.className = 'in-data';
+      inDataO.value = mov.dataOpen || '';
+      inDataO.title = 'Data di apertura';
+      inDataO.addEventListener('change', e => {
+        scheda[col][idx].dataOpen = e.target.value;
+        calcolaTutto();
+      });
+      tdDataO.appendChild(inDataO); tr.appendChild(tdDataO);
+
+      // Pos (BUY/SELL) — cambiandola, la Pos close si rigenera all'inversa
       const tdPos = document.createElement('td');
       tdPos.dataset.label = 'Pos';
       const selPos = document.createElement('select');
       selPos.innerHTML = '<option value="LONG">BUY</option><option value="SHORT">SELL</option>';
       selPos.value = mov.direzione;
+      selPos.title = 'Direzione di apertura: se BUY la chiusura è SELL, se SELL la chiusura è BUY';
       selPos.addEventListener('change', e => {
-        scheda[col][idx].direzione = e.target.value;
+        const d = e.target.value;
+        scheda[col][idx].direzione = d;
+        // Pos close = inversa automatica della Pos open
+        scheda[col][idx].direzioneClose = direzioneInversa(d);
         renderMovimenti(col); calcolaTutto();
       });
       tdPos.appendChild(selPos); tr.appendChild(tdPos);
 
-      // Q.tà
+      // Q.tà open
       const tdQta = document.createElement('td');
       tdQta.dataset.label = 'Q.tà';
       const inQta = document.createElement('input');
       inQta.type = 'number'; inQta.step = '1'; inQta.min = '0';
       inQta.value = mov.quantita;
+      inQta.title = 'Quantità aperta';
       inQta.addEventListener('input', e => {
         const v = e.target.value;
-        scheda[col][idx].quantita = v === '' ? 0 : (parseFloat(v) || 0);
-        // La quantità cambia la posizione netta → ricalcola gli stati
-        ricalcolaStatiScheda(scheda, col);
+        const q = v === '' ? 0 : (parseFloat(v) || 0);
+        scheda[col][idx].quantita = q;
+        // ricalcola lo stato del lato close rispetto alla nuova q.tà open
+        scheda[col][idx].quantitaChiusa = Math.min(scheda[col][idx].quantitaChiusa || 0, q);
+        // fee stimata automatica (solo se non modificata a mano)
+        if (!scheda[col][idx].feeOpenManuale) {
+          scheda[col][idx].feeOpen = _feeStimataLato(tipo, q);
+        }
         aggiornaCalcolati(col); calcolaTutto();
       });
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
 
-      // Prezzo
+      // Prezzo open
       const tdPrezzo = document.createElement('td');
-      tdPrezzo.dataset.label = 'Prezzo';
+      tdPrezzo.dataset.label = 'Prezzo Open';
       const inPrezzo = document.createElement('input');
       inPrezzo.type = 'number'; inPrezzo.step = '0.25';
       inPrezzo.className = 'prezzo-nominale';
       inPrezzo.value = (mov.prezzoPulito === 0 || mov.prezzoPulito === undefined) ? '' : mov.prezzoPulito;
       inPrezzo.placeholder = '—';
+      inPrezzo.title = 'Prezzo di apertura';
       inPrezzo.addEventListener('input', e => {
         const v = e.target.value;
         scheda[col][idx].prezzoPulito = v === '' ? 0 : (parseFloat(v) || 0);
@@ -329,11 +337,110 @@
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
-      // RLZD (ex P&L)
+      // Fee open
+      const tdFeeO = document.createElement('td');
+      tdFeeO.dataset.label = 'Fee';
+      const inFeeO = document.createElement('input');
+      inFeeO.type = 'number'; inFeeO.step = '0.01'; inFeeO.min = '0';
+      inFeeO.className = 'in-fee';
+      inFeeO.value = (mov.feeOpen === 0 || mov.feeOpen === undefined) ? '' : mov.feeOpen;
+      inFeeO.placeholder = '0';
+      inFeeO.title = 'Fee di apertura. Se non la modifichi viene stimata automaticamente (fee per contratto per lato × q.tà). Entra nel P&L.';
+      inFeeO.addEventListener('input', e => {
+        const v = e.target.value;
+        scheda[col][idx].feeOpen = v === '' ? 0 : (parseFloat(v) || 0);
+        scheda[col][idx].feeOpenManuale = true; // da ora non più auto-stimata
+        aggiornaCalcolati(col); calcolaTutto();
+      });
+      tdFeeO.appendChild(inFeeO); tr.appendChild(tdFeeO);
+
+      // ---- BLOCCO CHIUSURA ----
+
+      // CLOSE (data)
+      const tdDataC = document.createElement('td');
+      tdDataC.dataset.label = 'Close';
+      const inDataC = document.createElement('input');
+      inDataC.type = 'date';
+      inDataC.className = 'in-data';
+      inDataC.value = mov.dataClose || '';
+      inDataC.title = 'Data di chiusura';
+      inDataC.addEventListener('change', e => {
+        scheda[col][idx].dataClose = e.target.value;
+        calcolaTutto();
+      });
+      tdDataC.appendChild(inDataC); tr.appendChild(tdDataC);
+
+      // Pos close (inversa automatica della Pos open)
+      const tdPosC = document.createElement('td');
+      tdPosC.dataset.label = 'Pos Close';
+      const selPosC = document.createElement('select');
+      selPosC.innerHTML = '<option value="LONG">BUY</option><option value="SHORT">SELL</option>';
+      selPosC.value = mov.direzioneClose || direzioneInversa(mov.direzione);
+      selPosC.title = 'Direzione di chiusura: generata automaticamente come inversa della Pos di apertura';
+      selPosC.addEventListener('change', e => {
+        scheda[col][idx].direzioneClose = e.target.value;
+        calcolaTutto();
+      });
+      tdPosC.appendChild(selPosC); tr.appendChild(tdPosC);
+
+      // Q.tà close (chiusura parziale consentita)
+      const tdQtaC = document.createElement('td');
+      tdQtaC.dataset.label = 'Q.tà Close';
+      const inQtaC = document.createElement('input');
+      inQtaC.type = 'number'; inQtaC.step = '1'; inQtaC.min = '0';
+      inQtaC.value = mov.quantitaChiusa || '';
+      inQtaC.placeholder = '0';
+      inQtaC.title = 'Quantità chiusa. Può essere minore della q.tà aperta: il residuo resta aperto';
+      inQtaC.addEventListener('input', e => {
+        const v = e.target.value;
+        const q = v === '' ? 0 : (parseFloat(v) || 0);
+        scheda[col][idx].quantitaChiusa = Math.min(q, scheda[col][idx].quantita || 0);
+        if (!scheda[col][idx].feeCloseManuale) {
+          scheda[col][idx].feeClose = _feeStimataLato(tipo, scheda[col][idx].quantitaChiusa);
+        }
+        ricalcolaStatiScheda(scheda, col);
+        aggiornaCalcolati(col); calcolaTutto();
+      });
+      tdQtaC.appendChild(inQtaC); tr.appendChild(tdQtaC);
+
+      // Prezzo close
+      const tdPrezzoC = document.createElement('td');
+      tdPrezzoC.dataset.label = 'Prezzo Close';
+      const inPrezzoC = document.createElement('input');
+      inPrezzoC.type = 'number'; inPrezzoC.step = '0.25';
+      inPrezzoC.className = 'prezzo-nominale';
+      inPrezzoC.value = (mov.prezzoClose === 0 || mov.prezzoClose === undefined) ? '' : mov.prezzoClose;
+      inPrezzoC.placeholder = '—';
+      inPrezzoC.title = 'Prezzo di chiusura';
+      inPrezzoC.addEventListener('input', e => {
+        const v = e.target.value;
+        scheda[col][idx].prezzoClose = v === '' ? 0 : (parseFloat(v) || 0);
+        aggiornaCalcolati(col); calcolaTutto();
+      });
+      tdPrezzoC.appendChild(inPrezzoC); tr.appendChild(tdPrezzoC);
+
+      // Fee close
+      const tdFeeC = document.createElement('td');
+      tdFeeC.dataset.label = 'Fee';
+      const inFeeC = document.createElement('input');
+      inFeeC.type = 'number'; inFeeC.step = '0.01'; inFeeC.min = '0';
+      inFeeC.className = 'in-fee';
+      inFeeC.value = (mov.feeClose === 0 || mov.feeClose === undefined) ? '' : mov.feeClose;
+      inFeeC.placeholder = '0';
+      inFeeC.title = 'Fee di chiusura. Se non la modifichi viene stimata automaticamente. Entra nel P&L.';
+      inFeeC.addEventListener('input', e => {
+        const v = e.target.value;
+        scheda[col][idx].feeClose = v === '' ? 0 : (parseFloat(v) || 0);
+        scheda[col][idx].feeCloseManuale = true; // da ora non più auto-stimata
+        aggiornaCalcolati(col); calcolaTutto();
+      });
+      tdFeeC.appendChild(inFeeC); tr.appendChild(tdFeeC);
+
+      // ---- RLZD (P&L realizzato della riga, fee incluse) ----
       const tdRlzd = document.createElement('td');
       tdRlzd.className = 'pnl-riga td-pnl';
       tdRlzd.dataset.label = 'RLZD';
-      tdRlzd.title = 'P&L realizzato della riga (solo per righe di chiusura)';
+      tdRlzd.title = 'P&L realizzato della chiusura: (prezzo close − prezzo open) × q.tà close − fee, fee open proporzionale alla parte chiusa';
       const { testo, classe } = _valoreRlzdRiga(info, !isOn);
       tdRlzd.textContent = testo;
       tdRlzd.classList.add(classe);
