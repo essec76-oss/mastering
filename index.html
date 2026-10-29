@@ -343,6 +343,7 @@
       <div style="display:none;">
         <span id="popZoneWrap"></span>
         <span id="cmpHeader"></span>
+        <input type="checkbox" id="showSigma">
       </div>
     </div>
   </div>
@@ -364,7 +365,7 @@
       <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L Now (teorico) della scheda precedente (comparazione)"><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
     </div>
     <label class="toggle-pill" title="Mostra/nascondi i breakeven sul grafico"><input type="checkbox" id="showBE"> Breakeven</label>
-    <label class="toggle-pill" title="Mostra/nascondi le deviazioni standard sul grafico"><input type="checkbox" id="showSigma"> Dev. std</label>
+    <label class="toggle-pill" title="Mostra/nascondi le deviazioni standard sul grafico"><input type="checkbox" id="showSigmaUI"> Dev. std</label>
     <select id="nSD" class="small" style="width:auto;padding:2px 4px;font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
       <option value="1">1° SD</option>
       <option value="2" selected>2° SD</option>
@@ -412,5 +413,20 @@
 <script src="js/parametri-scheda.js"></script>
 <script src="js/eventi.js"></script>
 <script src="js/main.js"></script>
+<script>
+  /* Ponte toggle Dev. std: la UI usa logica diretta (spuntato = visibile),
+     mentre il grafico usa la logica storica inversa (showSigma spuntato = nascosto).
+     Questo script li tiene sincronizzati invertiti. */
+  (function(){
+    var ui = document.getElementById('showSigmaUI');
+    var reale = document.getElementById('showSigma');
+    function sync(){ reale.checked = !ui.checked; }
+    sync(); // stato iniziale: pillola spenta -> bande nascoste
+    ui.addEventListener('change', function(){
+      sync();
+      reale.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+  })();
+</script>
 </body>
 </html>
