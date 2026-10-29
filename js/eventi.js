@@ -242,8 +242,7 @@ if (el('modalitaGlobale')) {
 document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
   btn.addEventListener('click', () => {
     const col = btn.dataset.col;
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
-    schedaAttiva()[col].push({ direzione: 'LONG', quantita: 1, prezzoPulito: spot, attivo: true });
+    schedaAttiva()[col].push(nuovoMovimentoFutures('LONG'));
     renderMovimenti(col); calcolaTutto();
   });
 });
