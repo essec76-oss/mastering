@@ -45,6 +45,32 @@
     .rg-val.big{font-size:16px;}
   }
     .riepilogo-grid .rg-label.wrap{white-space:normal;line-height:1.25;}
+
+  /* ===== Toggle-pill: scritte cliccabili al posto dei checkbox nel pannello Payoff ===== */
+  .toggle-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 12px;border-radius:999px;cursor:pointer;user-select:none;
+    font-size:12px;font-weight:600;white-space:nowrap;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.04);
+    color:var(--muted);
+    transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+  }
+  .toggle-pill input[type="checkbox"]{display:none;}
+  /* Stato ATTIVO (visibile sul grafico): colore acceso */
+  .toggle-pill:has(input:checked){
+    background:rgba(79,140,255,.22);
+    border-color:var(--accent,#4f8cff);
+    color:#fff;
+    box-shadow:inset 0 0 0 1px var(--accent,#4f8cff);
+  }
+  /* Stato SPENTO (nascosto sul grafico): colore spento */
+  .toggle-pill:has(input:not(:checked)){
+    background:rgba(255,255,255,.03);
+    border-color:var(--border);
+    color:var(--muted);
+  }
+  .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
 </style>
 </head>
 <body>
@@ -328,33 +354,31 @@
     <div class="ctrl-group corrente" id="ctrlGroupCorrente">
       <span class="dot"></span>
       <span class="ctrl-label">Corrente</span>
-      <label><input type="checkbox" id="showExpiryCorrente" checked> A scadenza</label>
-      <label><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L a scadenza della scheda corrente"><input type="checkbox" id="showExpiryCorrente" checked> P&amp;L a scadenza</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L Now (teorico) della scheda corrente"><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
     </div>
     <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display:none;">
       <span class="dot"></span>
       <span class="ctrl-label">Precedente</span>
-      <label><input type="checkbox" id="showExpiryPrecedente" checked> A scadenza</label>
-      <label><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L a scadenza della scheda precedente (comparazione)"><input type="checkbox" id="showExpiryPrecedente" checked> P&amp;L a scadenza</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L Now (teorico) della scheda precedente (comparazione)"><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
     </div>
-    <label><input type="checkbox" id="showBE" checked> Breakeven</label>
+    <label class="toggle-pill" title="Mostra/nascondi i breakeven sul grafico"><input type="checkbox" id="showBE"> Breakeven</label>
+    <label class="toggle-pill" title="Mostra/nascondi le deviazioni standard sul grafico"><input type="checkbox" id="showSigma"> Dev. std</label>
+    <select id="nSD" class="small" style="width:auto;padding:2px 4px;font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
+      <option value="1">1° SD</option>
+      <option value="2" selected>2° SD</option>
+      <option value="3">3° SD</option>
+      <option value="4">4° SD</option>
+      <option value="5">5° SD</option>
+      <option value="6">6° SD</option>
+      <option value="7">7° SD</option>
+      <option value="8">8° SD</option>
+      <option value="9">9° SD</option>
+      <option value="10">10° SD</option>
+    </select>
   </div>
   <div class="chart-controls" style="margin-top:-4px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
-    <label style="display:inline-flex;gap:5px;align-items:center;cursor:pointer;">
-      <input type="checkbox" id="showSigma" title="Spunta per nascondere le deviazioni standard dal grafico"> Dev. std
-      <select id="nSD" class="small" style="width:auto;padding:2px 4px;font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
-        <option value="1">1° SD</option>
-        <option value="2" selected>2° SD</option>
-        <option value="3">3° SD</option>
-        <option value="4">4° SD</option>
-        <option value="5">5° SD</option>
-        <option value="6">6° SD</option>
-        <option value="7">7° SD</option>
-        <option value="8">8° SD</option>
-        <option value="9">9° SD</option>
-        <option value="10">10° SD</option>
-      </select>
-    </label>
     <span style="display:inline-flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
       <button type="button" class="btn" id="btnModalitaZoom" title="Attiva/disattiva lo zoom con la sola rotella">Rotella: pagina</button>
       <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px;font-size:16px;min-width:42px;">−</button>
