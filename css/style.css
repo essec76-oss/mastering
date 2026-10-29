@@ -159,7 +159,6 @@
     font-size: 15px; }
 
   /* v29 — riga unica apertura+chiusura futures */
-  .movimenti input[type="date"]{width:118px;}
   .movimenti .in-fee{width:68px;}
   tr.row-mista td{background:rgba(241,196,15,.06);}
 
