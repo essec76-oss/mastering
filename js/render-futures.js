@@ -1,25 +1,18 @@
 // render-futures.js — render righe futures/azioni
 // Parte di Mastering: l'ordine di caricamento è definito in index.html.
 //
-// v29 — Riga unica apertura+chiusura:
-//   Colonne della riga, nell'ordine richiesto:
-//     DEL · NASCONDI/MOSTRA ·
-//     OPEN (data) · Pos · Q.tà · Prezzo Open · Fee ·
-//     CLOSE (data) · Pos (inversa automatica di Pos open) · Q.tà · Prezzo Close · Fee ·
-//     RLZD
-//   - DEL è il primo elemento della riga, subito seguito dal pulsante
-//     NASCONDI/MOSTRA (riga esclusa da conteggi/valori/grafico se nascosta).
+// v30 — Riga unica apertura+chiusura, fee unica di riga:
+//   Colonne della riga, nell'ordine:
+//     DEL · NASCONDI/MOSTRA · Pos · Q.tà · Prezzo Open ·
+//     Pos (inversa automatica di Pos open) · Q.tà · Prezzo Close ·
+//     Fee · RLZD
+//   - DEL è il primo elemento della riga, seguito da NASCONDI/MOSTRA.
 //   - Pos di chiusura: generata automaticamente come inversa della Pos di
-//     apertura (BUY -> SELL, SELL -> BUY). Se cambi la Pos open, la Pos close
-//     si aggiorna da sola all'inversa.
-//   - Fee: campi editabili per lato. Se non li tocchi, vengono stimati in
-//     automatico (fee per contratto per lato x q.tà) a ogni cambio q.tà.
-//     Le fee ENTRANO nel RLZD e nei P&L (vedi futures.js v29).
+//     apertura (BUY -> SELL, SELL -> BUY).
+//   - Fee: campo editabile, SEMPRE manuale (parte a 0, nessuna auto-stima).
+//     Le fee ENTRANO nel RLZD e nei P&L (vedi futures.js v30).
 //   - La q.tà close può essere minore della open: chiusura parziale, il
 //     residuo resta aperto (riga "mista").
-//
-// Retrocompatibilità: movimenti salvati con il vecchio formato
-// (senza quantitaChiusa/prezzoClose/fee) si aprono come APERTE.
 
   // Taglie relative in unità ES (fisse, indipendenti dai moltiplicatori)
   const TAGLIA_FUT = { NES: 0.01, MES: 0.1, ES: 1 };
@@ -70,9 +63,7 @@
 
   // ============================================================
   // STATI (compatibilità con il resto dell'app)
-  // v29: lo stato non dipende più dalla posizione netta ma dalla
-  // coppia open/close della riga stessa. Mantenuta per i moduli
-  // che la chiamano (calcola-tutto, ecc.): è un no-op sicuro.
+  // Lo stato dipende dalla coppia open/close della riga stessa.
   // ============================================================
   function ricalcolaStatiScheda(scheda, col) {
     const movimenti = scheda[col] || [];
@@ -91,9 +82,8 @@
   }
 
   // ============================================================
-  // FEE TOTALI (v29)
-  // Somma delle fee inserite/stimate nelle righe ATTIVE della colonna.
-  // Le fee ora entrano nei P&L: il valore in header è quello pagato.
+  // FEE TOTALI (v30)
+  // Somma delle fee inserite manualmente nelle righe ATTIVE della colonna.
   // ============================================================
   function calcolaFeeStimate(col) {
     const scheda = schedaAttiva();
@@ -102,32 +92,15 @@
     let tot = 0;
     (scheda[col] || []).forEach(m => {
       if (m.attivo === false) return;
-      tot += (m.feeOpen || 0) + (m.feeClose || 0);
+      tot += (m.fee || 0);
     });
     return tot;
-  }
-
-  // Fee stimata per un lato: fee per contratto per lato x quantità.
-  function _feeStimataLato(tipo, qta) {
-    return (feeLatoFutureAttiva(tipo) || 0) * (qta || 0);
   }
 
   function renderRigaTotale(col, res) {
     const prezzoEl = el('csPrezzo' + col);
     if (prezzoEl) {
       prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
-    }
-
-    const feeEl = el('fee' + col);
-    if (feeEl) {
-      const fee = calcolaFeeStimate(col);
-      if (fee > 0) {
-        feeEl.textContent = '-' + formatEuro(fee);
-        feeEl.className = 'cs-fee-val red';
-      } else {
-        feeEl.textContent = '-0,00';
-        feeEl.className = 'cs-fee-val muted';
-      }
     }
 
     const qnEl = el('qtaNetta' + col);
@@ -216,7 +189,7 @@
   }
 
   // ============================================================
-  // RENDER RIGA — v29
+  // RENDER RIGA — v30
   // ============================================================
   function renderMovimenti(col) {
     const scheda = schedaAttiva();
@@ -270,20 +243,6 @@
 
       // ---- BLOCCO APERTURA ----
 
-      // OPEN (data)
-      const tdDataO = document.createElement('td');
-      tdDataO.dataset.label = 'Open';
-      const inDataO = document.createElement('input');
-      inDataO.type = 'date';
-      inDataO.className = 'in-data';
-      inDataO.value = mov.dataOpen || '';
-      inDataO.title = 'Data di apertura';
-      inDataO.addEventListener('change', e => {
-        scheda[col][idx].dataOpen = e.target.value;
-        calcolaTutto();
-      });
-      tdDataO.appendChild(inDataO); tr.appendChild(tdDataO);
-
       // Pos (BUY/SELL) — cambiandola, la Pos close si rigenera all'inversa
       const tdPos = document.createElement('td');
       tdPos.dataset.label = 'Pos';
@@ -313,10 +272,6 @@
         scheda[col][idx].quantita = q;
         // ricalcola lo stato del lato close rispetto alla nuova q.tà open
         scheda[col][idx].quantitaChiusa = Math.min(scheda[col][idx].quantitaChiusa || 0, q);
-        // fee stimata automatica (solo se non modificata a mano)
-        if (!scheda[col][idx].feeOpenManuale) {
-          scheda[col][idx].feeOpen = _feeStimataLato(tipo, q);
-        }
         aggiornaCalcolati(col); calcolaTutto();
       });
       tdQta.appendChild(inQta); tr.appendChild(tdQta);
@@ -337,38 +292,7 @@
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
-      // Fee open
-      const tdFeeO = document.createElement('td');
-      tdFeeO.dataset.label = 'Fee';
-      const inFeeO = document.createElement('input');
-      inFeeO.type = 'number'; inFeeO.step = '0.01'; inFeeO.min = '0';
-      inFeeO.className = 'in-fee';
-      inFeeO.value = (mov.feeOpen === 0 || mov.feeOpen === undefined) ? '' : mov.feeOpen;
-      inFeeO.placeholder = '0';
-      inFeeO.title = 'Fee di apertura. Se non la modifichi viene stimata automaticamente (fee per contratto per lato × q.tà). Entra nel P&L.';
-      inFeeO.addEventListener('input', e => {
-        const v = e.target.value;
-        scheda[col][idx].feeOpen = v === '' ? 0 : (parseFloat(v) || 0);
-        scheda[col][idx].feeOpenManuale = true; // da ora non più auto-stimata
-        aggiornaCalcolati(col); calcolaTutto();
-      });
-      tdFeeO.appendChild(inFeeO); tr.appendChild(tdFeeO);
-
       // ---- BLOCCO CHIUSURA ----
-
-      // CLOSE (data)
-      const tdDataC = document.createElement('td');
-      tdDataC.dataset.label = 'Close';
-      const inDataC = document.createElement('input');
-      inDataC.type = 'date';
-      inDataC.className = 'in-data';
-      inDataC.value = mov.dataClose || '';
-      inDataC.title = 'Data di chiusura';
-      inDataC.addEventListener('change', e => {
-        scheda[col][idx].dataClose = e.target.value;
-        calcolaTutto();
-      });
-      tdDataC.appendChild(inDataC); tr.appendChild(tdDataC);
 
       // Pos close (inversa automatica della Pos open)
       const tdPosC = document.createElement('td');
@@ -395,9 +319,6 @@
         const v = e.target.value;
         const q = v === '' ? 0 : (parseFloat(v) || 0);
         scheda[col][idx].quantitaChiusa = Math.min(q, scheda[col][idx].quantita || 0);
-        if (!scheda[col][idx].feeCloseManuale) {
-          scheda[col][idx].feeClose = _feeStimataLato(tipo, scheda[col][idx].quantitaChiusa);
-        }
         ricalcolaStatiScheda(scheda, col);
         aggiornaCalcolati(col); calcolaTutto();
       });
@@ -419,28 +340,27 @@
       });
       tdPrezzoC.appendChild(inPrezzoC); tr.appendChild(tdPrezzoC);
 
-      // Fee close
-      const tdFeeC = document.createElement('td');
-      tdFeeC.dataset.label = 'Fee';
-      const inFeeC = document.createElement('input');
-      inFeeC.type = 'number'; inFeeC.step = '0.01'; inFeeC.min = '0';
-      inFeeC.className = 'in-fee';
-      inFeeC.value = (mov.feeClose === 0 || mov.feeClose === undefined) ? '' : mov.feeClose;
-      inFeeC.placeholder = '0';
-      inFeeC.title = 'Fee di chiusura. Se non la modifichi viene stimata automaticamente. Entra nel P&L.';
-      inFeeC.addEventListener('input', e => {
+      // ---- FEE (unica di riga, manuale) ----
+      const tdFee = document.createElement('td');
+      tdFee.dataset.label = 'Fee';
+      const inFee = document.createElement('input');
+      inFee.type = 'number'; inFee.step = '0.01'; inFee.min = '0';
+      inFee.className = 'in-fee';
+      inFee.value = (mov.fee === 0 || mov.fee === undefined) ? '' : mov.fee;
+      inFee.placeholder = '0';
+      inFee.title = 'Fee totali della riga (apertura + chiusura). Sottratte pro-quota al P&L realizzato e al P&L aperto.';
+      inFee.addEventListener('input', e => {
         const v = e.target.value;
-        scheda[col][idx].feeClose = v === '' ? 0 : (parseFloat(v) || 0);
-        scheda[col][idx].feeCloseManuale = true; // da ora non più auto-stimata
+        scheda[col][idx].fee = v === '' ? 0 : (parseFloat(v) || 0);
         aggiornaCalcolati(col); calcolaTutto();
       });
-      tdFeeC.appendChild(inFeeC); tr.appendChild(tdFeeC);
+      tdFee.appendChild(inFee); tr.appendChild(tdFee);
 
       // ---- RLZD (P&L realizzato della riga, fee incluse) ----
       const tdRlzd = document.createElement('td');
       tdRlzd.className = 'pnl-riga td-pnl';
       tdRlzd.dataset.label = 'RLZD';
-      tdRlzd.title = 'P&L realizzato della chiusura: (prezzo close − prezzo open) × q.tà close − fee, fee open proporzionale alla parte chiusa';
+      tdRlzd.title = 'P&L realizzato della chiusura: (prezzo close − prezzo open) × q.tà close × molt − fee proporzionale alla parte chiusa';
       const { testo, classe } = _valoreRlzdRiga(info, !isOn);
       tdRlzd.textContent = testo;
       tdRlzd.classList.add(classe);
