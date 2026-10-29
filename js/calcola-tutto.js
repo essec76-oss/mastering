@@ -40,11 +40,14 @@ function calcolaTutto() {
   pnlScadEl.textContent = formatEuro(pnlScad);
   pnlScadEl.className = 'big-value value ' + (!isFinite(pnlScad) ? 'muted' : (pnlScad >= 0 ? 'green' : 'red'));
 
-  // v28 — PmG (Profitto medio giornaliero): visibile SOLO in modalità
-  // futures-commodities. Riferimento SEMPRE la Matrice (stato.schede[0]):
-  // sia i giorni totali (data analisi iniziale → prima scadenza opzioni attive)
-  // sia il PL a scadenza. In qualunque scheda ti trovi il PmG resta quello
-  // dell'operazione della Matrice.
+  // v29 — PmG (Profitto medio giornaliero): esteso a TUTTE le modalità
+  // (azioni, futures su indici, futures su commodities). Visibile ogni
+  // volta che la Matrice ha almeno un'opzione attiva con scadenza.
+  // Riferimento SEMPRE la Matrice (stato.schede[0]): sia i giorni totali
+  // (data analisi iniziale → prima scadenza opzioni attive) sia il PL a
+  // scadenza di TUTTI i totali combinati (azioni/futures + opzioni + cash),
+  // con come tempo di riferimento la scadenza delle opzioni. In qualunque
+  // scheda ti trovi il PmG resta quello dell'operazione della Matrice.
   aggiornaPmG();
 
   // Aggiorna anteprima payoff (tutte le schede), breakeven,
@@ -92,16 +95,32 @@ function giorniTotaliMatrice() {
   return Math.max(0, Math.round((prima - iniziale) / 86400000));
 }
 
+// v29 — La Matrice ha almeno un'opzione attiva (non nascosta, non chiusa)
+// con una scadenza valida? È la condizione di visibilità del PmG in
+// QUALSIASI modalità (azioni, futures indici, futures commodities):
+// il PmG si innesca solo quando esiste almeno un'opzione, perché è la
+// scadenza delle opzioni a fare da riferimento temporale.
+function matriceHaOpzioniAttive() {
+  const matrice = stato.schede[0];
+  if (!matrice || !Array.isArray(matrice.opzioni)) return false;
+  return matrice.opzioni.some(o =>
+    o && o.attivo !== false && o.stato !== 'CHIUSA' && o.scadenza
+  );
+}
+
 // PmG = PL a scadenza della MATRICE
 //        / giorni totali dell'operazione della MATRICE.
 // Tutto è calcolato sulla Matrice (stato.schede[0]): in qualunque
 // scheda ti trovi il valore resta quello dell'operazione della Matrice.
-// Mostra «—» se la Matrice non ha opzioni attive con scadenza.
+// Il PL a scadenza combina TUTTI i totali della scheda: colonne
+// azioni/futures (P&L realizzato + aperto al prezzo medio), opzioni
+// (intrinseco alla prima scadenza + teorico residuo per le calendar)
+// e cash. Mostra «—» se la Matrice non ha opzioni attive con scadenza.
 function aggiornaPmG() {
   const label = el('pmgLabel');
   const val = el('pmgValue');
   if (!label || !val) return;
-  const visibile = stato.modalita === 'futures-commodities';
+  const visibile = matriceHaOpzioniAttive();
   label.style.display = visibile ? '' : 'none';
   val.style.display = visibile ? '' : 'none';
   if (!visibile) return;
@@ -111,17 +130,18 @@ function aggiornaPmG() {
 
   // PL a scadenza della Matrice: ricalcola le colonne della Matrice
   // (NON della scheda attiva) con TUTTI i parametri della Matrice
-  // (spot, vol, risk-free, div, cash, data analisi attuale — salvati in
-  // matrice.par da parametri-scheda.js). Durante il calcolo gli input della
-  // pagina vengono temporaneamente impostati sui parametri della Matrice
-  // e poi ripristinati su quelli della scheda attiva. Il campo con il focus
-  // non viene mai toccato, così la digitazione non viene interrotta.
-  // Il set programmatico NON fa scattare gli event listener 'input'/'change'.
+  // (spot, vol, risk-free, div, cash, data analisi attuale, strumento
+  // opzioni — salvati in matrice.par da parametri-scheda.js). Durante il
+  // calcolo gli input della pagina vengono temporaneamente impostati sui
+  // parametri della Matrice e poi ripristinati su quelli della scheda
+  // attiva. Il campo con il focus non viene mai toccato, così la
+  // digitazione non viene interrotta. Il set programmatico NON fa
+  // scattare gli event listener 'input'/'change'.
   let pnlScadMatrice = NaN;
   const parM = parMatrice(matrice);
   if (matrice && parM) {
     const CAMPI_SWAP = ['prezzoSpot', 'volStorica', 'volAtm', 'riskFree',
-                        'divYield', 'cash', 'dataAnalisi'];
+                        'divYield', 'cash', 'dataAnalisi', 'strumentoOpzioni'];
     const precedenti = {};
     CAMPI_SWAP.forEach(id => {
       const e = el(id);
