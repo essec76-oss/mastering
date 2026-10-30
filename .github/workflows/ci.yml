@@ -33,8 +33,8 @@ jobs:
           set -e
           cat js/config.js js/matematica.js js/futures.js js/opzioni.js \
               js/render-futures.js js/render-opzioni.js js/grafico.js \
-              js/calcola-tutto.js js/schede.js js/storage.js js/eventi.js \
-              js/scarico-posizione.js js/main.js > /tmp/app-concat.js
+              js/calcola-tutto.js js/schede.js js/storage.js js/parametri-scheda.js \
+              js/eventi.js js/scarico-posizione.js js/main.js > /tmp/app-concat.js
           node --check /tmp/app-concat.js
           echo 'OK: concatenazione in ordine valida'
 
@@ -76,7 +76,7 @@ jobs:
 
           node <<'NODE' > /tmp/mapped.txt
           const fs = require('fs');
-          const order = ['config.js','matematica.js','futures.js','opzioni.js','render-futures.js','render-opzioni.js','grafico.js','calcola-tutto.js','schede.js','storage.js','eventi.js','scarico-posizione.js','main.js'];
+          const order = ['config.js','matematica.js','futures.js','opzioni.js','render-futures.js','render-opzioni.js','grafico.js','calcola-tutto.js','schede.js','storage.js','parametri-scheda.js','eventi.js','scarico-posizione.js','main.js'];
           const contents = order.map(f => fs.readFileSync('js/' + f, 'utf8'));
           const starts = []; let acc = 0;
           for (const c of contents) { starts.push(acc); acc += c.length; }
@@ -174,9 +174,9 @@ jobs:
           fi
           echo 'OK: nessun file sorgente oltre 512 KB'
 
-      - name: index.html carica i 13 moduli nell'ordine corretto
+      - name: index.html carica i 14 moduli nell'ordine corretto
         run: |
-          expected='js/config.js js/matematica.js js/futures.js js/opzioni.js js/render-futures.js js/render-opzioni.js js/grafico.js js/calcola-tutto.js js/schede.js js/storage.js js/eventi.js js/scarico-posizione.js js/main.js'
+          expected='js/config.js js/matematica.js js/futures.js js/opzioni.js js/render-futures.js js/render-opzioni.js js/grafico.js js/calcola-tutto.js js/schede.js js/storage.js js/parametri-scheda.js js/eventi.js js/scarico-posizione.js js/main.js'
           actual=$(grep -o 'src="js/[^"]*"' index.html | sed 's/^src="//;s/"$//' | tr '\n' ' ' | sed 's/ $//')
           if [ "$actual" != "$expected" ]; then
             echo '::error::Ordine script in index.html non corretto'

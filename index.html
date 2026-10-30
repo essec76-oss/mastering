@@ -23,7 +23,7 @@
   /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
   .riepilogo-grid{
     display:grid;
-    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(90px,auto) minmax(110px,auto);
+    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(110px,auto);
     column-gap:12px;
     row-gap:8px;
     align-items:center;
@@ -129,7 +129,7 @@
     <input type="text" id="modalStrategieCerca" placeholder="Cerca strategia…" autocomplete="off">
     <div class="modal-lista" id="modalListaStrategie"></div>
     <div class="modal-actions">
-      <button type="button" class="btn" id="modalStrategieAnnulla">Annulla</button>
+      <button type="button" class="btn primary" id="modalStrategieAnnulla">Annulla</button>
       <button type="button" class="btn primary" id="modalStrategieConferma" disabled>Carica</button>
     </div>
   </div>
@@ -151,7 +151,7 @@
   </div>
   <div class="param-group">
     <span class="label">Cash €</span>
-    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati manualmente: premi incassati a scadenza, P&amp;L realizzati fuori dal tool. Entra nel TOTALE FUTURES TWS, nei totali PL NOW / A SCADENZA e nel grafico payoff.">
+    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati manualmente: premi incassati a scadenza, P&L realizzati fuori dal tool. Entra nel TOTALE FUTURES TWS, nei totali PL NOW / A SCADENZA e nel grafico payoff.">
   </div>
   <div class="param-group">
     <span class="label">Div %</span>
@@ -191,8 +191,8 @@
             <th>Prezzo Open</th>
             <th title="Quantità chiusa (chiusura parziale consentita)">Q.tà</th>
             <th>Prezzo Close</th>
-            <th title="Fee totali della riga (sottratte dal P&amp;L)">Fee</th>
-            <th title="P&amp;L realizzato della chiusura, fee incluse">RLZD</th>
+            <th title="Fee totali della riga (sottratte dal P&L)">Fee</th>
+            <th title="P&L realizzato della chiusura, fee incluse">RLZD</th>
           </tr>
         </thead>
         <tbody id="bodyNES"></tbody>
@@ -207,7 +207,7 @@
           <span class="value muted" id="deltaAzColNES">—</span>
         </div>
         <div class="cf-item cf-pnl">
-          <span class="label">P&amp;L</span>
+          <span class="label">P&L</span>
           <span class="value muted" id="csPnlNES">0,00</span>
         </div>
       </div>
@@ -238,8 +238,8 @@
             <th>Prezzo Open</th>
             <th title="Quantità chiusa (chiusura parziale consentita)">Q.tà</th>
             <th>Prezzo Close</th>
-            <th title="Fee totali della riga (sottratte dal P&amp;L)">Fee</th>
-            <th title="P&amp;L realizzato della chiusura, fee incluse">RLZD</th>
+            <th title="Fee totali della riga (sottratte dal P&L)">Fee</th>
+            <th title="P&L realizzato della chiusura, fee incluse">RLZD</th>
           </tr>
         </thead>
         <tbody id="bodyMES"></tbody>
@@ -254,7 +254,7 @@
           <span class="value muted" id="deltaAzColMES">—</span>
         </div>
         <div class="cf-item cf-pnl">
-          <span class="label">P&amp;L</span>
+          <span class="label">P&L</span>
           <span class="value muted" id="csPnlMES">0,00</span>
         </div>
       </div>
@@ -292,8 +292,8 @@
           <th title="Valore temporale">VAL. TEMP.</th>
           <th title="Valore intrinseco">VAL. INTR.</th>
           <th title="Probabilità di tocco dello strike">PROB. TOCCO</th>
-          <th title="P&amp;L della riga a scadenza della gamba più corta">P&amp;L SCAD. ($)</th>
-          <th title="P&amp;L attuale mark-to-market">P&amp;L NOW ($)</th>
+          <th title="P&L della riga a scadenza della gamba più corta">P&L SCAD. ($)</th>
+          <th title="P&L attuale mark-to-market">P&L NOW ($)</th>
           <th title="Debit/Credit: premio × q.tà × moltiplicatore">DEBITO/CREDITO ($)</th>
         </tr>
       </thead>
@@ -345,7 +345,7 @@
       <div class="rg-sep"></div>
 
       <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
-      <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&amp;L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
+      <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
       <strong id="popValue" class="rg-val pop">—</strong>
       <span></span>
       <span></span>
@@ -355,7 +355,7 @@
       <div class="rg-sep"></div>
 
       <!-- Delta totale -->
-      <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&amp;L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
+      <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
       <strong id="deltaTot" class="rg-val">—</strong>
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
@@ -381,14 +381,14 @@
     <div class="ctrl-group corrente" id="ctrlGroupCorrente">
       <span class="dot"></span>
       <span class="ctrl-label">Corrente</span>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L a scadenza della scheda corrente"><input type="checkbox" id="showExpiryCorrente" checked> P&amp;L a scadenza</label>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L Now (teorico) della scheda corrente"><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&L a scadenza della scheda corrente"><input type="checkbox" id="showExpiryCorrente" checked> P&L a scadenza</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&L Now (teorico) della scheda corrente"><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
     </div>
     <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display:none;">
       <span class="dot"></span>
       <span class="ctrl-label">Precedente</span>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L a scadenza della scheda precedente (comparazione)"><input type="checkbox" id="showExpiryPrecedente" checked> P&amp;L a scadenza</label>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L Now (teorico) della scheda precedente (comparazione)"><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&L a scadenza della scheda precedente (comparazione)"><input type="checkbox" id="showExpiryPrecedente" checked> P&L a scadenza</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&L Now (teorico) della scheda precedente (comparazione)"><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
     </div>
     <label class="toggle-pill" title="Mostra/nascondi i breakeven sul grafico"><input type="checkbox" id="showBE"> Breakeven</label>
     <label class="toggle-pill" title="Mostra/nascondi le deviazioni standard sul grafico"><input type="checkbox" id="showSigmaUI"> Dev. std</label>
@@ -417,8 +417,8 @@
   <svg id="payoffChart" viewBox="0 0 920 570" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair;touch-action:none;width:100%;"></svg>
   <div class="chart-legend">
     <span id="legendSchede" style="display:contents;"></span>
-<span><i style="background:#ffffff;"></i> P&amp;L a scadenza (corrente: linea piena)</span>
-<span><i style="background:#ffffff;height:0;border-top:2px dashed #ffffff;width:18px;"></i> P&amp;L Now (in comparazione: corrente piena, precedente tratteggiata)</span>
+<span><i style="background:#ffffff;"></i> P&L a scadenza (corrente: linea piena)</span>
+<span><i style="background:#ffffff;height:0;border-top:2px dashed #ffffff;width:18px;"></i> P&L Now (in comparazione: corrente piena, precedente tratteggiata)</span>
     <span><i style="background:var(--accent);"></i> Spot</span>
     <span><i style="background:#f1c40f;"></i> Breakeven</span>
     <span><i style="background:#2ecc71;opacity:0.4;"></i> Dev. standard</span>
@@ -436,6 +436,7 @@
 <script src="js/calcola-tutto.js"></script>
 <script src="js/schede.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/parametri-scheda.js"></script>
 <script src="js/eventi.js"></script>
 <script src="js/scarico-posizione.js"></script>
 <script src="js/main.js"></script>
