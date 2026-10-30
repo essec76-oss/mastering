@@ -1,0 +1,20 @@
+/* Fix allineamento PL AT NOW / PL A SCADENZA */
+.riepilogo-grid {
+  grid-template-columns: 170px minmax(120px, auto) minmax(110px, auto) minmax(90px, auto) minmax(100px, auto) 0fr !important;
+}
+.riepilogo-grid .rg-wide.rg-empty {
+  grid-column: 3 / -1 !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  overflow: hidden !important;
+  font-size: 0 !important;
+}
+@media (max-width: 640px) {
+  .riepilogo-grid {
+    grid-template-columns: 120px repeat(4, minmax(70px, auto)) 0fr !important;
+  }
+}
