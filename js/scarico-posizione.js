@@ -10,12 +10,20 @@
 
   /* ============ BOTTONE sotto «+ Aggiungi movimento» ============ */
   document.querySelectorAll('.btn-add[data-col]').forEach(btnAdd => {
+    // Evita di creare duplicati se lo script viene eseguito due volte
+    if (btnAdd.nextElementSibling && btnAdd.nextElementSibling.classList.contains('btn-scarico')) return;
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-add btn-scarico';
     btn.dataset.col = btnAdd.dataset.col;
+    
+    // Applica il colore rosso al bottone (stile in linea per forzare la modifica)
+    btn.style.color = '#ff4d4d';
+    btn.style.borderColor = '#ff4d4d';
+    
     btn.textContent = '↓ Scarica posizione';
-    btn.title = 'Apre la finestra di chiusura: seleziona le operazioni da chiudere (dalla più anziana). Il P&L usa il prezzo medio di carico corrente vs lo spot.';
+    btn.title = 'Apre la finestra di chiusura. Il P&L usa il prezzo medio di carico corrente vs lo spot.';
     btn.addEventListener('click', () => apriModaleScarico(btnAdd.dataset.col));
     btnAdd.insertAdjacentElement('afterend', btn);
   });
@@ -38,8 +46,8 @@
     const tipoLabel = (typeof _tipoLabelCol === 'function')
       ? _tipoLabelCol(scheda['tipo' + col], col) : col;
 
-    // Posizioni aperte in ordine di ANZIANITÀ: l'ordine di inserimento
-    // (la più anziana — prima riga della tabella — in alto).
+    // Posizioni aperte in ordine di ANZIANITÀ (dalla più vecchia alla più recente).
+    // L'indice dell'array `aperte` corrisponde all'ordine di selezione FIFO.
     const aperte = [];
     (scheda[col] || []).forEach((m, idx) => {
       if (m.attivo === false) return;
@@ -100,6 +108,7 @@
       const tb = document.createElement('tbody');
 
       const updaters = [];   // refresh live di P&L riga, totale e bottone conferma
+      const checkboxes = []; // riferimenti ai checkbox per il controllo FIFO
       let totPnlEl = null, btnConferma = null;
 
       aperte.forEach((p, i) => {
@@ -111,6 +120,7 @@
         chk.type = 'checkbox';
         chk.className = 'scarico-chk';
         chk.dataset.idx = p.idx;
+        checkboxes.push(chk);
         tdC.appendChild(chk); tr.appendChild(tdC);
 
         // # (anzianità)
@@ -139,6 +149,7 @@
         inQ.value = p.residuo;
         inQ.className = 'scarico-qta';
         inQ.dataset.idx = p.idx;
+        inQ.disabled = true; // Abilitato solo se il checkbox è spuntato
         tdQC.appendChild(inQ); tr.appendChild(tdQC);
 
         // Prezzo open attuale
@@ -166,6 +177,44 @@
       tbl.appendChild(tb);
       lista.appendChild(tbl);
       box.appendChild(lista);
+
+      // --- LOGICA FIFO A CASCATA ---
+      function aggiornaStatoCheckbox() {
+        for (let i = 0; i < checkboxes.length; i++) {
+          const chk = checkboxes[i];
+          const inQ = overlay.querySelector('.scarico-qta[data-idx="' + chk.dataset.idx + '"]');
+          
+          if (i === 0) {
+            // La prima posizione è sempre cliccabile
+            chk.disabled = false;
+          } else {
+            // Le successive sono cliccabili solo se la precedente è selezionata
+            const prevChk = checkboxes[i - 1];
+            chk.disabled = !prevChk.checked;
+            
+            // Se la precedente viene deselezionata, questa si deseleziona e disabilita
+            if (!prevChk.checked && chk.checked) {
+              chk.checked = false;
+            }
+          }
+          
+          // Abilita/disabilita il campo di input in base al checkbox
+          inQ.disabled = !chk.checked;
+          
+          // Se è deselezionato, resetta la quantità al massimo per quando verrà riattivato
+          if (!chk.checked) {
+             inQ.value = inQ.max;
+          }
+        }
+      }
+
+      // Aggancia l'evento per la logica a cascata ad ogni checkbox
+      checkboxes.forEach(chk => {
+        chk.addEventListener('change', () => {
+          aggiornaStatoCheckbox();
+          updaters.forEach(u => u());
+        });
+      });
 
       // Totale stimato della selezione
       const tot = document.createElement('div');
@@ -225,14 +274,19 @@
         btnConferma.disabled = nessuna || !spotOk;
       }
 
-      // Seleziona/deseleziona tutte
+      // Seleziona/deseleziona tutte (attiva/disattiva la cascata)
       const selTutte = tbl.querySelector('#scaricoSelTutte');
       selTutte.addEventListener('change', () => {
-        overlay.querySelectorAll('.scarico-chk').forEach(chk => { chk.checked = selTutte.checked; });
+        // Se seleziona tutte, attiva tutti i checkbox. Se deseleziona, disattiva tutto.
+        checkboxes.forEach(chk => {
+          chk.checked = selTutte.checked;
+        });
+        aggiornaStatoCheckbox();
         updaters.forEach(u => u());
       });
 
-      // Primo calcolo: ora tutti gli elementi (totPnlEl, btnConferma) esistono
+      // Inizializza lo stato (tutto disabilitato tranne la prima riga)
+      aggiornaStatoCheckbox();
       updaters.forEach(u => u());
     }
 
