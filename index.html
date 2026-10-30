@@ -23,7 +23,7 @@
   /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
   .riepilogo-grid{
     display:grid;
-    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(110px,auto);
+    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(100px,auto);
     column-gap:12px;
     row-gap:8px;
     align-items:center;
@@ -39,7 +39,7 @@
   .rg-empty{color:transparent;}
   #cmpHeader{grid-column:1/-1;}
   @media (max-width:640px){
-    .riepilogo-grid{grid-template-columns:120px repeat(5,minmax(70px,auto));column-gap:8px;}
+    .riepilogo-grid{grid-template-columns:120px repeat(4,minmax(70px,auto));column-gap:8px;}
     .riepilogo-grid .rg-label{font-size:12px;}
     .rg-val{font-size:12px;padding:4px 6px;}
     .rg-val.big{font-size:16px;}
@@ -129,7 +129,7 @@
     <input type="text" id="modalStrategieCerca" placeholder="Cerca strategia…" autocomplete="off">
     <div class="modal-lista" id="modalListaStrategie"></div>
     <div class="modal-actions">
-      <button type="button" class="btn primary" id="modalStrategieAnnulla">Annulla</button>
+      <button type="button" class="btn" id="modalStrategieAnnulla">Annulla</button>
       <button type="button" class="btn primary" id="modalStrategieConferma" disabled>Carica</button>
     </div>
   </div>
@@ -308,22 +308,25 @@
 <div class="riepilogo">
   <div class="highlight" style="margin-top:0;">
     <div class="riepilogo-grid">
-      <!-- Intestazioni colonne -->
+      <!-- Intestazioni colonne: label | Valore | Punti | % | σ  (5 colonne) -->
       <span class="rg-head"></span>
       <span class="rg-head">Valore</span>
       <span class="rg-head">Punti</span>
       <span class="rg-head">%</span>
       <span class="rg-head">σ</span>
-      <span class="rg-head"></span>
 
-      <!-- P&L -->
+      <!-- P&L: solo Valore, resto riga vuota -->
       <span class="rg-label" title="Mark-to-market attuale della posizione">PL AT NOW</span>
       <strong id="pnlNowTot" class="rg-val big">—</strong>
-      <span class="rg-wide rg-empty"></span>
+      <span></span>
+      <span></span>
+      <span></span>
 
       <span class="rg-label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <strong id="pnlScadenzaTot" class="rg-val big">—</strong>
-      <span class="rg-wide rg-empty"></span>
+      <span></span>
+      <span></span>
+      <span></span>
 
       <div class="rg-sep"></div>
 
@@ -333,21 +336,18 @@
       <strong id="beSupDist" class="rg-val">—</strong>
       <strong id="beSupPct" class="rg-val">—</strong>
       <strong id="beSupSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
-      <span></span>
 
       <span class="rg-label" title="Breakeven inferiore: valore, distanza dallo spot in punti, in percentuale e in deviazioni standard">BE INFERIORE</span>
       <strong id="beInf" class="rg-val">—</strong>
       <strong id="beInfDist" class="rg-val">—</strong>
       <strong id="beInfPct" class="rg-val">—</strong>
       <strong id="beInfSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
-      <span></span>
 
       <div class="rg-sep"></div>
 
       <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
       <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
       <strong id="popValue" class="rg-val pop">—</strong>
-      <span></span>
       <span></span>
       <span></span>
       <span></span>
@@ -378,106 +378,4 @@
 <div class="chart-panel" id="payoffPanel">
   <h2>Payoff Combinato</h2>
   <div class="chart-controls">
-    <div class="ctrl-group corrente" id="ctrlGroupCorrente">
-      <span class="dot"></span>
-      <span class="ctrl-label">Corrente</span>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L a scadenza della scheda corrente"><input type="checkbox" id="showExpiryCorrente" checked> P&L a scadenza</label>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L Now (teorico) della scheda corrente"><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
-    </div>
-    <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display:none;">
-      <span class="dot"></span>
-      <span class="ctrl-label">Precedente</span>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L a scadenza della scheda precedente (comparazione)"><input type="checkbox" id="showExpiryPrecedente" checked> P&L a scadenza</label>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L Now (teorico) della scheda precedente (comparazione)"><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
-    </div>
-    <label class="toggle-pill" title="Mostra/nascondi i breakeven sul grafico"><input type="checkbox" id="showBE"> Breakeven</label>
-    <label class="toggle-pill" title="Mostra/nascondi le deviazioni standard sul grafico"><input type="checkbox" id="showSigmaUI"> Dev. std</label>
-    <select id="nSD" class="small" style="width:auto;padding:2px 4px;font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
-      <option value="1">1° SD</option>
-      <option value="2" selected>2° SD</option>
-      <option value="3">3° SD</option>
-      <option value="4">4° SD</option>
-      <option value="5">5° SD</option>
-      <option value="6">6° SD</option>
-      <option value="7">7° SD</option>
-      <option value="8">8° SD</option>
-      <option value="9">9° SD</option>
-      <option value="10">10° SD</option>
-    </select>
-  </div>
-  <div class="chart-controls" style="margin-top:-4px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
-    <span style="display:inline-flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
-      <button type="button" class="btn" id="btnModalitaZoom" title="Attiva/disattiva lo zoom con la sola rotella">Rotella: pagina</button>
-      <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px;font-size:16px;min-width:42px;">−</button>
-      <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px;font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;">+</button>
-      <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px;font-size:11px;">Reset</button>
-    </span>
-  </div>
-  <svg id="payoffChart" viewBox="0 0 920 570" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair;touch-action:none;width:100%;"></svg>
-  <div class="chart-legend">
-    <span id="legendSchede" style="display:contents;"></span>
-<span><i style="background:#ffffff;"></i> P&L a scadenza (corrente: linea piena)</span>
-<span><i style="background:#ffffff;height:0;border-top:2px dashed #ffffff;width:18px;"></i> P&L Now (in comparazione: corrente piena, precedente tratteggiata)</span>
-    <span><i style="background:var(--accent);"></i> Spot</span>
-    <span><i style="background:#f1c40f;"></i> Breakeven</span>
-    <span><i style="background:#2ecc71;opacity:0.4;"></i> Dev. standard</span>
-    <span style="color:var(--muted);font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo (e solo per il NES)</span>
-  </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js"></script>
-<script src="js/matematica.js"></script>
-<script src="js/futures.js"></script>
-<script src="js/opzioni.js"></script>
-<script src="js/render-futures.js"></script>
-<script src="js/render-opzioni.js"></script>
-<script src="js/grafico.js"></script>
-<script src="js/calcola-tutto.js"></script>
-<script src="js/schede.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/parametri-scheda.js"></script>
-<script src="js/eventi.js"></script>
-<script src="js/scarico-posizione.js"></script>
-<script src="js/main.js"></script>
-<script>
-  /* Ponte toggle Dev. std: la UI usa logica diretta (spuntato = visibile),
-     mentre il grafico usa la logica storica inversa (showSigma spuntato = nascosto).
-     Questo script li tiene sincronizzati invertiti. */
-  (function(){
-    var ui = document.getElementById('showSigmaUI');
-    var reale = document.getElementById('showSigma');
-    function sync(){ reale.checked = !ui.checked; }
-    sync(); // stato iniziale: pillola spenta -> bande nascoste
-    ui.addEventListener('change', function(){
-      sync();
-      reale.dispatchEvent(new Event('change', {bubbles:true}));
-    });
-  })();
-</script>
-<script>
-  /* Sicurezza scroll: il mouse wheel su un campo numerico modifica il valore
-     SOLO se tieni premuto SHIFT. Senza SHIFT la rotella scrolla normalmente
-     la pagina e non tocca nessun valore. */
-  (function(){
-    document.addEventListener('wheel', function(e){
-      var t = e.target;
-      var isNum = (t && t.tagName === 'INPUT' && t.type === 'number');
-      if(!isNum) return;
-      if(e.shiftKey){
-        e.preventDefault(); // con SHIFT: il valore cambia, la pagina non scrolla
-      }else{
-        // senza SHIFT: blocca l'handler che modifica il valore, lascia scorrere la pagina
-        e.stopPropagation();
-      }
-    }, {capture:true, passive:false});
-    // Alcuni script usano l'evento 'wheel' come alias: copriamo anche 'mousewheel' (vecchi browser)
-    document.addEventListener('mousewheel', function(e){
-      if(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number' && !e.shiftKey){
-        e.stopPropagation();
-      }
-    }, {capture:true, passive:false});
-  })();
-</script>
-</body>
-</html>
+PLACEHOLDER_REST
