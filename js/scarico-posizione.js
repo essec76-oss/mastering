@@ -8,6 +8,23 @@
 (function () {
   'use strict';
 
+  // Inietta lo stile per le righe bloccate (non cliccabili)
+  if (!document.getElementById('style-scarico-blocco')) {
+    const style = document.createElement('style');
+    style.id = 'style-scarico-blocco';
+    style.innerHTML = `
+      .tr-bloccata {
+        opacity: 0.35;
+        pointer-events: none;
+        filter: grayscale(100%);
+      }
+      .tr-bloccata input, .tr-bloccata td {
+        cursor: not-allowed !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   /* ============ BOTTONE sotto «+ Aggiungi movimento» ============ */
   document.querySelectorAll('.btn-add[data-col]').forEach(btnAdd => {
     // Evita di creare duplicati se lo script viene eseguito due volte
@@ -109,6 +126,7 @@
 
       const updaters = [];   // refresh live di P&L riga, totale e bottone conferma
       const checkboxes = []; // riferimenti ai checkbox per il controllo FIFO
+      const trs = [];        // riferimenti alle righe per applicare la classe di blocco
       let totPnlEl = null, btnConferma = null;
 
       aperte.forEach((p, i) => {
@@ -162,6 +180,7 @@
         tdPnl.className = 'scarico-pnl muted';
         tr.appendChild(tdPnl);
         tb.appendChild(tr);
+        trs.push(tr);
 
         const upd = () => {
           const q = Math.max(0, Math.min(parseFloat(inQ.value) || 0, p.residuo));
@@ -183,10 +202,12 @@
         for (let i = 0; i < checkboxes.length; i++) {
           const chk = checkboxes[i];
           const inQ = overlay.querySelector('.scarico-qta[data-idx="' + chk.dataset.idx + '"]');
+          const tr = trs[i];
           
           if (i === 0) {
             // La prima posizione è sempre cliccabile
             chk.disabled = false;
+            tr.classList.remove('tr-bloccata');
           } else {
             // Le successive sono cliccabili solo se la precedente è selezionata
             const prevChk = checkboxes[i - 1];
@@ -195,6 +216,13 @@
             // Se la precedente viene deselezionata, questa si deseleziona e disabilita
             if (!prevChk.checked && chk.checked) {
               chk.checked = false;
+            }
+
+            // Aggiunge o rimuove la classe visiva di blocco
+            if (chk.disabled) {
+              tr.classList.add('tr-bloccata');
+            } else {
+              tr.classList.remove('tr-bloccata');
             }
           }
           
