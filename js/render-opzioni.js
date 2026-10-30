@@ -1,5 +1,11 @@
 // render-opzioni.js — render opzioni: greche, colonne extra e P&L combinato
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+//
+// Richiesta 4 — Il vecchio checkbox "Includi nei conteggi" è stato eliminato.
+// La colonna Stato ora mostra il pulsante NASCONDI / MOSTRA: cliccandolo la
+// riga resta visibile ma è esclusa da conteggi, valori numerici e grafico
+// (stesso effetto del vecchio checkbox). Lo stato APERTA/CHIUSA resta nel
+// dato per compatibilità con i salvataggi, ma non è più editabile da riga.
 
   function formatGreek(v, digits = 3) {
     if (!isFinite(v)) return '—';
@@ -132,7 +138,8 @@
     tfoot.innerHTML = '';
     const tr = document.createElement('tr');
     tr.className = 'footer-opzioni';
-    for (let i = 0; i < 10; i++) {
+    // Richiesta 4: una colonna in meno in tabella (rimosso il checkbox) → 9 celle vuote
+    for (let i = 0; i < 9; i++) {
       const td = document.createElement('td');
       tr.appendChild(td);
     }
@@ -204,31 +211,17 @@
       if (opz.attivo === false) tr.classList.add('row-off');
       if (opz.stato === 'CHIUSA') tr.classList.add('row-chiusa');
 
-      // A
-      const tdA = document.createElement('td');
-      tdA.dataset.label = '';
-      const inA = document.createElement('input');
-      inA.type = 'checkbox';
-      inA.className = 'toggle-on';
-      inA.checked = opz.attivo === false;
-      inA.title = 'Spunta per escludere dai conteggi (riga oscurata)';
-      inA.addEventListener('change', e => {
-        opzioniScheda[idx].attivo = !e.target.checked;
-        renderOpzioni();
-        calcolaTutto();
-      });
-      tdA.appendChild(inA); tr.appendChild(tdA);
-
-      // Stato
+      // Nascondi (richiesta 4: sostituisce il vecchio checkbox "includi"
+      // e la vecchia dicitura APERTA/CHIUSA della colonna Stato)
       const tdStato = document.createElement('td');
-      tdStato.dataset.label = 'Stato';
+      tdStato.dataset.label = 'Nascondi';
       const btnStato = document.createElement('button');
-      const isChiusa = opz.stato === 'CHIUSA';
-      btnStato.className = 'btn-stato' + (isChiusa ? ' chiusa' : '');
-      btnStato.textContent = isChiusa ? 'CHIUSA' : 'APERTA';
-      btnStato.title = 'Clicca per aprire/chiudere la posizione: se CHIUSA il P&L = 0, il realizzato va annotato nel box Cash in alto';
+      const isNascosta = opz.attivo === false;
+      btnStato.className = 'btn-stato' + (isNascosta ? ' chiusa' : '');
+      btnStato.textContent = isNascosta ? 'MOSTRA' : 'NASCONDI';
+      btnStato.title = 'Clicca per nascondere la riga: resta visibile ma è esclusa da conteggi, valori numerici e grafico (clicca di nuovo per mostrarla)';
       btnStato.addEventListener('click', () => {
-        opzioniScheda[idx].stato = opzioniScheda[idx].stato === 'CHIUSA' ? 'APERTA' : 'CHIUSA';
+        opzioniScheda[idx].attivo = opzioniScheda[idx].attivo === false;
         renderOpzioni();
         calcolaTutto();
       });
@@ -525,13 +518,9 @@
       }
     });
 
-    el('greeksDelta').textContent = formatGreekAuto(totDelta, 2, 3);
-    el('greeksGamma').textContent = formatGreekAuto(totGamma, 2, 4);
-    el('greeksVega').textContent  = formatGreekAuto(totVega, 2, 3);
-    el('greeksTheta').textContent = formatGreekAuto(totTheta, 2, 3);
-    el('pnlOpzioni').textContent  = formatEuro(totPnlNow);
-    el('pnlOpzScadTot').textContent = formatEuro(totPnlScad);
-    el('pnlOpzDebCredTot').textContent = formatEuro(totDebCred);
+    // v27 — i totali vivono SOLO nel footer della tabella opzioni (#footOpzioni).
+    // I riquadri duplicati nell'header della card sono stati rimossi da index.html;
+    // il delta totale è mostrato nel riepilogo (vedi grafico.js → aggiornaPayoffPreview).
 
     aggiornaFooterOpzioni({
       delta: totDelta, gamma: totGamma, vega: totVega, theta: totTheta,

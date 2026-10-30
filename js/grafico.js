@@ -1,5 +1,7 @@
 // grafico.js — grafico payoff: range, breakeven, POP, zoom e touch
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// v28 — delta a taglia relativa: vedi tipoRiferimentoFut / deltaInRiferimento
+//       in render-futures.js (caricato prima di questo file).
   // ============================================================
   // MONDI SEPARATI: AZIONI vs FUTURES (NES/MES/ES)
   // ============================================================
@@ -103,9 +105,10 @@
     else if (v < 0) inp.classList.add('neg');
   }
 
+  // Box "Escludi cash" eliminato: il cash entra sempre nei conteggi
   function cashAttivo() {
     const c = (typeof stato.cash === 'number') ? stato.cash : 0;
-    return stato.cashEscluso ? 0 : c;
+    return c;
   }
 
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
@@ -121,27 +124,62 @@
     return tot;
   }
 
+  // ============================================================
+  // DELTA NETTO (v28)
+  // ============================================================
+  // Mondo FUT: delta nell'unità del contratto di taglia maggiore della scheda
+  //            (NES/MES/ES, opzioni incluse). Scheda con un solo tipo: 1 per contratto.
+  // Mondo AZIONI: 100 azioni = delta 1.
+  // Opzioni: qta × delta × segno, scalate come lo strumento sottostante.
   function deltaNettoTotale(scheda, resNES, resMES) {
     let d = 0;
     const mondo = mondoAttivo();
+
+    // Mondo AZIONI: 100 azioni = delta 1
+    const divLotto = (mondo === 'AZIONI') ? 100 : 1;
+
+    // Riferimento FUT: contratto di taglia maggiore presente nella scheda
+    const tipoRif = (mondo === 'FUT') ? tipoRiferimentoFut(scheda) : null;
+    const scala = (tipo) => {
+      if (mondo !== 'FUT' || !tipoRif || !TAGLIA_FUT[tipo]) return 1;
+      return TAGLIA_FUT[tipo] / TAGLIA_FUT[tipoRif];
+    };
+
     if (colonnaNelMondo(resNES) && resNES && resNES.qtaNetta !== 0) {
-      const molt = MOLTIPLICATORI[resNES.tipo] || 0.5;
-      d += resNES.qtaNetta * (molt / 5);
+      d += (resNES.qtaNetta / divLotto) * scala(resNES.tipo);
     }
     if (colonnaNelMondo(resMES) && resMES && resMES.qtaNetta !== 0) {
-      const molt = MOLTIPLICATORI[resMES.tipo] || 5;
-      d += resMES.qtaNetta * (molt / 5);
+      d += (resMES.qtaNetta / divLotto) * scala(resMES.tipo);
     }
+
     (scheda.opzioni || []).forEach(opz => {
       if (opz.attivo === false || opz.stato === 'CHIUSA') return;
       if (mondoOpzione(opz) !== mondo) return;
       const g = calcolaGrecheOpzione(opz);
       if (!isFinite(g.delta)) return;
       const segno = opz.pos === 'SELL' ? -1 : 1;
-      const qta = opz.qta || 0;
-      d += segno * qta * g.delta * (moltOpz(opz) / 5);
+      d += segno * (opz.qta || 0) * g.delta * scala(opz.strumento || 'MES');
     });
+
     return d;
+  }
+
+  // v28 — Sensibilità del P&L per punto di movimento del sottostante.
+  // Il delta è nell'unità del contratto di riferimento: il P&L per punto
+  // è delta × moltiplicatore di quel contratto (mondo AZIONI: lotto da 100).
+  function deltaSensibilitaPerPunto(delta) {
+    let molt;
+    if (mondoAttivo() === 'AZIONI') {
+      molt = 100;
+    } else {
+      const tipoRif = tipoRiferimentoFut(schedaAttiva());
+      molt = (tipoRif && MOLTIPLICATORI[tipoRif]) || MOLTIPLICATORI['MES'] || 5;
+    }
+    const sens = delta * molt;
+    if (!isFinite(sens)) return null;
+    const sign = sens >= 0 ? '+' : '−';
+    return `(${sign}${Math.abs(sens).toLocaleString('it-IT',
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per punto)`;
   }
 
   let chartView = {
@@ -165,6 +203,7 @@
   let panStartMax = 0;
   let touchGesture = null;
   let chartRedrawScheduled = false;
+let rotellaZoomAttiva = false;
 
   function scheduleChartRedraw() {
     if (chartRedrawScheduled) return;
@@ -438,39 +477,88 @@
     return out;
   }
 
+  // Richiesta 1 — Distanza del breakeven dallo spot in deviazioni standard.
+  // Stesso criterio delle bande σ del grafico: Vol ATM e orizzonte della
+  // prima scadenza opzioni attive (o 30 giorni se ci sono solo futures).
+  function beSigmaDistance(v, spot) {
+    if (v == null || !isFinite(v) || !(spot > 0)) return null;
+    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
+    const vol = volPct / 100;
+    if (!(vol > 0)) return null;
+    let T = nearestOptionYears(schedaAttiva());
+    if (T === null) T = 30 / 365.25;
+    if (!(T > 0)) return null;
+    const s1 = spot * vol * Math.sqrt(T);
+    if (!(s1 > 0)) return null;
+    return (v - spot) / s1;
+  }
+
   function updateBreakevenLabels(bes, spot) {
     const beInfEl = el('beInf');
     const beSupEl = el('beSup');
+    const beInfPtsEl = el('beInfDist');
+    const beSupPtsEl = el('beSupDist');
+    const beInfPctEl = el('beInfPct');
+    const beSupPctEl = el('beSupPct');
+    const beInfSigEl = el('beInfSigma');
+    const beSupSigEl = el('beSupSigma');
     if (!beInfEl || !beSupEl) return;
 
+    const fmtNum = (v) => v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Valore del breakeven (prezzo assoluto)
+    const fmtVal = (v) => (v == null || !isFinite(v)) ? '—' : fmtNum(v);
+
+    // Distanza dallo spot in punti (con segno)
+    const fmtPts = (v) => {
+      if (v == null || !isFinite(v) || !(spot > 0)) return '—';
+      const dist = v - spot;
+      const sign = dist >= 0 ? '+' : '−';
+      return `${sign}${fmtNum(Math.abs(dist))} pt`;
+    };
+
+    // Distanza dallo spot in percentuale (con segno)
+    const fmtPct = (v) => {
+      if (v == null || !isFinite(v) || !(spot > 0)) return '—';
+      const pct = ((v - spot) / spot) * 100;
+      const sign = pct >= 0 ? '+' : '−';
+      return `${sign}${fmtNum(Math.abs(pct))}%`;
+    };
+
+    // Richiesta 1 — Distanza dallo spot in deviazioni standard (con segno)
+    const fmtSigma = (v) => {
+      const sig = beSigmaDistance(v, spot);
+      if (sig === null || !isFinite(sig)) return '—';
+      const sign = sig >= 0 ? '+' : '−';
+      return `${sign}${Math.abs(sig).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}σ`;
+    };
+
+    const setBlock = (valEl, ptsEl, pctEl, sigEl, v) => {
+      valEl.textContent = fmtVal(v);
+      if (ptsEl) ptsEl.textContent = fmtPts(v);
+      if (pctEl) pctEl.textContent = fmtPct(v);
+      if (sigEl) sigEl.textContent = fmtSigma(v);
+    };
+
     if (!bes.length || !(spot > 0)) {
-      beInfEl.textContent = '—';
-      beSupEl.textContent = '—';
+      setBlock(beInfEl, beInfPtsEl, beInfPctEl, beInfSigEl, null);
+      setBlock(beSupEl, beSupPtsEl, beSupPctEl, beSupSigEl, null);
       return;
     }
 
     const sorted = [...bes].filter(Number.isFinite).sort((a, b) => a - b);
 
-    const fmtBe = (v) => {
-      if (v == null || !isFinite(v)) return '—';
-      const dist = v - spot;
-      const sign = dist >= 0 ? '+' : '';
-      return `${v.toFixed(1)} (${sign}${dist.toFixed(1)})`;
-    };
-
+    let inf = null, sup = null;
     if (sorted.length === 1) {
-      if (sorted[0] < spot) {
-        beInfEl.textContent = fmtBe(sorted[0]);
-        beSupEl.textContent = '—';
-      } else {
-        beInfEl.textContent = '—';
-        beSupEl.textContent = fmtBe(sorted[0]);
-      }
-      return;
+      if (sorted[0] < spot) inf = sorted[0];
+      else sup = sorted[0];
+    } else {
+      inf = sorted[0];
+      sup = sorted[sorted.length - 1];
     }
 
-    beInfEl.textContent = fmtBe(sorted[0]);
-    beSupEl.textContent = fmtBe(sorted[sorted.length - 1]);
+    setBlock(beInfEl, beInfPtsEl, beInfPctEl, beInfSigEl, inf);
+    setBlock(beSupEl, beSupPtsEl, beSupPctEl, beSupSigEl, sup);
   }
 
   function aggiornaTogglePrecedente() {
@@ -478,6 +566,47 @@
     if (!grp) return;
     const hasPrec = !!schedaPrecedente();
     grp.style.display = hasPrec ? '' : 'none';
+  }
+
+  // Header comparazione: BE e POP della scheda precedente (visibile solo in comparazione)
+  function aggiornaHeaderComparazione(spot) {
+    const box = el('cmpHeader');
+    if (!box) return;
+    const prec = schedaPrecedente();
+    if (!prec || !(spot > 0)) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+    const resNESp = calcolaColonna(prec, 'NES');
+    const resMESp = calcolaColonna(prec, 'MES');
+    const scan = scanRangeForBE(spot);
+    const bes = findBreakevensRobust(prec, spot, scan.minS, scan.maxS, resNESp, resMESp);
+    const pop = calcolaPOP(prec, spot, bes, resNESp, resMESp, scan.minS, scan.maxS);
+
+    // Stessa logica di updateBreakevenLabels: BE inferiore e superiore
+    const sorted = [...bes].filter(Number.isFinite).sort((a, b) => a - b);
+    let inf = null, sup = null;
+    if (sorted.length === 1) {
+      if (sorted[0] < spot) inf = sorted[0];
+      else sup = sorted[0];
+    } else if (sorted.length > 1) {
+      inf = sorted[0];
+      sup = sorted[sorted.length - 1];
+    }
+
+    const fmtB = v => (v == null || !isFinite(v)) ? '—'
+      : v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const popTxt = (pop && isFinite(pop.total))
+      ? (pop.total * 100).toLocaleString('it-IT', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '%'
+      : '—';
+
+    box.style.display = 'inline-flex';
+    box.innerHTML =
+      `<span style="color:var(--muted);">Precedente (${prec.nome}):</span>` +
+      `<span>BE sup <strong>${fmtB(sup)}</strong></span>` +
+      `<span>BE inf <strong>${fmtB(inf)}</strong></span>` +
+      `<span>POP <strong style="color:var(--purple);">${popTxt}</strong></span>`;
   }
 
   function redrawChartFromView() {
@@ -520,7 +649,7 @@
     parts.push('C:' + _firmaScheda(schedaAttiva()));
     const prec = schedaPrecedente();
     if (prec) parts.push('P:' + _firmaScheda(prec));
-    parts.push(`cash:${(typeof stato.cash === 'number') ? stato.cash : 0}:${stato.cashEscluso ? 1 : 0}`);
+    parts.push(`cash:${(typeof stato.cash === 'number') ? stato.cash : 0}`);
     parts.push(`fee:${commissioniAttive() ? 1 : 0}`);
     return parts.join('|');
   }
@@ -541,11 +670,16 @@
 
   function aggiornaPayoffPreview(scheda, resNES, resMES) {
     const spot = parseFloat(el('prezzoSpot').value) || 0;
-    const deltaEl = el('payoffDeltaNetto');
+    // v27 — Delta netto spostato nel riepilogo (#deltaTot + #deltaSens),
+    // rimosso il vecchio #payoffDeltaNetto dai controlli del grafico.
+    const deltaEl = el('deltaTot');
+    const deltaSensEl = el('deltaSens');
     aggiornaTogglePrecedente();
+    aggiornaHeaderComparazione(spot);
 
     if (!(spot > 0)) {
-      deltaEl.textContent = '—';
+      if (deltaEl) deltaEl.textContent = '—';
+      if (deltaSensEl) deltaSensEl.textContent = '';
       chartView.lastSpot = 0;
       chartView.breakevens = [];
       chartView._sig = null;
@@ -559,8 +693,15 @@
     }
 
     const delta = deltaNettoTotale(scheda, resNES, resMES);
-    deltaEl.textContent = formatGreek(delta, 3);
-    deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    if (deltaEl) {
+      deltaEl.textContent = formatGreek(delta, 3);
+      deltaEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (deltaSensEl) {
+      const sensTxt = deltaSensibilitaPerPunto(delta);
+      deltaSensEl.textContent = sensTxt || '';
+      deltaSensEl.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    }
 
     const prec = schedaPrecedente();
     const resNESPrec = prec ? calcolaColonna(prec, 'NES') : null;
@@ -626,7 +767,7 @@
     curveSets = curveSets || [];
     flags = flags || { showExpiryC: true, showNowC: true, showExpiryP: true, showNowP: true };
 
-    const W = 920, H = 380;
+    const W = 920, H = 570;
     const padL = 58, padR = 18, padT = 28, padB = 32;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
@@ -668,7 +809,7 @@
 
     let svgContent = '';
 
-    const nGridY = 6;
+    const nGridY = 9;
     for (let i = 0; i <= nGridY; i++) {
       const y = yMin + (i / nGridY) * (yMax - yMin);
       const py = yPix(y);
@@ -676,7 +817,7 @@
       svgContent += `<text x="${padL - 6}" y="${py + 3}" fill="#8b93a7" font-size="10" text-anchor="end">${y.toFixed(0)}</text>`;
     }
 
-    const nGridX = 8;
+    const nGridX = 12;
     for (let i = 0; i <= nGridX; i++) {
       const x = xMin + (i / nGridX) * (xMax - xMin);
       const px = xPix(x);
@@ -693,7 +834,7 @@
           const v = pair[0], txt = pair[1];
           if (v < xMin || v > xMax) return;
           const tx = xPix(v);
-          svgContent += `<line x1="${tx}" y1="${padT}" x2="${tx}" y2="${H - padB}" stroke="#2ecc71" stroke-width="1.2" stroke-dasharray="4,3" stroke-opacity="${op}"/>`;
+                   svgContent += `<line x1="${tx}" y1="${padT}" x2="${tx}" y2="${H - padB}" stroke="#2ecc71" stroke-width="1.2" stroke-dasharray="4,3" stroke-opacity="${op}"/>`;
           svgContent += `<text x="${tx}" y="${padT - 8}" fill="#2ecc71" fill-opacity="${op}" font-size="9" text-anchor="middle">${txt}</text>`;
         });
       }
@@ -718,19 +859,22 @@
 
     if (precedente) {
       if (vis.precedente.expiry) {
-        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlExpiry')}" fill="none" stroke="${precedente.colore}" stroke-width="2" stroke-dasharray="6,3" opacity="0.9"/>`;
+        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlExpiry')}" fill="none" stroke="${precedente.colore}" stroke-width="1.4" stroke-dasharray="6,3" opacity="0.9"/>`;
       }
       if (vis.precedente.now) {
-        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlNow')}" fill="none" stroke="${precedente.colore}" stroke-width="1.6" stroke-dasharray="3,3" opacity="0.7"/>`;
+        svgContent += `<path d="${pathFrom(precedente.pts, 'pnlNow')}" fill="none" stroke="${precedente.colore}" stroke-width="1.1" stroke-dasharray="3,3" opacity="0.7"/>`;
       }
     }
     if (vis.corrente.expiry) {
-      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlExpiry')}" fill="none" stroke="${corrente.colore}" stroke-width="2.6"/>`;
+      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlExpiry')}" fill="none" stroke="${corrente.colore}" stroke-width="1.8"/>`;
     }
     if (vis.corrente.now) {
-      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.8" stroke-dasharray="5,4" opacity="0.85"/>`;
+      // In comparazione: la scheda corrente è SEMPRE continua (sia Now che Scadenza);
+      // il tratteggio distingue solo la scheda precedente. Fuori comparazione
+      // il Now della corrente resta tratteggiato come prima.
+      const dashCorrente = precedente ? '' : ' stroke-dasharray="5,4"';
+      svgContent += `<path d="${pathFrom(corrente.pts, 'pnlNow')}" fill="none" stroke="${corrente.colore}" stroke-width="1.2"${dashCorrente} opacity="0.85"/>`;
     }
-
     const showBEFlag = el('showBE') ? el('showBE').checked : true;
     if (showBEFlag) breakevens.forEach((be) => {
       if (be < xMin || be > xMax) return;
@@ -999,6 +1143,7 @@
     // --- Listener interazione su SVG e bottoni: riagganciati se ricreati ---
     if (chartInteractSvg !== svg) {
       svg.addEventListener('wheel', (e) => {
+        if (!rotellaZoomAttiva && !e.ctrlKey && !e.metaKey) return; // lascia scorrere la pagina
         e.preventDefault();
         if (!chartGeom || chartView.xMin == null) return;
 

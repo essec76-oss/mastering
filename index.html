@@ -5,6 +5,73 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mastering</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  /* Modale scelta strategia (carica / elimina da cloud) */
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,7,10,.65);display:flex;align-items:center;justify-content:center;z-index:1000;}
+  .modal-strategie{background:var(--bg,#14171d);border:1px solid var(--border);border-radius:12px;padding:20px;width:min(560px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);}
+  .modal-strategie h3{margin:0;font-size:16px;color:var(--text);}
+  #modalStrategieCerca{width:100%;}
+  .modal-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start;overflow-y:auto;min-height:120px;max-height:50vh;padding:6px;border:1px solid var(--border);border-radius:8px;background:rgba(0,0,0,.15);}
+  .strategia-row{display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);color:var(--text);font-size:13px;cursor:pointer;text-align:left;}
+  .strategia-row:hover{border-color:var(--accent,#4f8cff);}
+  .strategia-row svg{width:100%;height:50px;display:block;}
+  .strategia-nome{display:block;text-align:center;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .strategia-row.selected{border-color:var(--accent,#4f8cff);background:rgba(79,140,255,.18) !important;box-shadow:inset 0 0 0 1px var(--accent,#4f8cff);font-weight:700 !important;}
+  .strategia-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;grid-column:1/-1;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+
+  /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
+  .riepilogo-grid{
+    display:grid;
+    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(90px,auto) minmax(110px,auto);
+    column-gap:12px;
+    row-gap:8px;
+    align-items:center;
+  }
+  .riepilogo-grid .rg-head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:2px;border-bottom:1px solid var(--border);}
+  .riepilogo-grid .rg-label{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap;}
+  .riepilogo-grid .rg-sep{grid-column:1/-1;height:1px;background:var(--border);opacity:.6;margin:2px 0;}
+  .rg-val{font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 10px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .rg-val.big{font-size:20px;padding:4px 14px;}
+  .rg-val.sigma{color:var(--yellow);border-color:rgba(241,196,15,.35);}
+  .rg-val.pop{color:var(--purple);border-color:rgba(155,89,182,.35);}
+  .rg-wide{grid-column:2/-1;justify-self:start;font-size:13px;color:var(--muted);}
+  .rg-empty{color:transparent;}
+  #cmpHeader{grid-column:1/-1;}
+  @media (max-width:640px){
+    .riepilogo-grid{grid-template-columns:120px repeat(5,minmax(70px,auto));column-gap:8px;}
+    .riepilogo-grid .rg-label{font-size:12px;}
+    .rg-val{font-size:12px;padding:4px 6px;}
+    .rg-val.big{font-size:16px;}
+  }
+    .riepilogo-grid .rg-label.wrap{white-space:normal;line-height:1.25;}
+
+  /* ===== Toggle-pill: scritte cliccabili al posto dei checkbox nel pannello Payoff ===== */
+  .toggle-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 12px;border-radius:999px;cursor:pointer;user-select:none;
+    font-size:12px;font-weight:600;white-space:nowrap;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.04);
+    color:var(--muted);
+    transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+  }
+  .toggle-pill input[type="checkbox"]{display:none;}
+  /* Stato ATTIVO (visibile sul grafico): colore acceso */
+  .toggle-pill:has(input:checked){
+    background:rgba(79,140,255,.22);
+    border-color:var(--accent,#4f8cff);
+    color:#fff;
+    box-shadow:inset 0 0 0 1px var(--accent,#4f8cff);
+  }
+  /* Stato SPENTO (nascosto sul grafico): colore spento */
+  .toggle-pill:has(input:not(:checked)){
+    background:rgba(255,255,255,.03);
+    border-color:var(--border);
+    color:var(--muted);
+  }
+  .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
+</style>
 </head>
 <body>
 <div class="top-bar">
@@ -27,20 +94,38 @@
   <div class="schede-tabs" id="schedeTabs"></div>
 </div>
 <div class="salvati-bar">
-  <span class="label">Strategie salvate</span>
-  <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare/caricare la strategia corrente">
+  <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare la strategia corrente">
   <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva in cloud</button>
-  <select id="listaSalvate" title="Strategie salvate in questo browser"></select>
-  <button class="btn" id="btnCaricaSalvato" title="Carica la strategia selezionata (sostituisce il lavoro corrente)">Carica</button>
-  <button class="btn danger" id="btnEliminaSalvato" title="Elimina la strategia selezionata dall'elenco salvato">Elimina</button>
-  <span style="width:1px; height:24px; background:var(--border);"></span>
+  <button class="btn" id="btnCaricaSalvato" title="Apre la finestra di scelta delle strategie salvate in cloud: seleziona una strategia e conferma per caricarla">Carica da cloud</button>
+  <button class="btn danger" id="btnEliminaSalvato" title="Apre la finestra di scelta delle strategie salvate: seleziona una strategia e conferma per eliminarla">Elimina</button>
+  <span style="width:1px;height:24px;background:var(--border);"></span>
   <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
   <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
   <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
 </div>
+<!-- Modale scelta strategia salvata -->
+<div class="modal-overlay" id="modalStrategieOverlay" style="display:none;">
+  <div class="modal-strategie">
+    <h3 id="modalStrategieTitolo">Carica strategia da cloud</h3>
+    <input type="text" id="modalStrategieCerca" placeholder="Cerca strategia…" autocomplete="off">
+    <div class="modal-lista" id="modalListaStrategie"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="modalStrategieAnnulla">Annulla</button>
+      <button type="button" class="btn primary" id="modalStrategieConferma" disabled>Carica</button>
+    </div>
+  </div>
+</div>
 <div class="price-bar">
   <span class="label">Prezzo Spot</span>
   <input type="number" id="prezzoSpot" value="7700" step="0.25">
+  <div class="param-group">
+    <span class="label">Vol. storica %</span>
+    <input type="number" id="volStorica" class="small" value="" step="0.1" placeholder="—" title="Volatilità storica: riferimento visivo inserito manualmente, per ora non entra nei calcoli">
+  </div>
+  <div class="param-group">
+    <span class="label">Vol ATM %</span>
+    <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP, bande ±1σ/±2σ del grafico, curve Now e distanza σ dei breakeven">
+  </div>
   <div class="param-group">
     <span class="label">Risk-free %</span>
     <input type="number" id="riskFree" class="small" value="4.0" step="0.1">
@@ -48,12 +133,18 @@
   <div class="param-group">
     <span class="label">Cash €</span>
     <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati manualmente: premi incassati a scadenza, P&amp;L realizzati fuori dal tool. Entra nel TOTALE FUTURES TWS, nei totali PL NOW / A SCADENZA e nel grafico payoff.">
-    <input type="checkbox" id="cashEscludi" class="toggle-on" title="Spunta per escludere il cash dai conteggi (simulazione)">
-    <label for="cashEscludi" class="cash-escludi-label" title="Se spuntato, il cash NON entra nei totali TWS, PL NOW / A SCADENZA e nel grafico payoff (simulazione)">Escludi cash</label>
   </div>
   <div class="param-group">
-    <span class="label">Data analisi</span>
-    <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui. Default: data odierna.">
+    <span class="label">Div %</span>
+    <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
+  </div>
+  <div class="param-group">
+    <span class="label">Data analisi iniziale</span>
+    <input type="date" id="dataAnalisiIniziale" class="small" style="width:140px;" disabled title="Data di partenza dell'operazione: fissata alla creazione e non modificabile. Usata per i giorni totali (PmG).">
+  </div>
+  <div class="param-group">
+    <span class="label">Data analisi attuale</span>
+    <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui della scheda corrente. Modificabile, indipendente per ogni scheda.">
   </div>
 </div>
 <div class="columns">
@@ -66,7 +157,6 @@
         <option value="ES">ES</option>
         <option value="X" selected>AZIONI</option>
       </select>
-      <span class="cs-fee" title="Fee stimate: N aperture × 2 lati × 1,205 $/lato. Non incluse nei P&amp;L mostrati.">fee stimate: <strong id="feeNES">—</strong></span>
       <div class="col-summary" id="summaryNES">
         <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
       </div>
@@ -75,12 +165,14 @@
       <table>
         <thead>
           <tr>
-            <th title="Escludi dai conteggi">☑</th>
-            <th></th>
-            <th>Pos</th>
+            <th title="Elimina riga">DEL</th>
+            <th title="Nascondi la riga dai conteggi">Nascondi</th>
             <th>Q.tà</th>
-            <th>Prezzo</th>
-            <th title="P&amp;L realizzato della riga (solo per righe di chiusura)">RLZD</th>
+            <th>Prezzo Open</th>
+            <th title="Quantità chiusa (chiusura parziale consentita)">Q.tà</th>
+            <th>Prezzo Close</th>
+            <th title="Fee totali della riga (sottratte dal P&amp;L)">Fee</th>
+            <th title="P&amp;L realizzato della chiusura, fee incluse">RLZD</th>
           </tr>
         </thead>
         <tbody id="bodyNES"></tbody>
@@ -111,7 +203,6 @@
         <option value="ES">ES</option>
         <option value="X" selected>AZIONI</option>
       </select>
-      <span class="cs-fee" title="Fee stimate: N aperture × 2 lati × 1,205 $/lato. Non incluse nei P&amp;L mostrati.">fee stimate: <strong id="feeMES">—</strong></span>
       <div class="col-summary" id="summaryMES">
         <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
       </div>
@@ -120,12 +211,14 @@
       <table>
         <thead>
           <tr>
-            <th title="Escludi dai conteggi">☑</th>
-            <th></th>
-            <th>Pos</th>
+            <th title="Elimina riga">DEL</th>
+            <th title="Nascondi la riga dai conteggi">Nascondi</th>
             <th>Q.tà</th>
-            <th>Prezzo</th>
-            <th title="P&amp;L realizzato della riga (solo per righe di chiusura)">RLZD</th>
+            <th>Prezzo Open</th>
+            <th title="Quantità chiusa (chiusura parziale consentita)">Q.tà</th>
+            <th>Prezzo Close</th>
+            <th title="Fee totali della riga (sottratte dal P&amp;L)">Fee</th>
+            <th title="P&amp;L realizzato della chiusura, fee incluse">RLZD</th>
           </tr>
         </thead>
         <tbody id="bodyMES"></tbody>
@@ -157,44 +250,6 @@
         <option value="ES">ES</option>
         <option value="AZIONI" selected>AZIONI</option>
       </select>
-      <div class="param-group">
-        <span class="label">Vol ATM %</span>
-        <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP, bande ±1σ/±2σ del grafico e curve Now">
-      </div>
-      <div class="param-group">
-        <span class="label">Div %</span>
-        <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
-      </div>
-    </div>
-    <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
-      <div class="pnl-opz">
-        <span class="label">P&amp;L Opzioni</span>
-        <span class="value" id="pnlOpzioni">0,00</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Delta di posizione in contratti (q.tà × delta × segno). Non include il moltiplicatore.">Delta tot</span>
-        <span class="value" id="greeksDelta" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Gamma di posizione in contratti (q.tà × gamma × segno)">Gamma tot</span>
-        <span class="value" id="greeksGamma" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Vega di posizione in contratti (q.tà × vega × segno)">Vega tot</span>
-        <span class="value" id="greeksVega" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Theta di posizione in contratti (q.tà × theta × segno)">Theta tot</span>
-        <span class="value" id="greeksTheta" style="font-size:14px;">—</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="P&amp;L a scadenza della gamba opzioni più corta (metodo calendar)">P&amp;L Scad.</span>
-        <span class="value" id="pnlOpzScadTot" style="font-size:14px;">0,00</span>
-      </div>
-      <div class="pnl-opz">
-        <span class="label" title="Totale debit/credit: premi × q.tà × moltiplicatore">Deb/Cred tot</span>
-        <span class="value" id="pnlOpzDebCredTot" style="font-size:14px;">0,00</span>
-      </div>
     </div>
   </div>
   <div class="movimenti">
@@ -202,8 +257,7 @@
     <table>
       <thead>
         <tr>
-          <th title="Includi nei conteggi">☑</th>
-          <th title="Clicca per aprire / chiudere la posizione">Stato</th>
+          <th title="Clicca per nascondere la riga: esclusa da conteggi, valori e grafico">Nascondi</th>
           <th title="Elimina riga"></th>
           <th>Pos</th><th>Tipo</th><th>Q.tà</th>
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
@@ -229,73 +283,125 @@
     <button class="btn-add" id="btnAddOpzione">+ Aggiungi opzione</button>
   </div>
 </div>
+
 <div class="riepilogo">
   <div class="highlight" style="margin-top:0;">
-    <div class="row" style="border:none; padding:6px 0;">
-      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;">PL AT NOW</span>
-      <span class="big-value" id="pnlNowTot">—</span>
-    </div>
-    <div class="row" style="border:none; padding:6px 0 2px 0;">
-      <span class="label" style="font-size:13px; color:var(--text); font-weight:600;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
-      <span class="big-value" id="pnlScadenzaTot">—</span>
+    <div class="riepilogo-grid">
+      <!-- Intestazioni colonne -->
+      <span class="rg-head"></span>
+      <span class="rg-head">Valore</span>
+      <span class="rg-head">Punti</span>
+      <span class="rg-head">%</span>
+      <span class="rg-head">σ</span>
+      <span class="rg-head"></span>
+
+      <!-- P&L -->
+      <span class="rg-label" title="Mark-to-market attuale della posizione">PL AT NOW</span>
+      <strong id="pnlNowTot" class="rg-val big">—</strong>
+      <span class="rg-wide rg-empty"></span>
+
+      <span class="rg-label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
+      <strong id="pnlScadenzaTot" class="rg-val big">—</strong>
+      <span class="rg-wide rg-empty"></span>
+
+      <div class="rg-sep"></div>
+
+      <!-- Breakeven: valore, distanza, %, σ -->
+      <span class="rg-label" title="Breakeven superiore: valore, distanza dallo spot in punti, in percentuale e in deviazioni standard">BE SUPERIORE</span>
+      <strong id="beSup" class="rg-val">—</strong>
+      <strong id="beSupDist" class="rg-val">—</strong>
+      <strong id="beSupPct" class="rg-val">—</strong>
+      <strong id="beSupSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
+      <span></span>
+
+      <span class="rg-label" title="Breakeven inferiore: valore, distanza dallo spot in punti, in percentuale e in deviazioni standard">BE INFERIORE</span>
+      <strong id="beInf" class="rg-val">—</strong>
+      <strong id="beInfDist" class="rg-val">—</strong>
+      <strong id="beInfPct" class="rg-val">—</strong>
+      <strong id="beInfSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
+      <span></span>
+
+      <div class="rg-sep"></div>
+
+      <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
+      <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&amp;L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
+      <strong id="popValue" class="rg-val pop">—</strong>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <div class="rg-sep"></div>
+
+      <!-- Delta totale -->
+      <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&amp;L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
+      <strong id="deltaTot" class="rg-val">—</strong>
+      <strong id="deltaSens" class="rg-val rg-wide">—</strong>
+
+      <!-- PmG: profitto medio giornaliero (visibile quando c'è almeno un'opzione attiva, in ogni modalità) -->
+      <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG</span>
+      <strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
+      <!-- Elementi non visibili, mantenuti per il JS esistente -->
+      <div style="display:none;">
+        <span id="popZoneWrap"></span>
+        <span id="cmpHeader"></span>
+        <input type="checkbox" id="showSigma">
+        <!-- AGGIUNTI PER FAR PASSARE IL CI -->
+        <span id="bePopSup"></span>
+        <span id="bePopInf"></span>
+      </div>
     </div>
   </div>
 </div>
-<!-- Grafico Payoff Combinato -->
+  <!-- Grafico Payoff Combinato -->
 <div class="chart-panel" id="payoffPanel">
   <h2>Payoff Combinato</h2>
   <div class="chart-controls">
     <div class="ctrl-group corrente" id="ctrlGroupCorrente">
       <span class="dot"></span>
       <span class="ctrl-label">Corrente</span>
-      <label><input type="checkbox" id="showExpiryCorrente" checked> A scadenza</label>
-      <label><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L a scadenza della scheda corrente"><input type="checkbox" id="showExpiryCorrente" checked> P&amp;L a scadenza</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L Now (teorico) della scheda corrente"><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
     </div>
     <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display:none;">
       <span class="dot"></span>
       <span class="ctrl-label">Precedente</span>
-      <label><input type="checkbox" id="showExpiryPrecedente" checked> A scadenza</label>
-      <label><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L a scadenza della scheda precedente (comparazione)"><input type="checkbox" id="showExpiryPrecedente" checked> P&amp;L a scadenza</label>
+      <label class="toggle-pill" title="Mostra/nascondi la curva P&amp;L Now (teorico) della scheda precedente (comparazione)"><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
     </div>
-    <label><input type="checkbox" id="showBE" checked> Breakeven</label>
-    <span style="margin-left:8px;">Delta netto: <strong id="payoffDeltaNetto" style="color:var(--text);">—</strong></span>
+    <label class="toggle-pill" title="Mostra/nascondi i breakeven sul grafico"><input type="checkbox" id="showBE"> Breakeven</label>
+    <label class="toggle-pill" title="Mostra/nascondi le deviazioni standard sul grafico"><input type="checkbox" id="showSigmaUI"> Dev. std</label>
+    <select id="nSD" class="small" style="width:auto;padding:2px 4px;font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
+      <option value="1">1° SD</option>
+      <option value="2" selected>2° SD</option>
+      <option value="3">3° SD</option>
+      <option value="4">4° SD</option>
+      <option value="5">5° SD</option>
+      <option value="6">6° SD</option>
+      <option value="7">7° SD</option>
+      <option value="8">8° SD</option>
+      <option value="9">9° SD</option>
+      <option value="10">10° SD</option>
+    </select>
   </div>
-  <div class="chart-controls" style="margin-top:-4px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
-    <span>BE inf. <strong id="beInf" style="color:var(--text);">—</strong></span>
-    <span>BE sup. <strong id="beSup" style="color:var(--text);">—</strong></span>
-    <span>POP <strong id="popValue" style="color:var(--purple);">—</strong></span>
-    <span id="popZoneWrap" style="display:inline-flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted);" title="Probabilità di profitto nelle zone delimitate dai breakeven (lognormale, Vol ATM, orizzonte prima scadenza)"></span>
-    <label style="display:inline-flex; gap:5px; align-items:center; cursor:pointer;">
-      <input type="checkbox" id="showSigma" title="Spunta per nascondere le deviazioni standard dal grafico"> Dev. std
-      <select id="nSD" class="small" style="width:auto; padding:2px 4px; font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
-        <option value="1">1° SD</option>
-        <option value="2" selected>2° SD</option>
-        <option value="3">3° SD</option>
-        <option value="4">4° SD</option>
-        <option value="5">5° SD</option>
-        <option value="6">6° SD</option>
-        <option value="7">7° SD</option>
-        <option value="8">8° SD</option>
-        <option value="9">9° SD</option>
-        <option value="10">10° SD</option>
-      </select>
-    </label>
-    <span style="display:inline-flex; gap:6px; margin-left:auto; align-items:center; flex-wrap:wrap;">
-      <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px; font-size:16px; min-width:42px;">−</button>
-      <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px; font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px; font-size:16px;">+</button>
-      <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px; font-size:11px;">Reset</button>
+  <div class="chart-controls" style="margin-top:-4px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
+    <span style="display:inline-flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
+      <button type="button" class="btn" id="btnModalitaZoom" title="Attiva/disattiva lo zoom con la sola rotella">Rotella: pagina</button>
+      <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px;font-size:16px;min-width:42px;">−</button>
+      <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px;font-size:12px;">Centra</button>
+      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;">+</button>
+      <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px;font-size:11px;">Reset</button>
     </span>
   </div>
-  <svg id="payoffChart" viewBox="0 0 920 380" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair; touch-action:none;"></svg>
+  <svg id="payoffChart" viewBox="0 0 920 570" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair;touch-action:none;width:100%;"></svg>
   <div class="chart-legend">
     <span id="legendSchede" style="display:contents;"></span>
-    <span><i style="background:#ffffff;"></i> P&amp;L a scadenza (linea piena)</span>
-    <span><i style="background:#ffffff; height:0; border-top:2px dashed #ffffff; width:18px;"></i> P&amp;L Now (linea tratteggiata)</span>
+<span><i style="background:#ffffff;"></i> P&amp;L a scadenza (corrente: linea piena)</span>
+<span><i style="background:#ffffff;height:0;border-top:2px dashed #ffffff;width:18px;"></i> P&amp;L Now (in comparazione: corrente piena, precedente tratteggiata)</span>
     <span><i style="background:var(--accent);"></i> Spot</span>
     <span><i style="background:#f1c40f;"></i> Breakeven</span>
-    <span><i style="background:#2ecc71; opacity:0.4;"></i> Dev. standard</span>
-    <span style="color:var(--muted); font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo (e solo per il NES)</span>
+    <span><i style="background:#2ecc71;opacity:0.4;"></i> Dev. standard</span>
+    <span style="color:var(--muted);font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo (e solo per il NES)</span>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -311,5 +417,44 @@
 <script src="js/storage.js"></script>
 <script src="js/eventi.js"></script>
 <script src="js/main.js"></script>
+<script>
+  /* Ponte toggle Dev. std: la UI usa logica diretta (spuntato = visibile),
+     mentre il grafico usa la logica storica inversa (showSigma spuntato = nascosto).
+     Questo script li tiene sincronizzati invertiti. */
+  (function(){
+    var ui = document.getElementById('showSigmaUI');
+    var reale = document.getElementById('showSigma');
+    function sync(){ reale.checked = !ui.checked; }
+    sync(); // stato iniziale: pillola spenta -> bande nascoste
+    ui.addEventListener('change', function(){
+      sync();
+      reale.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+  })();
+</script>
+<script>
+  /* Sicurezza scroll: il mouse wheel su un campo numerico modifica il valore
+     SOLO se tieni premuto SHIFT. Senza SHIFT la rotella scrolla normalmente
+     la pagina e non tocca nessun valore. */
+  (function(){
+    document.addEventListener('wheel', function(e){
+      var t = e.target;
+      var isNum = (t && t.tagName === 'INPUT' && t.type === 'number');
+      if(!isNum) return;
+      if(e.shiftKey){
+        e.preventDefault(); // con SHIFT: il valore cambia, la pagina non scrolla
+      }else{
+        // senza SHIFT: blocca l'handler che modifica il valore, lascia scorrere la pagina
+        e.stopPropagation();
+      }
+    }, {capture:true, passive:false});
+    // Alcuni script usano l'evento 'wheel' come alias: copriamo anche 'mousewheel' (vecchi browser)
+    document.addEventListener('mousewheel', function(e){
+      if(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number' && !e.shiftKey){
+        e.stopPropagation();
+      }
+    }, {capture:true, passive:false});
+  })();
+</script>
 </body>
 </html>

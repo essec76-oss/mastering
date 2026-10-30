@@ -27,7 +27,7 @@
   body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
     font-family: var(--font); font-size: 14px; }
   .top-bar { display: flex; align-items: flex-start; justify-content: space-between;
-    gap: 16px; max-width: 1300px; margin-bottom: 16px; flex-wrap: wrap; }
+    gap: 16px; max-width: none; margin-bottom: 16px; flex-wrap: wrap; }
   #modalitaGlobale {
     display: block;
     background: var(--panel-2);
@@ -59,7 +59,7 @@
 
   /* Barra schede: Matrice (non rimovibile) + comparazioni.
      Nota v25: il pulsante "Promuovi su Matrice" è stato rimosso. */
-  .schede-bar { max-width: 1300px; margin-bottom: 16px; display: flex;
+  .schede-bar { max-width: none; margin-bottom: 16px; display: flex;
     align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .schede-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
   .scheda-tab { background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
@@ -82,7 +82,7 @@
   body.scheda-comp .btn-add:hover { border-color: #f97316; color: #f97316; }
   .price-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     background: var(--panel); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; max-width: 1300px; }
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; max-width: none; }
   .price-bar .label { font-size: 12px; color: var(--muted);
     text-transform: uppercase; letter-spacing: 1px; }
   .price-bar input { background: var(--panel-2); border: 1px solid var(--border);
@@ -92,7 +92,7 @@
   .price-bar input:focus { outline: none; border-color: var(--accent); }
   .price-bar input.small { font-size: 14px; width: 90px; color: var(--text); font-weight: 600; }
   .price-bar .param-group { display: flex; align-items: center; gap: 8px; }
-  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1300px; }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: none; }
   .column { background: var(--panel); border: 1px solid var(--border);
     border-radius: var(--radius); overflow: hidden; }
   .col-header { background: var(--panel-3); border-bottom: 2px solid var(--accent);
@@ -158,6 +158,10 @@
     background: var(--panel-2); color: var(--yellow); font-weight: 700; border-color: #3a4150;
     font-size: 15px; }
 
+  /* v29 — riga unica apertura+chiusura futures */
+  .movimenti .in-fee{width:68px;}
+  tr.row-mista td{background:rgba(241,196,15,.06);}
+
   .movimenti .btn-del {
     background: rgba(231, 76, 60, 0.08);
     border: 1px solid rgba(231, 76, 60, 0.45);
@@ -210,8 +214,6 @@
     width: 16px; height: 16px; margin: 0; cursor: pointer;
     accent-color: var(--accent);
   }
-  .cash-escludi-label { font-size: 10px; color: var(--muted); cursor: pointer;
-    text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
   #cash.pos { background: rgba(46, 204, 113, 0.16); color: var(--green); font-weight: 700; }
   #cash.neg { background: rgba(231, 76, 60, 0.16); color: var(--red); font-weight: 700; }
 
@@ -226,7 +228,7 @@
     font-family: var(--font); letter-spacing: 0.5px; }
   .btn-add:hover { border-color: var(--accent); color: var(--accent); }
 
-  .options-card { max-width: 1300px; margin-top: 16px;
+  .options-card { max-width: none; margin-top: 16px;
     background: var(--panel); border: 1px solid var(--border);
     border-radius: var(--radius); overflow: hidden; }
   .options-header { background: var(--panel-3); border-bottom: 2px solid var(--purple);
@@ -255,7 +257,7 @@
     letter-spacing: 1px; display: block; }
   .options-header .pnl-opz .value {
     font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .riepilogo { max-width: 1300px; margin-top: 20px;
+  .riepilogo { max-width: none; margin-top: 20px;
     background: var(--panel); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 16px 18px; }
   .riepilogo h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
@@ -310,7 +312,16 @@
   .chart-controls .ctrl-group.corrente .ctrl-label { color: #22b8f0; }
   .chart-controls .ctrl-group.precedente .ctrl-label { color: #fb923c; }
 
-  #payoffChart { width: 100%; height: 500px; display: block; background: #0c0e12; border-radius: 6px; }
+  /* v30 — Grafico payoff con superficie maggiorata:
+     altezza libera proporzionata al viewBox (920×570) invece del
+     vecchio height fisso 500px che letterboxava il disegno.
+     Il grafico occupa tutta la larghezza del pannello e cresce in
+     altezza con essa: su schermi ampi l'area disegnata aumenta di
+     oltre il 50% rispetto a prima, senza bande vuote. */
+  #payoffChart {
+    width: 100%; height: auto; aspect-ratio: 920 / 570;
+    display: block; background: #0c0e12; border-radius: 6px;
+  }
   .chart-legend {
     display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px;
     font-size: 11px; color: var(--muted);
@@ -322,7 +333,7 @@
 
   @media (max-width: 800px) {
     body { padding: 12px; }
-    #payoffChart { height: 320px; }
+    #payoffChart { aspect-ratio: auto; height: 320px; }
     .columns { grid-template-columns: 1fr; }
     .riga-totale { flex-direction: column; align-items: flex-start; gap: 8px; }
     .rt-pnl { margin-left: 0; }
@@ -443,3 +454,51 @@ tfoot#footOpzioni .tot-val {
 }
 tfoot#footOpzioni .tot-val.green { color: var(--green); }
 tfoot#footOpzioni .tot-val.red   { color: var(--red); }
+/* ============================================================
+   SCARICA POSIZIONE (modale Average Cost)
+   ============================================================ */
+.btn-scarico { margin-top: 8px; }
+.btn-scarico:hover { border-color: var(--green); color: var(--green); }
+
+.modal-scarico { width: min(720px, 94vw); }
+
+.scarico-info { font-size: 12px; color: var(--muted);
+  display: flex; gap: 16px; flex-wrap: wrap; align-items: baseline; }
+.scarico-info strong.scarico-media { color: var(--yellow); font-size: 15px; }
+.scarico-info strong.scarico-spot { color: var(--accent); font-size: 15px; }
+.scarico-nota { flex-basis: 100%; font-size: 11px; opacity: .8; }
+
+.scarico-warn { padding: 10px 14px; border: 1px solid rgba(231,76,60,.5);
+  border-radius: 8px; color: var(--red); font-size: 13px; font-weight: 600;
+  background: rgba(231,76,60,.08); }
+
+.scarico-lista { overflow-y: auto; max-height: 52vh;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(0,0,0,.15); padding: 6px; }
+
+.scarico-tabella { width: 100%; border-collapse: collapse; font-size: 13px;
+  font-variant-numeric: tabular-nums; }
+.scarico-tabella th { color: var(--muted); font-size: 10px;
+  text-transform: uppercase; letter-spacing: .05em; padding: 6px;
+  border-bottom: 1px solid var(--border); text-align: right; }
+.scarico-tabella th:first-child, .scarico-tabella td:first-child { text-align: center; }
+.scarico-tabella td { padding: 6px; border-bottom: 1px solid var(--border); text-align: right; }
+.scarico-tabella tr:last-child td { border-bottom: none; }
+
+.scarico-tabella input.scarico-qta { width: 72px; background: var(--panel-2);
+  border: 1px solid var(--border); color: var(--text); border-radius: 6px;
+  padding: 4px 6px; font-size: 12px; text-align: right; font-family: var(--font); }
+.scarico-tabella input.scarico-qta:focus { outline: none; border-color: var(--accent); }
+
+.scarico-pnl.green { color: var(--green); font-weight: 700; }
+.scarico-pnl.red   { color: var(--red); font-weight: 700; }
+.scarico-pnl.muted { color: var(--muted); }
+
+.scarico-tot { display: flex; justify-content: flex-end; align-items: baseline;
+  gap: 8px; font-size: 13px; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.scarico-tot strong { font-size: 17px; }
+.scarico-tot strong.green { color: var(--green); }
+.scarico-tot strong.red   { color: var(--red); }
+
+.scarico-empty { padding: 28px; text-align: center; color: var(--muted); }
