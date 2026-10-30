@@ -251,16 +251,6 @@
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
       // POS CLOSE
-      const tdPosC = document.createElement('td');
-      tdPosC.dataset.label = 'Pos Close';
-      const selPosC = document.createElement('select');
-      selPosC.innerHTML = '<option value="LONG">BUY</option><option value="SHORT">SELL</option>';
-      selPosC.value = mov.direzioneClose || direzioneInversa(mov.direzione);
-      selPosC.addEventListener('change', e => {
-        scheda[col][idx].direzioneClose = e.target.value;
-        calcolaTutto();
-      });
-      tdPosC.appendChild(selPosC); tr.appendChild(tdPosC);
 
       // QTA CLOSE
       const tdQtaC = document.createElement('td');
