@@ -1,8 +1,8 @@
 // scarico-posizione.js — Bottone «Scarica posizione» + modale di chiusura
 // Metodo: Average Cost (prezzo medio di carico, IBKR) — NON FIFO.
-// Al momento dello scarico il prezzo di carico di TUTTE le posizioni aperte
-// viene normalizzato al prezzo medio corrente; le posizioni chiuse si
-// interfacciano con quello vs lo spot, e le residue lo ereditano.
+// Al momento dello scarico le posizioni chiuse vengono valutate sul prezzo
+// medio di carico calcolato PRIMA dello scarico; le posizioni residue
+// ereditano il prezzo medio.
 // L'ordine di caricamento è definito in index.html (dopo eventi.js).
 (function () {
   'use strict';
@@ -205,9 +205,6 @@
       actions.appendChild(btnConferma);
       box.appendChild(actions);
 
-      // primo calcolo: ora totPnlEl e btnConferma esistono
-      updaters.forEach(u => u());
-
       function aggiornaTotale() {
         let totPnl = 0, nessuna = true;
         overlay.querySelectorAll('.scarico-chk').forEach(chk => {
@@ -233,6 +230,9 @@
         overlay.querySelectorAll('.scarico-chk').forEach(chk => { chk.checked = selTutte.checked; });
         updaters.forEach(u => u());
       });
+
+      // Primo calcolo: ora tutti gli elementi (totPnlEl, btnConferma) esistono
+      updaters.forEach(u => u());
     }
 
     overlay.addEventListener('click', e => {
@@ -250,20 +250,10 @@
     const scheda = schedaAttiva();
     if (!isFinite(media) || !(spot > 0)) return;
 
-    // 1) NORMALIZZAZIONE: il prezzo di carico di TUTTE le posizioni ancora
-    //    aperte diventa il prezzo medio corrente (metodo prezzo medio IBKR).
-    //    È questo che fa sì che le posizioni residue ereditino il prezzo
-    //    medio (es. D resta con la media di C+D) e che la chiusura si
-    //    interfacci con la media, non con l'ingresso originario della riga.
-    (scheda[col] || []).forEach(m => {
-      if (m.attivo === false) return;
-      const qAp = m.quantita || 0;
-      const residuo = qAp - Math.min(m.quantitaChiusa || 0, qAp);
-      if (residuo > 0) m.prezzoPulito = media;
-    });
-
-    // 2) CHIUSURA delle posizioni selezionate: q.tà indicata (parziale ok),
+    // 1) CHIUSURA delle posizioni selezionate: q.tà indicata (parziale ok),
     //    prezzo di chiusura = spot attuale, direzione inversa automatica.
+    //    Avviene PRIMA della normalizzazione, così le posizioni chiuse
+    //    conservano il proprio prezzo di carico originale.
     selezione.forEach(s => {
       const m = scheda[col][s.idx];
       if (!m) return;
@@ -272,6 +262,16 @@
       m.quantitaChiusa = Math.min(giaChiusa + s.qty, qAp);
       m.direzioneClose = direzioneInversa(m.direzione);
       m.prezzoClose = spot;
+    });
+
+    // 2) NORMALIZZAZIONE: solo le posizioni che restano aperte dopo la
+    //    chiusura ereditano il prezzo medio di carico calcolato prima dello
+    //    scarico (metodo prezzo medio IBKR).
+    (scheda[col] || []).forEach(m => {
+      if (m.attivo === false) return;
+      const qAp = m.quantita || 0;
+      const residuo = qAp - Math.min(m.quantitaChiusa || 0, qAp);
+      if (residuo > 0) m.prezzoPulito = media;
     });
 
     chiudiModaleScarico();
