@@ -161,7 +161,6 @@
         chk.addEventListener('change', upd);
         inQ.addEventListener('input', upd);
         updaters.push(upd);
-        upd();
       });
       tbl.appendChild(tb);
       lista.appendChild(tbl);
@@ -205,6 +204,9 @@
       actions.appendChild(btnAnnulla);
       actions.appendChild(btnConferma);
       box.appendChild(actions);
+
+      // primo calcolo: ora totPnlEl e btnConferma esistono
+      updaters.forEach(u => u());
 
       function aggiornaTotale() {
         let totPnl = 0, nessuna = true;
