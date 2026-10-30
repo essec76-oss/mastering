@@ -176,10 +176,14 @@
       const isOn = mov.attivo !== false;
       const qAp = mov.quantita || 0;
       const qCh = Math.min(mov.quantitaChiusa || 0, qAp);
-      
+
       if (qCh > 0 && qCh < qAp) tr.classList.add('row-mista');
       else if (qCh >= qAp && qCh > 0) tr.classList.add('row-chiusa');
       if (!isOn) tr.classList.add('row-off');
+
+      // Riga chiusa (anche parzialmente): più grigia
+      if (qCh >= qAp && qCh > 0) tr.style.opacity = '0.45';
+      else if (qCh > 0) tr.style.opacity = '0.75';
 
       // DEL
       const tdDel = document.createElement('td');
@@ -214,6 +218,7 @@
       const selPos = document.createElement('select');
       selPos.innerHTML = '<option value="LONG">BUY</option><option value="SHORT">SELL</option>';
       selPos.value = mov.direzione;
+      selPos.disabled = qCh > 0;   // non cambiabile dopo una chiusura
       selPos.addEventListener('change', e => {
         const d = e.target.value;
         scheda[col][idx].direzione = d;
@@ -228,6 +233,7 @@
       const inQta = document.createElement('input');
       inQta.type = 'number'; inQta.step = '1'; inQta.min = '0';
       inQta.value = mov.quantita;
+      inQta.disabled = qCh > 0;
       inQta.addEventListener('input', e => {
         const q = (e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0));
         scheda[col][idx].quantita = q;
@@ -244,45 +250,37 @@
       inPrezzo.className = 'prezzo-nominale';
       inPrezzo.value = (mov.prezzoPulito === 0 || mov.prezzoPulito === undefined) ? '' : mov.prezzoPulito;
       inPrezzo.placeholder = '—';
+      inPrezzo.disabled = qCh > 0;
       inPrezzo.addEventListener('input', e => {
         scheda[col][idx].prezzoPulito = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
         aggiornaCalcolati(col); calcolaTutto();
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
-      // POS CLOSE
-
-      // QTA CLOSE
+      // QTA CLOSE (sola lettura: la valorizza solo lo scarico)
       const tdQtaC = document.createElement('td');
       tdQtaC.dataset.label = 'Q.tà Close';
       const inQtaC = document.createElement('input');
-      inQtaC.type = 'number'; inQtaC.step = '1'; inQtaC.min = '0';
-      inQtaC.value = mov.quantitaChiusa || '';
+      inQtaC.type = 'number';
+      inQtaC.value = qCh || '';
       inQtaC.placeholder = '0';
-      inQtaC.addEventListener('input', e => {
-        const q = (e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0));
-        scheda[col][idx].quantitaChiusa = Math.min(q, scheda[col][idx].quantita || 0);
-        ricalcolaStatiScheda(scheda, col);
-        aggiornaCalcolati(col); calcolaTutto();
-      });
+      inQtaC.disabled = true;
       tdQtaC.appendChild(inQtaC); tr.appendChild(tdQtaC);
 
-      // PREZZO CLOSE
+      // PREZZO CLOSE (sola lettura: spot al momento dello scarico)
       const tdPrezzoC = document.createElement('td');
       tdPrezzoC.dataset.label = 'Prezzo Close';
       const inPrezzoC = document.createElement('input');
-      inPrezzoC.type = 'number'; inPrezzoC.step = '0.25';
+      inPrezzoC.type = 'number';
+      inPrezzoC.step = '0.25';
       inPrezzoC.className = 'prezzo-nominale';
-      inPrezzoC.value = (mov.prezzoClose === 0 || mov.prezzoClose === undefined) ? '' : mov.prezzoClose;
+      inPrezzoC.value = mov.prezzoClose ? mov.prezzoClose : '';
       inPrezzoC.placeholder = '—';
-      inPrezzoC.title = 'Se lasciato vuoto, la chiusura usa il prezzo Spot corrente.';
-      inPrezzoC.addEventListener('input', e => {
-        scheda[col][idx].prezzoClose = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
-        aggiornaCalcolati(col); calcolaTutto();
-      });
+      inPrezzoC.disabled = true;
+      inPrezzoC.title = 'Valorizzato dallo scarico con lo spot al momento della chiusura.';
       tdPrezzoC.appendChild(inPrezzoC); tr.appendChild(tdPrezzoC);
 
-      // FEE
+      // FEE (attiva solo dopo una chiusura)
       const tdFee = document.createElement('td');
       tdFee.dataset.label = 'Fee';
       const inFee = document.createElement('input');
@@ -290,6 +288,7 @@
       inFee.className = 'in-fee';
       inFee.value = (mov.fee === 0 || mov.fee === undefined) ? '' : mov.fee;
       inFee.placeholder = '0';
+      inFee.disabled = qCh === 0;
       inFee.addEventListener('input', e => {
         scheda[col][idx].fee = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
         aggiornaCalcolati(col); calcolaTutto();
@@ -300,7 +299,7 @@
       const tdRlzd = document.createElement('td');
       tdRlzd.className = 'pnl-riga td-pnl';
       tdRlzd.dataset.label = 'RLZD';
-      tdRlzd.title = 'P&L realizzato calcolato sul prezzo medio di carico.';
+      tdRlzd.title = 'P&L realizzato calcolato sul prezzo medio di carico al momento dello scarico.';
       const { testo, classe } = _valoreRlzdRiga(info, !isOn);
       tdRlzd.textContent = testo;
       tdRlzd.classList.add(classe);
