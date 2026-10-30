@@ -454,3 +454,51 @@ tfoot#footOpzioni .tot-val {
 }
 tfoot#footOpzioni .tot-val.green { color: var(--green); }
 tfoot#footOpzioni .tot-val.red   { color: var(--red); }
+/* ============================================================
+   SCARICA POSIZIONE (modale Average Cost)
+   ============================================================ */
+.btn-scarico { margin-top: 8px; }
+.btn-scarico:hover { border-color: var(--green); color: var(--green); }
+
+.modal-scarico { width: min(720px, 94vw); }
+
+.scarico-info { font-size: 12px; color: var(--muted);
+  display: flex; gap: 16px; flex-wrap: wrap; align-items: baseline; }
+.scarico-info strong.scarico-media { color: var(--yellow); font-size: 15px; }
+.scarico-info strong.scarico-spot { color: var(--accent); font-size: 15px; }
+.scarico-nota { flex-basis: 100%; font-size: 11px; opacity: .8; }
+
+.scarico-warn { padding: 10px 14px; border: 1px solid rgba(231,76,60,.5);
+  border-radius: 8px; color: var(--red); font-size: 13px; font-weight: 600;
+  background: rgba(231,76,60,.08); }
+
+.scarico-lista { overflow-y: auto; max-height: 52vh;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(0,0,0,.15); padding: 6px; }
+
+.scarico-tabella { width: 100%; border-collapse: collapse; font-size: 13px;
+  font-variant-numeric: tabular-nums; }
+.scarico-tabella th { color: var(--muted); font-size: 10px;
+  text-transform: uppercase; letter-spacing: .05em; padding: 6px;
+  border-bottom: 1px solid var(--border); text-align: right; }
+.scarico-tabella th:first-child, .scarico-tabella td:first-child { text-align: center; }
+.scarico-tabella td { padding: 6px; border-bottom: 1px solid var(--border); text-align: right; }
+.scarico-tabella tr:last-child td { border-bottom: none; }
+
+.scarico-tabella input.scarico-qta { width: 72px; background: var(--panel-2);
+  border: 1px solid var(--border); color: var(--text); border-radius: 6px;
+  padding: 4px 6px; font-size: 12px; text-align: right; font-family: var(--font); }
+.scarico-tabella input.scarico-qta:focus { outline: none; border-color: var(--accent); }
+
+.scarico-pnl.green { color: var(--green); font-weight: 700; }
+.scarico-pnl.red   { color: var(--red); font-weight: 700; }
+.scarico-pnl.muted { color: var(--muted); }
+
+.scarico-tot { display: flex; justify-content: flex-end; align-items: baseline;
+  gap: 8px; font-size: 13px; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.scarico-tot strong { font-size: 17px; }
+.scarico-tot strong.green { color: var(--green); }
+.scarico-tot strong.red   { color: var(--red); }
+
+.scarico-empty { padding: 28px; text-align: center; color: var(--muted); }
