@@ -212,21 +212,6 @@
       });
       tdAtt.appendChild(btnNascondi); tr.appendChild(tdAtt);
 
-      // POS OPEN
-      const tdPos = document.createElement('td');
-      tdPos.dataset.label = 'Pos';
-      const selPos = document.createElement('select');
-      selPos.innerHTML = '<option value="LONG">BUY</option><option value="SHORT">SELL</option>';
-      selPos.value = mov.direzione;
-      selPos.disabled = qCh > 0;   // non cambiabile dopo una chiusura
-      selPos.addEventListener('change', e => {
-        const d = e.target.value;
-        scheda[col][idx].direzione = d;
-        scheda[col][idx].direzioneClose = direzioneInversa(d);
-        renderMovimenti(col); calcolaTutto();
-      });
-      tdPos.appendChild(selPos); tr.appendChild(tdPos);
-
       // QTA OPEN
       const tdQta = document.createElement('td');
       tdQta.dataset.label = 'Q.tà';
