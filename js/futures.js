@@ -71,10 +71,16 @@
       const feeRea = fee * frazChiusa;
       const feeRes = fee - feeRea;
 
-      // P&L realizzato del lato chiuso (calcolato sul prezzo open della riga)
+      // P&L realizzato del lato chiuso.
+      // Se la riga è stata chiusa tramite lo scarico (Average Cost IBKR), 
+      // usa il prezzo medio di carico salvato sulla riga (prezzoMedioChiusura) 
+      // per far coincidere il calcolo con il modale.
       let pnlRea = 0;
       if (qCh > 0) {
-        pnlRea = (prezzoClose - prezzoOpen) * qCh * segno * molt - feeRea;
+        const basePrezzo = (m.prezzoMedioChiusura && m.prezzoMedioChiusura.prezzo)
+          ? m.prezzoMedioChiusura.prezzo
+          : prezzoOpen;
+        pnlRea = (prezzoClose - basePrezzo) * qCh * segno * molt - feeRea;
         pnlRealizzatoTot += pnlRea;
       }
 
