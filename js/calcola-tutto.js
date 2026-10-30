@@ -35,10 +35,10 @@ function calcolaTutto() {
   const pnlScad = spotVal > 0 ? pnlCombinatoAt(scheda, spotVal, 'expiry', resNES, resMES) : NaN;
   const pnlNowEl = el('pnlNowTot');
   pnlNowEl.textContent = formatEuro(pnlNowVal);
-  pnlNowEl.className = 'big-value value ' + (!isFinite(pnlNowVal) ? 'muted' : (pnlNowVal >= 0 ? 'green' : 'red'));
+  pnlNowEl.className = 'rg-val big ' + (!isFinite(pnlNowVal) ? 'muted' : (pnlNowVal >= 0 ? 'green' : 'red'));
   const pnlScadEl = el('pnlScadenzaTot');
   pnlScadEl.textContent = formatEuro(pnlScad);
-  pnlScadEl.className = 'big-value value ' + (!isFinite(pnlScad) ? 'muted' : (pnlScad >= 0 ? 'green' : 'red'));
+  pnlScadEl.className = 'rg-val big ' + (!isFinite(pnlScad) ? 'muted' : (pnlScad >= 0 ? 'green' : 'red'));
 
   // v29 — PmG (Profitto medio giornaliero): esteso a TUTTE le modalità
   // (azioni, futures su indici, futures su commodities). Visibile ogni
