@@ -502,3 +502,28 @@ tfoot#footOpzioni .tot-val.red   { color: var(--red); }
 .scarico-tot strong.red   { color: var(--red); }
 
 .scarico-empty { padding: 28px; text-align: center; color: var(--muted); }
+
+/* Selettore BUY/SELL nelle tabelle movimenti */
+.movimenti select.select-tipo {
+  width: auto;
+  min-width: 58px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+.movimenti select.select-tipo[data-tipo="BUY"] {
+  color: var(--green);
+  border-color: rgba(46, 204, 113, 0.45);
+  background: rgba(46, 204, 113, 0.08);
+}
+.movimenti select.select-tipo[data-tipo="SELL"] {
+  color: var(--red);
+  border-color: rgba(231, 76, 60, 0.45);
+  background: rgba(231, 76, 60, 0.08);
+}
+.movimenti select.select-tipo:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

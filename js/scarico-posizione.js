@@ -360,6 +360,7 @@
     chiudiModaleScarico();
     renderMovimenti(col);
     calcolaTutto();   // ricalcola RLZD, totali, autosave
-    mostraStatus('✓ Posizione scaricata');
+    const st = el('saveStatus');
+    if (st) { st.textContent = '✓ Posizione scaricata'; st.classList.add('show'); setTimeout(() => st.classList.remove('show'), 2000); }
   }
 })();
