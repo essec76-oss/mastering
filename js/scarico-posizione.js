@@ -1,8 +1,9 @@
 // scarico-posizione.js — Bottone «Scarica posizione» + modale di chiusura
 // Metodo: Average Cost (prezzo medio di carico, IBKR) — NON FIFO.
-// Al momento dello scarico le posizioni chiuse vengono valutate sul prezzo
-// medio di carico calcolato PRIMA dello scarico; le posizioni residue
-// ereditano il prezzo medio.
+// Al momento dello scarico il prezzo medio di carico corrente viene salvato
+// sulla riga chiusa (prezzoMedioChiusura): il P&L realizzato resta fisso e
+// non cambia quando si scaricano altre posizioni. Il prezzo di carico
+// originale (prezzoPulito) non viene mai modificato dallo scarico.
 // L'ordine di caricamento è definito in index.html (dopo eventi.js).
 (function () {
   'use strict';
@@ -14,7 +15,7 @@
     btn.className = 'btn-add btn-scarico';
     btn.dataset.col = btnAdd.dataset.col;
     btn.textContent = '↓ Scarica posizione';
-    btn.title = 'Apre la finestra di chiusura: seleziona le operazioni da chiudere (dalla più anziana). Il P&L usa il prezzo medio di carico corrente vs lo spot; le posizioni residue ereditano il prezzo medio.';
+    btn.title = 'Apre la finestra di chiusura: seleziona le operazioni da chiudere (dalla più anziana). Il P&L usa il prezzo medio di carico corrente vs lo spot.';
     btn.addEventListener('click', () => apriModaleScarico(btnAdd.dataset.col));
     btnAdd.insertAdjacentElement('afterend', btn);
   });
@@ -74,7 +75,7 @@
       info.innerHTML =
         '<span>Prezzo medio di carico: <strong class="scarico-media">' + formatPrezzo(media) + '</strong></span>' +
         '<span>Spot attuale: <strong class="scarico-spot">' + formatPrezzo(spot) + '</strong></span>' +
-        '<span class="scarico-nota">P&L = prezzo medio di carico vs spot (metodo prezzo medio IBKR). Le posizioni residue ereditano il prezzo medio.</span>';
+        '<span class="scarico-nota">P&L = prezzo medio di carico vs spot (metodo prezzo medio IBKR).</span>';
       box.appendChild(info);
 
       if (!spotOk) {
@@ -250,28 +251,28 @@
     const scheda = schedaAttiva();
     if (!isFinite(media) || !(spot > 0)) return;
 
-    // 1) CHIUSURA delle posizioni selezionate: q.tà indicata (parziale ok),
-    //    prezzo di chiusura = spot attuale, direzione inversa automatica.
-    //    Avviene PRIMA della normalizzazione, così le posizioni chiuse
-    //    conservano il proprio prezzo di carico originale.
     selezione.forEach(s => {
       const m = scheda[col][s.idx];
       if (!m) return;
       const qAp = m.quantita || 0;
       const giaChiusa = Math.min(m.quantitaChiusa || 0, qAp);
-      m.quantitaChiusa = Math.min(giaChiusa + s.qty, qAp);
+      const nuovaChiusa = Math.min(giaChiusa + s.qty, qAp);
+      const qDaChiudere = nuovaChiusa - giaChiusa;
+
+      // Prezzo medio di carico al momento dello scarico, salvato sulla riga:
+      // il P&L realizzato di questa chiusura non cambierà più in seguito.
+      if (qDaChiudere > 0) {
+        const pm = m.prezzoMedioChiusura || { q: 0, prezzo: 0 };
+        const qTot = pm.q + qDaChiudere;
+        m.prezzoMedioChiusura = {
+          q: qTot,
+          prezzo: (pm.prezzo * pm.q + media * qDaChiudere) / qTot
+        };
+      }
+
+      m.quantitaChiusa = nuovaChiusa;
       m.direzioneClose = direzioneInversa(m.direzione);
       m.prezzoClose = spot;
-    });
-
-    // 2) NORMALIZZAZIONE: solo le posizioni che restano aperte dopo la
-    //    chiusura ereditano il prezzo medio di carico calcolato prima dello
-    //    scarico (metodo prezzo medio IBKR).
-    (scheda[col] || []).forEach(m => {
-      if (m.attivo === false) return;
-      const qAp = m.quantita || 0;
-      const residuo = qAp - Math.min(m.quantitaChiusa || 0, qAp);
-      if (residuo > 0) m.prezzoPulito = media;
     });
 
     chiudiModaleScarico();
