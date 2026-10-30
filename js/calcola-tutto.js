@@ -29,7 +29,7 @@ function calcolaTutto() {
   // Riepilogo minimale: PL AT NOW e PL A SCADENZA
   // AT NOW  = teorico Black-76 allo spot attuale (profitto se chiudessi ora)
   // A SCADENZA = intrinseco alle scadenze + teorico residuale (calendar)
-  // Entrambi includono futures + opzioni + cash (se non escluso)
+  // Entrambi includono futures + opzioni + cash
   const spotVal = parseFloat(el('prezzoSpot').value) || 0;
   const pnlNowVal = spotVal > 0 ? pnlCombinatoAt(scheda, spotVal, 'now', resNES, resMES) : NaN;
   const pnlScad = spotVal > 0 ? pnlCombinatoAt(scheda, spotVal, 'expiry', resNES, resMES) : NaN;
