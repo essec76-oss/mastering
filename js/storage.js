@@ -24,7 +24,6 @@ function raccogliDati() {
     volAtm: parseFloat(el('volAtm').value) || 0,
     divYield: parseFloat(el('divYield') && el('divYield').value) || 0,
     cash: parseFloat(el('cash').value) || 0,
-    cashEscluso: !!stato.cashEscluso,
     dataAnalisiIniziale: el('dataAnalisiIniziale') ? (el('dataAnalisiIniziale').value || '') : '',
     dataAnalisi: el('dataAnalisi') ? (el('dataAnalisi').value || '') : '',
     tipoNES: el('tipoNES').value,
@@ -76,8 +75,6 @@ function applicaDati(dati) {
     if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
     if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
     if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
-    stato.cashEscluso = dati.cashEscluso === true;
-    if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
     if (typeof dati.dataAnalisiIniziale === 'string' && dati.dataAnalisiIniziale && el('dataAnalisiIniziale')) {
       el('dataAnalisiIniziale').value = dati.dataAnalisiIniziale;
     }
@@ -204,15 +201,14 @@ function sparklineSvg(dati) {
   if (!dati || !Array.isArray(dati.schede) || !dati.schede.length) return '';
 
   const campi = ['prezzoSpot', 'riskFree', 'volAtm', 'divYield', 'dataAnalisi',
-                 'strumentoOpzioni', 'tipoNES', 'tipoMES', 'cash', 'cashEscludi'];
+                 'strumentoOpzioni', 'tipoNES', 'tipoMES', 'cash'];
   const bk = {};
   campi.forEach(id => {
     const e = el(id);
     if (e) bk[id] = (e.type === 'checkbox') ? e.checked : e.value;
   });
   const bkStato = {
-    schede: stato.schede, attiva: stato.attiva,
-    cash: stato.cash, cashEscluso: stato.cashEscluso
+    schede: stato.schede, attiva: stato.attiva, cash: stato.cash
   };
 
   let svg = '';
@@ -225,8 +221,6 @@ function sparklineSvg(dati) {
     if (typeof dati.cash === 'number') el('cash').value = dati.cash;
     if (dati.dataAnalisi && el('dataAnalisi')) el('dataAnalisi').value = dati.dataAnalisi;
     stato.cash = dati.cash || 0;
-    stato.cashEscluso = dati.cashEscluso === true;
-    if (el('cashEscludi')) el('cashEscludi').checked = stato.cashEscluso;
     stato.schede = dati.schede.map(migraScheda);
     stato.attiva = 0;
     const s0 = stato.schede[0] || {};
@@ -309,7 +303,6 @@ function sparklineSvg(dati) {
     stato.schede = bkStato.schede;
     stato.attiva = bkStato.attiva;
     stato.cash = bkStato.cash;
-    stato.cashEscluso = bkStato.cashEscluso;
   }
   return svg;
 }
@@ -585,8 +578,6 @@ function reset(senzaConferma) {
   el('cash').value = 0;
   stato.cash = 0;
   aggiornaStileCash();
-  stato.cashEscluso = false;
-  if (el('cashEscludi')) el('cashEscludi').checked = false;
   const oggi = dataOggiIso();
   if (el('dataAnalisiIniziale')) el('dataAnalisiIniziale').value = oggi;
   el('dataAnalisi').value = oggi;
