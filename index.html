@@ -71,6 +71,25 @@
     color:var(--muted);
   }
   .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
+
+  /* ===== Pulsante "Salva in cloud": evidenziato in verde ===== */
+  .salvati-bar #btnSalvaCome{
+    background:#1e9e4a;
+    border:1px solid #1e9e4a;
+    color:#fff;
+    font-weight:700;
+    box-shadow:0 2px 8px rgba(30,158,74,.35);
+    transition:background .15s, box-shadow .15s, transform .1s;
+  }
+  .salvati-bar #btnSalvaCome:hover{
+    background:#24b857;
+    border-color:#24b857;
+    box-shadow:0 3px 12px rgba(30,158,74,.55);
+  }
+  .salvati-bar #btnSalvaCome:active{
+    transform:translateY(1px);
+    background:#178a3f;
+  }
 </style>
 </head>
 <body>
