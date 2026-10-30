@@ -120,6 +120,7 @@ function aggiornaPmG() {
   const label = el('pmgLabel');
   const val = el('pmgValue');
   if (!label || !val) return;
+  
   const visibile = matriceHaOpzioniAttive();
   label.style.display = visibile ? '' : 'none';
   val.style.display = visibile ? '' : 'none';
@@ -128,26 +129,70 @@ function aggiornaPmG() {
   const matrice = stato.schede[0];
   const giorni = giorniTotaliMatrice();
 
-  // PL a scadenza della Matrice: ricalcola le colonne della Matrice
-  // (NON della scheda attiva) con TUTTI i parametri della Matrice
-  // (spot, vol, risk-free, div, cash, data analisi attuale, strumento
-  // opzioni — salvati in matrice.par da parametri-scheda.js). Durante il
-  // calcolo gli input della pagina vengono temporaneamente impostati sui
-  // parametri della Matrice e poi ripristinati su quelli della scheda
-  // attiva. Il campo con il focus non viene mai toccato, così la
-  // digitazione non viene interrotta. Il set programmatico NON fa
-  // scattare gli event listener 'input'/'change'.
   let pnlScadMatrice = NaN;
   const parM = parMatrice(matrice);
+  
   if (matrice && parM) {
-    const CAMPI_SWAP = ['prezzoSpot', 'volStorica', 'volAtm', 'riskFree',
-                        'divYield', 'cash', 'dataAnalisi', 'strumentoOpzioni'];
+    // FIX: Aggiunti i campi specifici per i futures (commodities e indici)
+    // IMPORTANTE: Verifica che 'prezzoFutures', 'moltiplicatore' e 'prezzoMedio' 
+    // siano i nomi esatti delle chiavi che usi in parametri-scheda.js
+    const CAMPI_SWAP = [
+      'prezzoSpot', 'volStorica', 'volAtm', 'riskFree',
+      'divYield', 'cash', 'dataAnalisi', 'strumentoOpzioni',
+      'prezzoFutures', 'moltiplicatore', 'prezzoMedio'
+    ];
+    
     const precedenti = {};
     CAMPI_SWAP.forEach(id => {
       const e = el(id);
       if (e) precedenti[id] = e.value;
     });
+    
     const cashPrecedente = stato.cash;
+    
+    try {
+      CAMPI_SWAP.forEach(id => {
+        const e = el(id);
+        if (!e || e === document.activeElement) return;
+        
+        // Mappatura: 'prezzoSpot' legge dalla chiave 'spot', gli altri usano il proprio nome
+        const key = id === 'prezzoSpot' ? 'spot' : id;
+        const v = parM[key];
+        
+        if (v !== undefined && v !== null && v !== '') {
+          e.value = v;
+        }
+      });
+      
+      // FIX: Fallback su prezzoFutures se prezzoSpot è vuoto (tipico dei futures commodities)
+      const spotVal = parseFloat(el('prezzoSpot').value) || parseFloat(el('prezzoFutures').value) || 0;
+      stato.cash = parseFloat(parM.cash) || 0;
+      
+      if (spotVal > 0) {
+        const resM_NES = calcolaColonna(matrice, 'NES');
+        const resM_MES = calcolaColonna(matrice, 'MES');
+        pnlScadMatrice = pnlCombinatoAt(matrice, spotVal, 'expiry', resM_NES, resM_MES);
+      }
+    } catch (e) {
+      console.warn("Errore nel calcolo del PmG della Matrice:", e);
+      pnlScadMatrice = NaN;
+    } finally {
+      // Ripristino dei valori originali nel DOM senza interrompere il focus
+      CAMPI_SWAP.forEach(id => {
+        const e = el(id);
+        if (e && e !== document.activeElement && precedenti[id] !== undefined) {
+          e.value = precedenti[id];
+        }
+      });
+      stato.cash = cashPrecedente;
+    }
+  }
+
+  const pmg = (giorni > 0 && isFinite(pnlScadMatrice)) ? pnlScadMatrice / giorni : NaN;
+  val.textContent = isFinite(pmg) ? formatEuro(pmg) + ' /gg' : '—';
+  val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
+}
+const cashPrecedente = stato.cash;
     try {
       CAMPI_SWAP.forEach(id => {
         const e = el(id);
