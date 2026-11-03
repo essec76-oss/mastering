@@ -288,21 +288,31 @@ function apriModaleStrategie(modo) {
   const ov = el('modalStrategieOverlay');
   if (!ov) return;
 
+  const isElimina = _modaleStrategieModo === 'elimina';
+
   const titolo = el('modalStrategieTitolo');
-  if (titolo) titolo.textContent = _modaleStrategieModo === 'elimina'
+  if (titolo) titolo.textContent = isElimina
     ? 'Elimina strategia salvata'
     : 'Carica strategia da cloud';
 
+  const sub = el('modalStrategieSub');
+  if (sub) sub.textContent = isElimina
+    ? 'Seleziona la strategia da eliminare in modo permanente'
+    : 'Seleziona una strategia, poi conferma';
+
   const conferma = el('modalStrategieConferma');
   if (conferma) {
-    conferma.textContent = _modaleStrategieModo === 'elimina' ? 'Elimina' : 'Carica';
+    conferma.textContent = isElimina ? 'Elimina' : 'Carica';
     conferma.disabled = true;
+    conferma.classList.toggle('danger', isElimina);
+    conferma.classList.toggle('primary', !isElimina);
   }
 
   const cerca = el('modalStrategieCerca');
   if (cerca) cerca.value = '';
 
   ov.style.display = 'flex';
+  ov.setAttribute('aria-hidden', 'false');
   renderListaSalvate('').then(() => {
     _modaleEvidenziaSelezione();
     if (cerca) cerca.focus();
@@ -311,7 +321,10 @@ function apriModaleStrategie(modo) {
 
 function chiudiModaleStrategie() {
   const ov = el('modalStrategieOverlay');
-  if (ov) ov.style.display = 'none';
+  if (ov) {
+    ov.style.display = 'none';
+    ov.setAttribute('aria-hidden', 'true');
+  }
   _modaleStrategieSelezione = null;
 }
 
