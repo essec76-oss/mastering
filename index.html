@@ -7,19 +7,7 @@
 <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/fix-riepilogo.css">
 <style>
-  /* Modale scelta strategia (carica / elimina da cloud) */
-  .modal-overlay{position:fixed;inset:0;background:rgba(5,7,10,.65);display:flex;align-items:center;justify-content:center;z-index:1000;}
-  .modal-strategie{background:var(--bg,#14171d);border:1px solid var(--border);border-radius:12px;padding:20px;width:min(560px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);}
-  .modal-strategie h3{margin:0;font-size:16px;color:var(--text);}
-  #modalStrategieCerca{width:100%;}
-  .modal-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start;overflow-y:auto;min-height:120px;max-height:50vh;padding:6px;border:1px solid var(--border);border-radius:8px;background:rgba(0,0,0,.15);}
-  .strategia-row{display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);color:var(--text);font-size:13px;cursor:pointer;text-align:left;}
-  .strategia-row:hover{border-color:var(--accent,#4f8cff);}
-  .strategia-row svg{width:100%;height:50px;display:block;}
-  .strategia-nome{display:block;text-align:center;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .strategia-row.selected{border-color:var(--accent,#4f8cff);background:rgba(79,140,255,.18) !important;box-shadow:inset 0 0 0 1px var(--accent,#4f8cff);font-weight:700 !important;}
-  .strategia-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;grid-column:1/-1;}
-  .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+  /* Stili modale strategie: spostati in css/style.css */
 
   /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
   .riepilogo-grid{
@@ -121,13 +109,16 @@
   <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
 </div>
 <!-- Modale scelta strategia salvata -->
-<div class="modal-overlay" id="modalStrategieOverlay" style="display:none;">
-  <div class="modal-strategie">
-    <h3 id="modalStrategieTitolo">Carica strategia da cloud</h3>
-    <input type="text" id="modalStrategieCerca" placeholder="Cerca strategia…" autocomplete="off">
+<div class="modal-overlay" id="modalStrategieOverlay" style="display:none;" aria-hidden="true">
+  <div class="modal-strategie" role="dialog" aria-modal="true" aria-labelledby="modalStrategieTitolo">
+    <div class="modal-header">
+      <h3 id="modalStrategieTitolo">Carica strategia da cloud</h3>
+      <p class="modal-sub" id="modalStrategieSub">Seleziona una strategia, poi conferma</p>
+    </div>
+    <input type="text" id="modalStrategieCerca" class="modal-search" placeholder="Cerca per nome…" autocomplete="off">
     <div class="modal-lista" id="modalListaStrategie"></div>
     <div class="modal-actions">
-      <button type="button" class="btn primary" id="modalStrategieAnnulla">Annulla</button>
+      <button type="button" class="btn" id="modalStrategieAnnulla">Annulla</button>
       <button type="button" class="btn primary" id="modalStrategieConferma" disabled>Carica</button>
     </div>
   </div>
