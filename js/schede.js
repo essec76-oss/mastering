@@ -37,9 +37,18 @@ function renderTabs() {
 
 function selezionaScheda(i) {
   if (i < 0 || i >= stato.schede.length || i === stato.attiva) return;
-  stato.attiva = i;
-  renderTabs();
-  renderScheda();
+
+  document.body.classList.add('scheda-switching');
+
+  setTimeout(() => {
+    stato.attiva = i;
+    renderTabs();
+    renderScheda();
+
+    requestAnimationFrame(() => {
+      document.body.classList.remove('scheda-switching');
+    });
+  }, 130);
 }
 
 // Riporta la pagina sui dati della scheda attiva (valori solo della scheda)
@@ -97,10 +106,19 @@ function creaComparazione() {
   });
 
   stato.schede.push(clone);
-  stato.attiva = stato.schede.length - 1;
-  renderTabs();
-  renderScheda();
-  mostraStatus('✓ ' + clone.nome + ' creata');
+
+  document.body.classList.add('scheda-switching');
+
+  setTimeout(() => {
+    stato.attiva = stato.schede.length - 1;
+    renderTabs();
+    renderScheda();
+    mostraStatus('✓ ' + clone.nome + ' creata');
+
+    requestAnimationFrame(() => {
+      document.body.classList.remove('scheda-switching');
+    });
+  }, 130);
 }
 
 // Le comparazioni si rimuovono, la Matrice mai.
