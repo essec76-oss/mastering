@@ -938,3 +938,266 @@ tfoot#footOpzioni .tot-val.red   { color: var(--red); }
   padding: 10px 0;
   margin-bottom: 8px;
 }
+/* ============================================================
+   PASSO 3 — Pulizia tabelle e stati delle righe
+   ============================================================ */
+
+/* --- TABELLE MOVIMENTI --- */
+.movimenti {
+  padding: 10px 14px 14px 14px;
+}
+
+.movimenti table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.movimenti th,
+.movimenti td {
+  text-align: right;
+  padding: 7px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.movimenti th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: transparent;
+}
+
+.movimenti th:first-child,
+.movimenti td:first-child {
+  text-align: left;
+}
+
+.movimenti input,
+.movimenti select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 6px;
+  font-size: 12px;
+  font-family: var(--font);
+  width: 100%;
+  text-align: right;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.movimenti select {
+  text-align: left;
+}
+
+.movimenti input:focus,
+.movimenti select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.25);
+}
+
+.movimenti input.prezzo-nominale {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 14px;
+  border-color: #3a4150;
+}
+
+/* --- STATI DELLE RIGHE --- */
+.movimenti tr.row-chiusa {
+  background: rgba(168, 85, 247, 0.06);
+}
+
+.movimenti tr.row-mista td {
+  background: rgba(241, 196, 15, 0.07);
+}
+
+.movimenti tr.row-off {
+  opacity: 0.42;
+}
+
+.movimenti tr.row-off input,
+.movimenti tr.row-off select {
+  opacity: 0.85;
+}
+
+.movimenti tr.row-chiusura {
+  background: rgba(79, 140, 255, 0.05);
+}
+
+/* --- BOTTONI DENTRO LE RIGHE --- */
+.movimenti .btn-del {
+  background: rgba(231, 76, 60, 0.08);
+  border: 1px solid rgba(231, 76, 60, 0.45);
+  color: var(--red);
+  border-radius: 5px;
+  padding: 4px 9px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  line-height: 1.2;
+  font-family: var(--font);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.movimenti .btn-del:hover {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.movimenti .btn-stato {
+  background: rgba(79, 140, 255, 0.08);
+  border: 1px solid rgba(79, 140, 255, 0.45);
+  color: var(--accent);
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  line-height: 1.2;
+  font-family: var(--font);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.movimenti .btn-stato:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.movimenti .btn-stato.chiusa {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.55);
+  color: var(--purple);
+}
+
+.movimenti .btn-stato.chiusa:hover {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: #fff;
+}
+
+/* --- P&L e Delta di riga --- */
+.movimenti .pnl-riga,
+.movimenti .delta-riga {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-left: 6px;
+}
+
+.movimenti .pnl-riga.green,
+.movimenti .delta-riga.green { color: var(--green); }
+
+.movimenti .pnl-riga.red,
+.movimenti .delta-riga.red { color: var(--red); }
+
+.movimenti .pnl-riga.muted,
+.movimenti .delta-riga.muted { color: var(--muted); }
+
+/* --- SELECT BUY/SELL --- */
+.movimenti select.select-tipo {
+  width: auto;
+  min-width: 58px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.movimenti select.select-tipo[data-tipo="BUY"] {
+  color: var(--green);
+  border-color: rgba(46, 204, 113, 0.45);
+  background: rgba(46, 204, 113, 0.08);
+}
+
+.movimenti select.select-tipo[data-tipo="SELL"] {
+  color: var(--red);
+  border-color: rgba(231, 76, 60, 0.45);
+  background: rgba(231, 76, 60, 0.08);
+}
+
+.movimenti select.select-tipo:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- FOOTER COLONNA --- */
+.col-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 18px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+}
+
+.col-footer .cf-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.col-footer .cf-pnl {
+  margin-left: auto;
+}
+
+.col-footer .label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+}
+
+.col-footer .value {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.col-footer .value.green { color: var(--green); }
+.col-footer .value.red   { color: var(--red); }
+.col-footer .value.muted { color: var(--muted); }
+
+/* --- TABELLA OPZIONI --- */
+.options-card .movimenti table {
+  min-width: 1250px;
+}
+
+.options-card .movimenti th,
+.options-card .movimenti td {
+  padding: 6px 4px;
+}
+
+.options-card .movimenti input[type="number"] {
+  min-width: 54px;
+  padding: 4px 4px;
+  font-size: 13px;
+}
+
+.options-card .movimenti input[type="date"] {
+  min-width: 104px;
+  padding: 5px 3px;
+  font-size: 11px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0 0 8px 8px;
+}
