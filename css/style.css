@@ -774,3 +774,167 @@ tfoot#footOpzioni .tot-val.red   { color: var(--red); }
   opacity: 0.55;
   cursor: not-allowed;
 }
+/* ============================================================
+   PASSO 2 — Bottoni unificati + Card tokenizzate
+   ============================================================ */
+
+/* --- BOTTONI --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius, 8px);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.35);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover {
+  background: var(--accent-hover, #3a7aee);
+  border-color: var(--accent-hover, #3a7aee);
+  color: #fff;
+}
+
+.btn.danger:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(231, 76, 60, 0.10);
+}
+
+.btn.success {
+  background: #1e9e4a;
+  border-color: #1e9e4a;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(30, 158, 74, 0.35);
+}
+.btn.success:hover {
+  background: #24b857;
+  border-color: #24b857;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(30, 158, 74, 0.55);
+}
+.btn.success:active {
+  background: #178a3f;
+  transform: translateY(1px);
+}
+
+.btn-add {
+  margin-top: 10px;
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  border-radius: var(--radius, 8px);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.btn-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(79, 140, 255, 0.06);
+}
+
+/* --- CARD --- */
+.column,
+.options-card,
+.riepilogo,
+.chart-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+}
+
+.options-card {
+  max-width: none;
+  margin-top: 16px;
+}
+
+.riepilogo {
+  max-width: none;
+  margin-top: 20px;
+  padding: 16px 18px;
+  overflow: visible;
+}
+
+.chart-panel {
+  max-width: none;
+  margin-top: 16px;
+  padding: 14px 16px;
+}
+
+.col-header,
+.options-header {
+  background: var(--panel-3);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.col-header {
+  border-bottom: 2px solid var(--accent);
+}
+
+.options-header {
+  border-bottom: 2px solid var(--purple);
+  flex-wrap: wrap;
+}
+
+.save-status {
+  font-size: 11px;
+  color: var(--green);
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.save-status.show {
+  opacity: 1;
+}
+
+.salvati-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  margin-bottom: 8px;
+}
