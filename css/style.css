@@ -1017,13 +1017,18 @@ tfoot#footOpzioni .tot-val.red   { color: var(--red); }
   background: rgba(241, 196, 15, 0.07);
 }
 
+/* Riga nascosta: rimane leggibile, ma chiaramente "fuori dai conteggi" */
 .movimenti tr.row-off {
-  opacity: 0.42;
+  opacity: 0.72;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .movimenti tr.row-off input,
-.movimenti tr.row-off select {
-  opacity: 0.85;
+.movimenti tr.row-off select,
+.movimenti tr.row-off span[data-field],
+.movimenti tr.row-off .pnl-riga,
+.movimenti tr.row-off .delta-riga {
+  opacity: 1; /* i dati restano pienamente leggibili */
 }
 
 .movimenti tr.row-chiusura {
@@ -1639,4 +1644,27 @@ body.scheda-switching .price-bar {
 
 .scheda-tab.active {
   transform: translateY(-1px);
+}
+/* ============================================================
+   PREZZO ATT. — prezzo di riferimento (finisce in Premio)
+   ============================================================ */
+
+.options-card .movimenti span[data-field="teorico"] {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--yellow);
+  background: rgba(241, 196, 15, 0.10);
+  border: 1px solid rgba(241, 196, 15, 0.35);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-variant-numeric: tabular-nums;
+  min-width: 52px;
+  text-align: right;
+}
+
+/* Anche quando la riga è nascosta resta ben visibile */
+.movimenti tr.row-off span[data-field="teorico"] {
+  opacity: 1;
+  color: var(--yellow);
 }
