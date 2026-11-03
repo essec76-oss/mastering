@@ -1,31 +1,278 @@
+/* ============================================================
+   MASTERING — Design System v1 (upgrade)
+   ------------------------------------------------------------
+   Sostituisci la sezione :root + i componenti base in style.css
+   con questo blocco. Mantiene piena compatibilità con il codice
+   esistente e riduce i valori hardcoded.
+   ============================================================ */
+
 :root {
-    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --panel-3: #252a35;
-    --border: #2a2f3a; --text: #e6e8ee; --muted: #8b93a7; --accent: #4f8cff;
-    --green: #2ecc71; --red: #e74c3c; --yellow: #f1c40f; --purple: #a855f7;
-    --radius: 10px; --font: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  }
-  * { box-sizing: border-box; }
+  /* ---------- Colori di superficie ---------- */
+  --bg:          #0f1115;
+  --panel:       #171a21;
+  --panel-2:     #1e222b;
+  --panel-3:     #252a35;
+  --border:      #2a2f3a;
+  --border-strong: #3a4150;
 
-  /* ============================================================
-     FIX DROPDOWN: le <option> dei <select> non ereditano i colori
-     del genitore su Chrome/Edge/Windows (sfondo bianco, testo chiaro
-     = illeggibile). Va forzato esplicitamente + color-scheme: dark
-     per far capire al browser che il tema è scuro.
-     ============================================================ */
-  select { color-scheme: dark; }
-  select option {
-    background: var(--panel-2);
-    color: var(--text);
-  }
-  select optgroup {
-    background: var(--panel-3);
-    color: var(--muted);
-    font-weight: 600;
-  }
-  /* ============================================================ */
+  /* ---------- Testo ---------- */
+  --text:        #e6e8ee;
+  --muted:       #8b93a7;
+  --text-dim:    #6b7280;
 
-  body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
-    font-family: var(--font); font-size: 14px; }
+  /* ---------- Accenti semantici ---------- */
+  --accent:      #4f8cff;
+  --accent-hover:#3a7aee;
+  --accent-soft: rgba(79, 140, 255, 0.18);
+
+  --green:       #2ecc71;
+  --green-soft:  rgba(46, 204, 113, 0.14);
+  --red:         #e74c3c;
+  --red-soft:    rgba(231, 76, 60, 0.14);
+  --yellow:      #f1c40f;
+  --yellow-soft: rgba(241, 196, 15, 0.12);
+  --purple:      #a855f7;
+  --purple-soft: rgba(168, 85, 247, 0.14);
+  --orange:      #f97316;          /* usato nelle schede di comparazione */
+  --orange-soft: rgba(249, 115, 22, 0.18);
+
+  /* ---------- Tipografia ---------- */
+  --font:        'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:   ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --text-xs:     11px;
+  --text-sm:     12px;
+  --text-base:   13px;
+  --text-md:     14px;
+  --text-lg:     16px;
+  --text-xl:     18px;
+  --text-2xl:    22px;
+
+  --fw-normal:   400;
+  --fw-medium:   600;
+  --fw-bold:     700;
+
+  /* ---------- Radius ---------- */
+  --radius-sm:   6px;
+  --radius:      8px;
+  --radius-md:   10px;
+  --radius-lg:   12px;
+  --radius-full: 999px;
+
+  /* ---------- Spaziature (scala 4px) ---------- */
+  --space-1:     4px;
+  --space-2:     8px;
+  --space-3:     12px;
+  --space-4:     16px;
+  --space-5:     20px;
+  --space-6:     24px;
+  --space-8:     32px;
+
+  /* ---------- Ombre ---------- */
+  --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow:      0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg:   0 12px 32px rgba(0, 0, 0, 0.45);
+
+  /* ---------- Transizioni ---------- */
+  --transition:  0.15s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ---------- Focus ring ---------- */
+  --focus-ring:  0 0 0 3px rgba(79, 140, 255, 0.35);
+}
+
+/* ============================================================
+   Reset & base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { color-scheme: dark; }
+
+body {
+  margin: 0;
+  padding: var(--space-6);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--text-md);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   FIX DROPDOWN (invariato, solo tokenizzati)
+   ============================================================ */
+select { color-scheme: dark; }
+select option {
+  background: var(--panel-2);
+  color: var(--text);
+}
+select optgroup {
+  background: var(--panel-3);
+  color: var(--muted);
+  font-weight: var(--fw-medium);
+}
+
+/* ============================================================
+   COMPONENTI BASE — Design System
+   ============================================================ */
+
+/* --- Bottoni ------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: var(--text-base);
+  font-family: var(--font);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+.btn.danger {
+  /* base già ok, solo hover più chiaro */
+}
+.btn.danger:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.btn.success {
+  background: #1e9e4a;
+  border-color: #1e9e4a;
+  color: #fff;
+  font-weight: var(--fw-bold);
+  box-shadow: 0 2px 8px rgba(30, 158, 74, 0.35);
+}
+.btn.success:hover {
+  background: #24b857;
+  border-color: #24b857;
+  box-shadow: 0 3px 12px rgba(30, 158, 74, 0.55);
+}
+
+/* Variante piccola (usata nei footer e tabelle) */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Input & Select base ------------------------------------ */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: var(--text-base);
+  font-family: var(--font);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+/* --- Label tipografica -------------------------------------- */
+.label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--fw-medium);
+}
+
+/* --- Card / Pannelli ---------------------------------------- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.card-header {
+  background: var(--panel-3);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* --- Badge / stato ------------------------------------------ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.03em;
+}
+.badge-green  { background: var(--green-soft);  color: var(--green); }
+.badge-red    { background: var(--red-soft);    color: var(--red); }
+.badge-yellow { background: var(--yellow-soft); color: var(--yellow); }
+.badge-purple { background: var(--purple-soft); color: var(--purple); }
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+
+/* --- Utility colori testo ----------------------------------- */
+.text-green  { color: var(--green); }
+.text-red    { color: var(--red); }
+.text-yellow { color: var(--yellow); }
+.text-purple { color: var(--purple); }
+.text-muted  { color: var(--muted); }
+.text-accent { color: var(--accent); }
+
+/* --- Focus visibile globale (accessibilità) ----------------- */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ============================================================
+   FINE DESIGN SYSTEM v1
+   Le regole successive del file originale restano valide.
+   Progressivamente si possono sostituire i valori hardcoded
+   con le nuove variabili (--space-*, --radius-*, --text-*, ecc.)
+   ============================================================ */
   .top-bar { display: flex; align-items: flex-start; justify-content: space-between;
     gap: 16px; max-width: none; margin-bottom: 16px; flex-wrap: wrap; }
   #modalitaGlobale {
@@ -526,4 +773,168 @@ tfoot#footOpzioni .tot-val.red   { color: var(--red); }
 .movimenti select.select-tipo:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+/* ============================================================
+   PASSO 2 — Bottoni unificati + Card tokenizzate
+   ============================================================ */
+
+/* --- BOTTONI --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius, 8px);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.35);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover {
+  background: var(--accent-hover, #3a7aee);
+  border-color: var(--accent-hover, #3a7aee);
+  color: #fff;
+}
+
+.btn.danger:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(231, 76, 60, 0.10);
+}
+
+.btn.success {
+  background: #1e9e4a;
+  border-color: #1e9e4a;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(30, 158, 74, 0.35);
+}
+.btn.success:hover {
+  background: #24b857;
+  border-color: #24b857;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(30, 158, 74, 0.55);
+}
+.btn.success:active {
+  background: #178a3f;
+  transform: translateY(1px);
+}
+
+.btn-add {
+  margin-top: 10px;
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  border-radius: var(--radius, 8px);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.btn-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(79, 140, 255, 0.06);
+}
+
+/* --- CARD --- */
+.column,
+.options-card,
+.riepilogo,
+.chart-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+}
+
+.options-card {
+  max-width: none;
+  margin-top: 16px;
+}
+
+.riepilogo {
+  max-width: none;
+  margin-top: 20px;
+  padding: 16px 18px;
+  overflow: visible;
+}
+
+.chart-panel {
+  max-width: none;
+  margin-top: 16px;
+  padding: 14px 16px;
+}
+
+.col-header,
+.options-header {
+  background: var(--panel-3);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.col-header {
+  border-bottom: 2px solid var(--accent);
+}
+
+.options-header {
+  border-bottom: 2px solid var(--purple);
+  flex-wrap: wrap;
+}
+
+.save-status {
+  font-size: 11px;
+  color: var(--green);
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.save-status.show {
+  opacity: 1;
+}
+
+.salvati-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  margin-bottom: 8px;
 }

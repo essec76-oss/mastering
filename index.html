@@ -74,7 +74,6 @@
   .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
 
   /* ===== Pulsante "Salva in cloud": evidenziato in verde ===== */
-  .salvati-bar #btnSalvaCome{
     background:#1e9e4a;
     border:1px solid #1e9e4a;
     color:#fff;
@@ -82,12 +81,10 @@
     box-shadow:0 2px 8px rgba(30,158,74,.35);
     transition:background .15s, box-shadow .15s, transform .1s;
   }
-  .salvati-bar #btnSalvaCome:hover{
     background:#24b857;
     border-color:#24b857;
     box-shadow:0 3px 12px rgba(30,158,74,.55);
   }
-  .salvati-bar #btnSalvaCome:active{
     transform:translateY(1px);
     background:#178a3f;
   }
@@ -115,7 +112,7 @@
 </div>
 <div class="salvati-bar">
   <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare la strategia corrente">
-  <button class="btn" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva in cloud</button>
+  <button class="btn success" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva in cloud</button>
   <button class="btn" id="btnCaricaSalvato" title="Apre la finestra di scelta delle strategie salvate in cloud: seleziona una strategia e conferma per caricarla">Carica da cloud</button>
   <button class="btn danger" id="btnEliminaSalvato" title="Apre la finestra di scelta delle strategie salvate: seleziona una strategia e conferma per eliminarla">Elimina</button>
   <span style="width:1px;height:24px;background:var(--border);"></span>
