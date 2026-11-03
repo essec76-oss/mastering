@@ -49,7 +49,9 @@
       cell.textContent = (p * 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
     };
 
-    if (opz.attivo === false || opz.stato === 'CHIUSA') {
+    // CHIUSA: nasconde i valori calcolati.
+    // NASCOSTA (attivo === false): continua a mostrare i dati, solo esclusa dai totali.
+    if (opz.stato === 'CHIUSA') {
       setG('intrinseco', NaN, 2);
       setG('temporale', NaN, 2);
       setPct('tocco', null);
@@ -104,7 +106,9 @@
       if (cell) cell.textContent = formatGreek(val, dig);
     };
 
-    if (opz.attivo === false || opz.stato === 'CHIUSA') {
+    // CHIUSA: azzera greche e valori.
+    // NASCOSTA: continua a calcolare e mostrare tutto (solo esclusa dai totali).
+    if (opz.stato === 'CHIUSA') {
       ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
       aggiornaExtraOpzione(tr, opz);
       return;
