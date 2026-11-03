@@ -1017,18 +1017,42 @@ tfoot#footOpzioni .tot-val.red   { color: var(--red); }
   background: rgba(241, 196, 15, 0.07);
 }
 
-/* Riga nascosta: rimane leggibile, ma chiaramente "fuori dai conteggi" */
+/* Riga nascosta: oscuramento più marcato, ma i dati restano leggibili */
 .movimenti tr.row-off {
-  opacity: 0.72;
-  background: rgba(255, 255, 255, 0.02);
+  opacity: 0.55;
+  background: rgba(0, 0, 0, 0.18);
 }
 
+/* Input e select: un filo attenuati ma usabili */
 .movimenti tr.row-off input,
-.movimenti tr.row-off select,
+.movimenti tr.row-off select {
+  opacity: 0.9;
+}
+
+/* Valori numerici sempre a opacità piena */
 .movimenti tr.row-off span[data-field],
 .movimenti tr.row-off .pnl-riga,
 .movimenti tr.row-off .delta-riga {
-  opacity: 1; /* i dati restano pienamente leggibili */
+  opacity: 1;
+}
+
+/* Greche + PREZZO ATT. + Debito/Credito: ben visibili anche da nascosti */
+.movimenti tr.row-off span[data-field="teorico"],
+.movimenti tr.row-off span[data-field="delta"],
+.movimenti tr.row-off span[data-field="gamma"],
+.movimenti tr.row-off span[data-field="vega"],
+.movimenti tr.row-off span[data-field="theta"],
+.movimenti tr.row-off span[data-field="debitcredit"],
+.movimenti tr.row-off span[data-field="pnlScad"] {
+  opacity: 1;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* PREZZO ATT. resta giallo e marcato anche da nascosto */
+.movimenti tr.row-off span[data-field="teorico"] {
+  color: var(--yellow);
+  font-weight: 700;
 }
 
 .movimenti tr.row-chiusura {
