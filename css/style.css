@@ -1610,3 +1610,33 @@ input[type="checkbox"] {
     font-size: 16px; /* evita zoom su iOS */
   }
 }
+/* ============================================================
+   Transizione cambio scheda (Matrice ↔ Comparazioni)
+   ============================================================ */
+
+.columns,
+.options-card,
+.riepilogo,
+.chart-panel,
+.price-bar {
+  transition: opacity 0.18s ease, transform 0.18s ease, filter 0.18s ease;
+}
+
+body.scheda-switching .columns,
+body.scheda-switching .options-card,
+body.scheda-switching .riepilogo,
+body.scheda-switching .chart-panel,
+body.scheda-switching .price-bar {
+  opacity: 0.28;
+  transform: translateY(8px);
+  filter: blur(0.6px);
+  pointer-events: none;
+}
+
+.scheda-tab {
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
+}
+
+.scheda-tab.active {
+  transform: translateY(-1px);
+}
