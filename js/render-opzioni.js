@@ -465,7 +465,8 @@
 
       const tdPnl = tr.querySelector('.pnl-riga[data-label="P&L NOW ($)"]');
       if (tdPnl) {
-        if (opz.attivo === false) {
+        // Mostra sempre il P&L della riga (anche se nascosta); solo CHIUSA → —
+        if (opz.stato === 'CHIUSA') {
           tdPnl.textContent = '—';
           tdPnl.classList.remove('green', 'red');
           tdPnl.classList.add('muted');
@@ -486,27 +487,14 @@
         if (cell) cell.textContent = formatGreek(val, dig);
       };
 
-      if (opz.attivo !== false && opz.stato !== 'CHIUSA') {
+      // CHIUSA: azzera display. NASCOSTA o attiva: mostra greche e PREZZO ATT.
+      // Solo le righe attive e non chiuse entrano nei totali del footer.
+      if (opz.stato === 'CHIUSA') {
+        ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
+      } else {
         const g = calcolaGrecheOpzione(opz);
         const segno = opz.pos === 'SELL' ? -1 : 1;
         const qta = opz.qta || 0;
-        if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
-        if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
-        if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
-        if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
-        if (isFinite(g.price)) {
-          totPrice += g.price;
-          if (isFinite(g.intrinsic)) {
-            totIntr += g.intrinsic;
-            totTemp += g.price - g.intrinsic;
-          }
-        }
-
-        const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
-        if (isFinite(ps)) totPnlScad += ps;
-        const pn = calcolaPnlOpzione(opz);
-        if (isFinite(pn)) totPnlNow += pn;
-        totDebCred += premioEffettivo(opz) * qta * moltOpz(opz);
 
         setG('[data-field="teorico"]', g.price, 2);
         const setPos = (f, v, minD, maxD) => {
@@ -517,8 +505,25 @@
         setPos('gamma', segno * qta * g.gamma, 2, 4);
         setPos('vega',  segno * qta * g.vega,  2, 3);
         setPos('theta', segno * qta * g.theta, 2, 3);
-      } else {
-        ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
+
+        if (opz.attivo !== false) {
+          if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
+          if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
+          if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
+          if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
+          if (isFinite(g.price)) {
+            totPrice += g.price;
+            if (isFinite(g.intrinsic)) {
+              totIntr += g.intrinsic;
+              totTemp += g.price - g.intrinsic;
+            }
+          }
+          const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
+          if (isFinite(ps)) totPnlScad += ps;
+          const pn = calcolaPnlOpzione(opz);
+          if (isFinite(pn)) totPnlNow += pn;
+          totDebCred += premioEffettivo(opz) * qta * moltOpz(opz);
+        }
       }
     });
 
