@@ -1478,3 +1478,135 @@ body {
 .chart-panel {
   margin-top: 18px;
 }
+/* ============================================================
+   PASSO 5 — Rifinitura leggera (focus, hover, barra salvati)
+   ============================================================ */
+
+/* --- FOCUS GLOBALE PIÙ PULITO --- */
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.30);
+}
+
+/* Evita doppio focus ring sui bottoni che già lo gestiscono */
+.btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.35);
+}
+
+/* --- BARRA SALVATI (Salva / Carica / Elimina / Esporta) --- */
+.salvati-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 0 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.salvati-bar input[type="text"] {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-family: var(--font);
+  min-width: 180px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.salvati-bar input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.25);
+}
+
+.salvati-bar input[type="text"]::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+/* Separatore verticale nella barra */
+.salvati-bar .sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* --- HOVER BOTTONI PIÙ MORBIDI --- */
+.btn:not(.primary):not(.success):not(.danger):hover {
+  background: rgba(79, 140, 255, 0.08);
+}
+
+.btn.danger:hover {
+  background: rgba(231, 76, 60, 0.12);
+}
+
+/* --- STATO "SALVATO" PIÙ ELEGANTE --- */
+.save-status {
+  font-size: 11px;
+  color: var(--green);
+  margin-left: 6px;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.save-status.show {
+  opacity: 1;
+}
+
+/* --- PICCOLI RITOCCHI DI COERENZA --- */
+
+/* Input number: nasconde le frecce in modo uniforme */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Checkbox più coerenti */
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Toggle "Nascondi" più leggibile */
+.toggle-on {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Cash positivo / negativo */
+#cash.pos {
+  background: rgba(46, 204, 113, 0.16);
+  color: var(--green);
+  font-weight: 700;
+}
+#cash.neg {
+  background: rgba(231, 76, 60, 0.16);
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* --- RESPONSIVE LEGGERO PER LA BARRA SALVATI --- */
+@media (max-width: 800px) {
+  .salvati-bar input[type="text"] {
+    min-width: 140px;
+    font-size: 16px; /* evita zoom su iOS */
+  }
+}
