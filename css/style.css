@@ -1243,3 +1243,19 @@ body.modalita-locked #btnReset {
   opacity: 1;
   filter: none;
 }
+/* ============================================================
+   RIEPILOGO — Confronto con scheda precedente (Comparazione)
+   Usato in #pnlNowCmp, #pnlScadCmp, #popCmp
+   ============================================================ */
+.rg-cmp {
+  grid-column: 3 / -1;
+  justify-self: start;
+  align-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fb923c; /* ambra = scheda precedente */
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.rg-cmp .rg-cmp-delta.pos { color: var(--green); }
+.rg-cmp .rg-cmp-delta.neg { color: var(--red); }

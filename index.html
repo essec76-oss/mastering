@@ -311,11 +311,11 @@
       <!-- P&L -->
       <span class="rg-label" title="Mark-to-market attuale della posizione">PL AT NOW</span>
       <strong id="pnlNowTot" class="rg-val big">—</strong>
-      <span class="rg-wide rg-empty"></span>
+      <span id="pnlNowCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
 
       <span class="rg-label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <strong id="pnlScadenzaTot" class="rg-val big">—</strong>
-      <span class="rg-wide rg-empty"></span>
+      <span id="pnlScadCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
 
       <div class="rg-sep"></div>
 
@@ -339,11 +339,10 @@
       <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
       <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
       <strong id="popValue" class="rg-val pop">—</strong>
+      <span id="popCmp" class="rg-cmp" style="display:none;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
       <span></span>
       <span></span>
       <span></span>
-      <span></span>
-
       <div class="rg-sep"></div>
 
       <!-- Delta totale -->
