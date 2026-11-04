@@ -349,10 +349,14 @@ async function renderListaSalvate(filtro) {
 }
 
 async function salvaConNome(nome) {
+  if (!stato.modalita) {
+    mostraStatus('Scegli prima un asset (Azioni / Indici / Commodities)', true);
+    if (el('modalitaGlobale')) el('modalitaGlobale').focus();
+    return;
+  }
   nome = (nome || '').trim();
   const input = el('nomeStrategia');
   if (!nome) { mostraStatus('Inserisci un nome (es. AMZN)', true); if (input) input.focus(); return; }
-
   const dati = raccogliDati();
   const salvatoIl = new Date().toISOString();
 
@@ -450,6 +454,11 @@ async function eliminaSalvato(nome) {
 // EXPORT / IMPORT FILE JSON
 // ============================================================
 function esportaFile() {
+  if (!stato.modalita) {
+    mostraStatus('Scegli prima un asset (Azioni / Indici / Commodities)', true);
+    if (el('modalitaGlobale')) el('modalitaGlobale').focus();
+    return;
+  }
   const nome = (el('nomeStrategia') && el('nomeStrategia').value.trim()) || 'strategia';
   const payload = {
     formato: 'mastering-strategia', versione: 1,
