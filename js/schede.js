@@ -59,7 +59,7 @@ function renderScheda() {
   // Re-applica la modalità globale (ricostruisce le option dei select
   // e i lock corretti: Azioni bloccato, Indici sbloccato, Commodities ZW)
   if (typeof applicaModalita === 'function') {
-    applicaModalita(stato.modalita || MODALITA_DEFAULT);
+    applicaModalita(stato.modalita || '');
   } else {
     el('tipoNES').value = scheda.tipoNES || 'NES';
     el('tipoMES').value = scheda.tipoMES || 'MES';
