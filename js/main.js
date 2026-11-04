@@ -23,14 +23,14 @@
   el('dataAnalisi').value = dataOggiIso();
 
   const caricato = carica();
+  // Senza salvataggio: nessuna riga di esempio e nessuna modalità pre-selezionata
   if (!caricato) {
-    const spotIniziale = parseFloat(el('prezzoSpot').value) || 7700;
-    stato.schede[0].NES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true, stato: 'APERTA' });
-    stato.schede[0].MES.push({ direzione: 'LONG', quantita: 1, prezzoPulito: spotIniziale, attivo: true, stato: 'APERTA' });
+    stato.modalita = '';
+    if (el('modalitaGlobale')) el('modalitaGlobale').value = '';
   }
 
-  applicaModalita(stato.modalita || MODALITA_DEFAULT);
-  if (el('modalitaGlobale')) el('modalitaGlobale').value = stato.modalita || MODALITA_DEFAULT;
+  if (el('modalitaGlobale')) el('modalitaGlobale').value = stato.modalita || '';
+  applicaModalita(stato.modalita || '');
   renderTabs();
   renderScheda();
 
