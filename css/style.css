@@ -1210,3 +1210,28 @@ body.scheda-switching .price-bar {
   .strategia-row svg { height: 36px; }
   .modal-strategie { max-height: 88vh; }
 }
+/* ===== Lock UI finché non è scelto l'asset (modalità globale) ===== */
+body.modalita-locked .price-bar,
+body.modalita-locked .columns,
+body.modalita-locked .options-card,
+body.modalita-locked .riepilogo,
+body.modalita-locked .chart-panel,
+body.modalita-locked .schede-bar,
+body.modalita-locked #btnCreaComp {
+  opacity: 0.42;
+  pointer-events: none;
+  filter: grayscale(30%);
+  user-select: none;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+body.modalita-locked .salvati-bar {
+  opacity: 1;
+  pointer-events: auto;
+  filter: none;
+}
+body.modalita-locked #modalitaGlobale,
+body.modalita-locked #btnReset {
+  pointer-events: auto;
+  opacity: 1;
+  filter: none;
+}

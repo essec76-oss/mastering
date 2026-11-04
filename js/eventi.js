@@ -140,9 +140,31 @@ function _riempiSelectTipo(sel, opzioni, valore) {
   const esiste = opzioni.some(o => o.value === valore);
   sel.value = esiste ? valore : (opzioni[0] ? opzioni[0].value : '');
 }
+// Blocca/sblocca l'area di lavoro finché non è scelto un asset (modalità globale).
+// Restano usabili: selettore asset, Reset, Carica/Importa da cloud o file.
+function setUIBloccata(locked) {
+  document.body.classList.toggle('modalita-locked', !!locked);
+  const sub = el('subtitle');
+  if (locked && sub) {
+    sub.textContent = 'Seleziona un asset per iniziare — Azioni, Futures su indici o Commodities';
+  }
+}
+
 
 function applicaModalita(mod) {
-  stato.modalita = mod || MODALITA_DEFAULT;
+  const valore = (mod == null ? '' : String(mod)).trim();
+  stato.modalita = valore;
+
+  // Nessuna modalità: blocca l'UI e non toccare tipi/righe
+  if (!valore) {
+    setUIBloccata(true);
+    if (el('modalitaGlobale') && el('modalitaGlobale').value !== '') {
+      el('modalitaGlobale').value = '';
+    }
+    return;
+  }
+
+  setUIBloccata(false);
   const selNES = el('tipoNES');
   const selMES = el('tipoMES');
   const selOpz = el('strumentoOpzioni');
@@ -233,9 +255,9 @@ if (el('modalitaGlobale')) {
   el('modalitaGlobale').addEventListener('change', e => {
     applicaModalita(e.target.value);
   });
-  applicaModalita(el('modalitaGlobale').value || MODALITA_DEFAULT);
+  // Non forzare un default qui: main.js / carica() decidono il valore iniziale
+  applicaModalita(el('modalitaGlobale').value || stato.modalita || '');
 }
-
 // ============================================================
 // ALTRI EVENTI
 // ============================================================

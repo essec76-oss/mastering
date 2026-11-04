@@ -148,7 +148,7 @@ const stato = {
   prezzoSpot: 7700,
   cash: 0,
   cashEscluso: false,
-  modalita: MODALITA_DEFAULT
+  modalita: ''  // vuoto = nessuna scelta; UI bloccata fino a selezione
 };
 
 function schedaAttiva() { return stato.schede[stato.attiva] || stato.schede[0]; }

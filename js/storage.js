@@ -552,21 +552,17 @@ function migraOpz(o) {
 }
 
 function reset(senzaConferma) {
-  if (!senzaConferma && !confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.')) return;
+  if (!senzaConferma && !confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.\nDovrai scegliere di nuovo l\'asset (Azioni / Indici / Commodities).')) return;
   localStorage.removeItem(STORAGE_KEY);
   STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
-  const mod = stato.modalita || MODALITA_DEFAULT;
-  let tNES = '-', tMES = '-', sOpz = 'MES';
-  if (mod === 'azioni') {
-    tNES = 'X'; tMES = 'X'; sOpz = 'AZIONI';
-  } else if (mod === 'futures-commodities') {
-    tNES = 'ZW'; tMES = 'ZW'; sOpz = 'ZW';
-  }
+  // Nuovo foglio: nessuna modalità → UI bloccata fino a «Scegli asset»
+  stato.modalita = '';
+  if (el('modalitaGlobale')) el('modalitaGlobale').value = '';
   stato.schede = [{
     nome: 'Matrice',
-    tipoNES: tNES, tipoMES: tMES,
+    tipoNES: '-', tipoMES: '-',
     NES: [], MES: [], opzioni: [],
-    strumentoOpzioni: sOpz,
+    strumentoOpzioni: '',
     tickerCommodity: '',
     moltiplicatoreCommodity: null
   }];
@@ -590,10 +586,10 @@ function reset(senzaConferma) {
   if (el('nomeStrategia')) el('nomeStrategia').value = '';
   renderListaSalvate('');
   renderTabs();
+  if (typeof applicaModalita === 'function') applicaModalita('');
   renderScheda();
-  mostraStatus('✓ Foglio azzerato');
+  mostraStatus('✓ Foglio azzerato — scegli un asset');
 }
-
 let statusTimer = null;
 function mostraStatus(txt, err) {
   const s = el('saveStatus');
