@@ -1,1 +1,159 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mastering</title>
+<link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/fix-riepilogo.css">
+<style>
+  /* Stili modale strategie: spostati in css/style.css */
+
+  /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
+  .riepilogo-grid{
+    display:grid;
+    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(110px,auto);
+    column-gap:12px;
+    row-gap:8px;
+    align-items:center;
+  }
+  .riepilogo-grid .rg-head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:2px;border-bottom:1px solid var(--border);}
+  .riepilogo-grid .rg-label{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap;}
+  .riepilogo-grid .rg-sep{grid-column:1/-1;height:1px;background:var(--border);opacity:.6;margin:2px 0;}
+  .rg-val{font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 10px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .rg-val.big{font-size:20px;padding:4px 14px;}
+  .rg-val.sigma{color:var(--yellow);border-color:rgba(241,196,15,.35);}
+  .rg-val.pop{color:var(--purple);border-color:rgba(155,89,182,.35);}
+  .rg-wide{grid-column:2/-1;justify-self:start;font-size:13px;color:var(--muted);}
+  .rg-empty{color:transparent;}
+  #cmpHeader{grid-column:1/-1;}
+  @media (max-width:640px){
+    .riepilogo-grid{grid-template-columns:120px repeat(5,minmax(70px,auto));column-gap:8px;}
+    .riepilogo-grid .rg-label{font-size:12px;}
+    .rg-val{font-size:12px;padding:4px 6px;}
+    .rg-val.big{font-size:16px;}
+  }
+    .riepilogo-grid .rg-label.wrap{white-space:normal;line-height:1.25;}
+
+  /* ===== Toggle-pill: scritte cliccabili al posto dei checkbox nel pannello Payoff ===== */
+  .toggle-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 12px;border-radius:999px;cursor:pointer;user-select:none;
+    font-size:12px;font-weight:600;white-space:nowrap;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.04);
+    color:var(--muted);
+    transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+  }
+  .toggle-pill input[type="checkbox"]{display:none;}
+  /* Stato ATTIVO (visibile sul grafico): colore acceso */
+  .toggle-pill:has(input:checked){
+    background:rgba(79,140,255,.22);
+    border-color:var(--accent,#4f8cff);
+    color:#fff;
+    box-shadow:inset 0 0 0 1px var(--accent,#4f8cff);
+  }
+  /* Stato SPENTO (nascosto sul grafico): colore spento */
+  .toggle-pill:has(input:not(:checked)){
+    background:rgba(255,255,255,.03);
+    border-color:var(--border);
+    color:var(--muted);
+  }
+  .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
+
+  /* ===== Pulsante "Salva in cloud": evidenziato in verde ===== */
+    background:#1e9e4a;
+    border:1px solid #1e9e4a;
+    color:#fff;
+    font-weight:700;
+    box-shadow:0 2px 8px rgba(30,158,74,.35);
+    transition:background .15s, box-shadow .15s, transform .1s;
+  }
+    background:#24b857;
+    border-color:#24b857;
+    box-shadow:0 3px 12px rgba(30,158,74,.55);
+  }
+    transform:translateY(1px);
+    background:#178a3f;
+  }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div>
+    <select id="modalitaGlobale" title="Modalità di lavoro della pagina">
+      <option value="azioni" selected>Azioni</option>
+      <option value="futures-indici">Futures su indici</option>
+      <option value="futures-commodities">Futures su commodities</option>
+    </select>
+    <h1>Mastering</h1>
+    <div class="subtitle" id="subtitle">Azioni — simulatore azioni + opzioni su azioni — metodo prezzo medio (IBKR)</div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="btnCreaComp" title="Clona la scheda attuale in una nuova scheda di comparazione: modificala e confrontala con la Matrice sul grafico">+ Crea comparazione</button>
+    <button class="btn danger" id="btnReset">Reset</button>
+    <span class="save-status" id="saveStatus">✓ Salvato</span>
+  </div>
+</div>
+<div class="schede-bar">
+  <div class="schede-tabs" id="schedeTabs"></div>
+</div>
+<div class="salvati-bar">
+  <input type="text" id="nomeStrategia" placeholder="Nome (es. AMZN, AAPL)" title="Nome con cui salvare la strategia corrente">
+  <button class="btn success" id="btnSalvaCome" title="Salva la strategia corrente con il nome indicato (le strategie salvate restano indipendenti tra loro)">Salva in cloud</button>
+  <button class="btn" id="btnCaricaSalvato" title="Apre la finestra di scelta delle strategie salvate in cloud: seleziona una strategia e conferma per caricarla">Carica da cloud</button>
+  <button class="btn danger" id="btnEliminaSalvato" title="Apre la finestra di scelta delle strategie salvate: seleziona una strategia e conferma per eliminarla">Elimina</button>
+  <span style="width:1px;height:24px;background:var(--border);"></span>
+  <button class="btn" id="btnEsporta" title="Scarica la strategia corrente come file JSON (backup o spostamento su altro PC)">Esporta file</button>
+  <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
+  <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
+</div>
+<!-- Modale scelta strategia salvata -->
+<div class="modal-overlay" id="modalStrategieOverlay" style="display:none;" aria-hidden="true">
+  <div class="modal-strategie" role="dialog" aria-modal="true" aria-labelledby="modalStrategieTitolo">
+    <div class="modal-header">
+      <h3 id="modalStrategieTitolo">Carica strategia da cloud</h3>
+      <p class="modal-sub" id="modalStrategieSub">Seleziona una strategia, poi conferma</p>
+    </div>
+    <input type="text" id="modalStrategieCerca" class="modal-search" placeholder="Cerca per nome…" autocomplete="off">
+    <div class="modal-lista" id="modalListaStrategie"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="modalStrategieAnnulla">Annulla</button>
+      <button type="button" class="btn primary" id="modalStrategieConferma" disabled>Carica</button>
+    </div>
+  </div>
+</div>
+<div class="price-bar">
+  <span class="label">Prezzo Spot</span>
+  <input type="number" id="prezzoSpot" value="7700" step="0.25">
+  <div class="param-group">
+    <span class="label">Vol. storica %</span>
+    <input type="number" id="volStorica" class="small" value="" step="0.1" placeholder="—" title="Volatilità storica: riferimento visivo inserito manualmente, per ora non entra nei calcoli">
+  </div>
+  <div class="param-group">
+    <span class="label">Vol ATM %</span>
+    <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP, bande ±1σ/±2σ del grafico, curve Now e distanza σ dei breakeven">
+  </div>
+  <div class="param-group">
+    <span class="label">Risk-free %</span>
+    <input type="number" id="riskFree" class="small" value="4.0" step="0.1">
+  </div>
+  <div class="param-group">
+    <span class="label">Cash €</span>
+    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati manualmente: premi incassati a scadenza, P&L realizzati fuori dal tool. Entra nel TOTALE FUTURES TWS, nei totali PL NOW / A SCADENZA e nel grafico payoff.">
+  </div>
+  <div class="param-group">
+    <span class="label">Div %</span>
+    <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
+  </div>
+  <div class="param-group dates-pair" style="display:flex; align-items:center; gap:16px; flex-wrap:nowrap;">
+    <div class="param-group">
+      <span class="label">Data analisi iniziale</span>
+      <input type="date" id="dataAnalisiIniziale" class="small" style="width:140px;" disabled title="Data di partenza dell'operazione: fissata alla creazione e non modificabile. Usata per i giorni totali (PmG).">
+    </div>
+    <div class="param-group">
+      <span class="label">Data analisi attuale</span>
+      <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui della scheda corrente. Modificabile, indipendente per ogni scheda.">
+    </div>
+  </div>
+</div>
