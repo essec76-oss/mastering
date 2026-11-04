@@ -148,8 +148,14 @@ function setUIBloccata(locked) {
   if (locked && sub) {
     sub.textContent = 'Seleziona un asset per iniziare — Azioni, Futures su indici o Commodities';
   }
+  // Con «Scegli asset» non si può salvare/esportare un foglio vuoto
+  const salvaIds = ['nomeStrategia', 'btnSalvaCome', 'btnEsporta'];
+  salvaIds.forEach(id => {
+    const n = el(id);
+    if (n) n.disabled = !!locked;
+  });
+  if (locked && el('nomeStrategia')) el('nomeStrategia').value = '';
 }
-
 
 function applicaModalita(mod) {
   const valore = (mod == null ? '' : String(mod)).trim();
