@@ -146,13 +146,15 @@
     <span class="label">Div %</span>
     <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
   </div>
-  <div class="param-group">
-    <span class="label">Data analisi iniziale</span>
-    <input type="date" id="dataAnalisiIniziale" class="small" style="width:140px;" disabled title="Data di partenza dell'operazione: fissata alla creazione e non modificabile. Usata per i giorni totali (PmG).">
-  </div>
-  <div class="param-group">
-    <span class="label">Data analisi attuale</span>
-    <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui della scheda corrente. Modificabile, indipendente per ogni scheda.">
+  <div class="param-group dates-pair" style="display:flex; align-items:center; gap:16px; flex-wrap:nowrap;">
+    <div class="param-group">
+      <span class="label">Data analisi iniziale</span>
+      <input type="date" id="dataAnalisiIniziale" class="small" style="width:140px;" disabled title="Data di partenza dell'operazione: fissata alla creazione e non modificabile. Usata per i giorni totali (PmG).">
+    </div>
+    <div class="param-group">
+      <span class="label">Data analisi attuale</span>
+      <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui della scheda corrente. Modificabile, indipendente per ogni scheda.">
+    </div>
   </div>
 </div>
 <div class="columns">
