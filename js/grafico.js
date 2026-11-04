@@ -568,45 +568,85 @@ let rotellaZoomAttiva = false;
     grp.style.display = hasPrec ? '' : 'none';
   }
 
-  // Header comparazione: BE e POP della scheda precedente (visibile solo in comparazione)
+  // Riepilogo in comparazione: PL NOW / SCADENZA / POP della precedente vs corrente
   function aggiornaHeaderComparazione(spot) {
     const box = el('cmpHeader');
-    if (!box) return;
+    if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+
+    const elNow = el('pnlNowCmp');
+    const elScad = el('pnlScadCmp');
+    const elPop = el('popCmp');
+    const nascondi = () => {
+      [elNow, elScad, elPop].forEach(n => {
+        if (n) { n.style.display = 'none'; n.innerHTML = ''; }
+      });
+    };
+
     const prec = schedaPrecedente();
-    if (!prec || !(spot > 0)) {
-      box.style.display = 'none';
-      box.innerHTML = '';
-      return;
-    }
+    if (!prec || !(spot > 0)) { nascondi(); return; }
+
     const resNESp = calcolaColonna(prec, 'NES');
     const resMESp = calcolaColonna(prec, 'MES');
+    const pnlNowP = pnlCombinatoAt(prec, spot, 'now', resNESp, resMESp);
+    const pnlScadP = pnlCombinatoAt(prec, spot, 'expiry', resNESp, resMESp);
     const scan = scanRangeForBE(spot);
     const bes = findBreakevensRobust(prec, spot, scan.minS, scan.maxS, resNESp, resMESp);
-    const pop = calcolaPOP(prec, spot, bes, resNESp, resMESp, scan.minS, scan.maxS);
+    const popP = calcolaPOP(prec, spot, bes, resNESp, resMESp, scan.minS, scan.maxS);
 
-    // Stessa logica di updateBreakevenLabels: BE inferiore e superiore
-    const sorted = [...bes].filter(Number.isFinite).sort((a, b) => a - b);
-    let inf = null, sup = null;
-    if (sorted.length === 1) {
-      if (sorted[0] < spot) inf = sorted[0];
-      else sup = sorted[0];
-    } else if (sorted.length > 1) {
-      inf = sorted[0];
-      sup = sorted[sorted.length - 1];
+    const nomePrec = prec.nome || 'Precedente';
+
+    // Valori correnti già scritti nel riepilogo da calcolaTutto / updatePOPLabel
+    const parseEuroTxt = (txt) => {
+      if (!txt || txt === '—') return NaN;
+      // formatEuro usa separatore migliaia it-IT e virgola decimale
+      const n = parseFloat(String(txt).replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, ''));
+      return isFinite(n) ? n : NaN;
+    };
+    const pnlNowC = el('pnlNowTot') ? parseEuroTxt(el('pnlNowTot').textContent) : NaN;
+    const pnlScadC = el('pnlScadenzaTot') ? parseEuroTxt(el('pnlScadenzaTot').textContent) : NaN;
+
+    const fmtEuro = (v) => isFinite(v) ? formatEuro(v) : '—';
+    const htmlDeltaEuro = (cur, prev) => {
+      if (!isFinite(cur) || !isFinite(prev)) return '';
+      const d = cur - prev;
+      const cls = d > 0 ? 'pos' : (d < 0 ? 'neg' : '');
+      const sign = d > 0 ? '+' : '';
+      return ` <span class="rg-cmp-delta ${cls}">Δ ${sign}${formatEuro(d)}</span>`;
+    };
+    const htmlPnl = (prev, cur) =>
+      `vs ${nomePrec}: <strong>${fmtEuro(prev)}</strong>${htmlDeltaEuro(cur, prev)}`;
+
+    if (elNow) {
+      elNow.style.display = '';
+      elNow.innerHTML = htmlPnl(pnlNowP, pnlNowC);
+    }
+    if (elScad) {
+      elScad.style.display = '';
+      elScad.innerHTML = htmlPnl(pnlScadP, pnlScadC);
     }
 
-    const fmtB = v => (v == null || !isFinite(v)) ? '—'
-      : v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const popTxt = (pop && isFinite(pop.total))
-      ? (pop.total * 100).toLocaleString('it-IT', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '%'
+    // POP: totale in [0,1]
+    let popC = NaN;
+    const popTxt = el('popValue') ? el('popValue').textContent : '';
+    if (popTxt && popTxt !== '—') {
+      const n = parseFloat(popTxt.replace(/\./g, '').replace(',', '.').replace('%', '').trim());
+      if (isFinite(n)) popC = n / 100;
+    }
+    const popPrev = (popP && isFinite(popP.total)) ? popP.total : NaN;
+    const fmtPop = (v) => isFinite(v)
+      ? (v * 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
       : '—';
-
-    box.style.display = 'inline-flex';
-    box.innerHTML =
-      `<span style="color:var(--muted);">Precedente (${prec.nome}):</span>` +
-      `<span>BE sup <strong>${fmtB(sup)}</strong></span>` +
-      `<span>BE inf <strong>${fmtB(inf)}</strong></span>` +
-      `<span>POP <strong style="color:var(--purple);">${popTxt}</strong></span>`;
+    let deltaPopHtml = '';
+    if (isFinite(popC) && isFinite(popPrev)) {
+      const dPts = (popC - popPrev) * 100; // punti percentuali
+      const cls = dPts > 0 ? 'pos' : (dPts < 0 ? 'neg' : '');
+      const sign = dPts > 0 ? '+' : '';
+      deltaPopHtml = ` <span class="rg-cmp-delta ${cls}">Δ ${sign}${dPts.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pt</span>`;
+    }
+    if (elPop) {
+      elPop.style.display = '';
+      elPop.innerHTML = `vs ${nomePrec}: <strong>${fmtPop(popPrev)}</strong>${deltaPopHtml}`;
+    }
   }
 
   function redrawChartFromView() {
@@ -675,7 +715,6 @@ let rotellaZoomAttiva = false;
     const deltaEl = el('deltaTot');
     const deltaSensEl = el('deltaSens');
     aggiornaTogglePrecedente();
-    aggiornaHeaderComparazione(spot);
 
     if (!(spot > 0)) {
       if (deltaEl) deltaEl.textContent = '—';
@@ -687,6 +726,7 @@ let rotellaZoomAttiva = false;
       chartView.hasPrecedente = false;
       updateBreakevenLabels([], 0);
       updatePOPLabel(null);
+      aggiornaHeaderComparazione(spot);
       chartView.sigma = null;
       drawPayoffChart([], spot, { showExpiryC: false, showNowC: false, showExpiryP: false, showNowP: false }, [], null, stato.attiva);
       return;
@@ -726,6 +766,8 @@ let rotellaZoomAttiva = false;
     chartView.breakevens = findBreakevensRobust(scheda, spot, scanMin, scanMax, resNES, resMES);
     updateBreakevenLabels(chartView.breakevens, spot);
     updatePOPLabel(calcolaPOP(scheda, spot, chartView.breakevens, resNES, resMES, scanMin, scanMax));
+    // Riepilogo comparazione: va chiamato dopo updatePOPLabel
+    aggiornaHeaderComparazione(spot);
 
     const sig = structureSignature();
     const structureChanged = sig !== chartView._sig;
