@@ -1229,6 +1229,14 @@ body.modalita-locked .salvati-bar {
   pointer-events: auto;
   filter: none;
 }
+body.modalita-locked #nomeStrategia,
+body.modalita-locked #btnSalvaCome,
+body.modalita-locked #btnEsporta {
+  opacity: 0.42;
+  pointer-events: none;
+  filter: grayscale(30%);
+  cursor: not-allowed;
+}
 body.modalita-locked #modalitaGlobale,
 body.modalita-locked #btnReset {
   pointer-events: auto;
