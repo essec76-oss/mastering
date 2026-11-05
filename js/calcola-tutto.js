@@ -8,13 +8,8 @@ function calcolaTutto() {
   const scheda = schedaAttiva();
 
   // v26 — Modello transazionale: ricalcola gli stati (APERTA/CHIUSA)
-  // di NES e MES in base alla direzione rispetto alla posizione netta.
-  // Il campo `stato` resta nel dato per compatibilità salvataggi, ma
-  // non è più editabile dall'utente (niente pulsante sulla riga).
   if (typeof ricalcolaStatiSchedaAttiva === 'function') {
     ricalcolaStatiSchedaAttiva();
-      // --- ROI = PL a scadenza / Margine ---
-  aggiornaROI(pnlScad);
   }
 
   const resNES = calcolaColonna(scheda, 'NES');
@@ -23,73 +18,41 @@ function calcolaTutto() {
   renderRigaTotale('NES', resNES);
   renderRigaTotale('MES', resMES);
 
-  // v27 — il riquadro "P&L Opzioni" dell'header è stato rimosso:
-  // il totale P&L NOW delle opzioni vive solo nel footer della tabella.
-  // Aggiorna greche e P&L di ogni riga opzione (popola anche il footer).
+  // Aggiorna greche e P&L di ogni riga opzione
   aggiornaPnlOpzioni();
 
-  // Riepilogo minimale: PL AT NOW e PL A SCADENZA
-  // AT NOW  = teorico Black-76 allo spot attuale (profitto se chiudessi ora)
-  // A SCADENZA = intrinseco alle scadenze + teorico residuale (calendar)
-  // Entrambi includono futures + opzioni + cash
+  // PL AT NOW e PL A SCADENZA
   const spotVal = parseFloat(el('prezzoSpot').value) || 0;
   const pnlNowVal = spotVal > 0 ? pnlCombinatoAt(scheda, spotVal, 'now', resNES, resMES) : NaN;
   const pnlScad = spotVal > 0 ? pnlCombinatoAt(scheda, spotVal, 'expiry', resNES, resMES) : NaN;
+
   const pnlNowEl = el('pnlNowTot');
   pnlNowEl.textContent = formatEuro(pnlNowVal);
   pnlNowEl.className = 'rg-val big ' + (!isFinite(pnlNowVal) ? 'muted' : (pnlNowVal >= 0 ? 'green' : 'red'));
+
   const pnlScadEl = el('pnlScadenzaTot');
   pnlScadEl.textContent = formatEuro(pnlScad);
   pnlScadEl.className = 'rg-val big ' + (!isFinite(pnlScad) ? 'muted' : (pnlScad >= 0 ? 'green' : 'red'));
 
-  // v29 — PmG (Profitto medio giornaliero): esteso a TUTTE le modalità
-  // (azioni, futures su indici, futures su commodities). Visibile ogni
-  // volta che la Matrice ha almeno un'opzione attiva con scadenza.
-  // Riferimento SEMPRE la Matrice (stato.schede[0]): sia i giorni totali
-  // (data analisi iniziale → prima scadenza opzioni attive) sia il PL a
-  // scadenza di TUTTI i totali combinati (azioni/futures + opzioni + cash),
-  // con come tempo di riferimento la scadenza delle opzioni. In qualunque
-  // scheda ti trovi il PmG resta quello dell'operazione della Matrice.
+  // PmG
   aggiornaPmG();
 
-  function aggiornaROI(pnlScad) {
-  const input = el('margineInput');
-  const out = el('roiValue');
-  if (!input || !out) return;
+  // ROI (dopo che pnlScad esiste)
+  aggiornaROI(pnlScad);
 
-  const margine = parseFloat(input.value);
-  if (!isFinite(margine) || margine <= 0 || !isFinite(pnlScad)) {
-    out.textContent = '—';
-    out.className = 'rg-val muted';
-    return;
-  }
-
-  const roi = (pnlScad / margine) * 100;
-  out.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
-  out.className = 'rg-val ' + (roi >= 0 ? 'green' : 'red');
-}
-
-  // Aggiorna anteprima payoff (tutte le schede), breakeven,
-  // delta totale nel riepilogo e legenda colori
+  // Grafico e autosave
   aggiornaPayoffPreview(scheda, resNES, resMES);
   aggiornaLegendaGrafico();
-
-  // Autosave (debounce): ogni modifica viene comunque persistita
   autosalva();
 }
 
 // ============================================================
 // PmG — PROFITTO MEDIO GIORNALIERO
 // ============================================================
-// I parametri sono per-scheda (parametri-scheda.js li salva in scheda.par).
-// Quando sei in una comparazione gli input della pagina contengono i parametri
-// di QUELLA scheda: per la Matrice si legge sempre da matrice.par.
 function parMatrice(matrice) {
   return (matrice && matrice.par) ? matrice.par : null;
 }
 
-// Data analisi INIZIALE della Matrice (immutabile): è il punto di partenza
-// dell'operazione e determina la durata completa per il PmG.
 function dataAnalisiInizialeMatrice(matrice) {
   const p = parMatrice(matrice);
   if (p && p.dataAnalisiIniziale) return p.dataAnalisiIniziale;
@@ -97,10 +60,6 @@ function dataAnalisiInizialeMatrice(matrice) {
   return el('dataAnalisi') ? el('dataAnalisi').value : dataOggiIso();
 }
 
-// Giorni totali dell'operazione: dalla data analisi INIZIALE della MATRICE
-// alla PRIMA scadenza tra le opzioni attive della Matrice.
-// Il risultato è la durata COMPLETA originaria (es. 180 gg), a prescindere
-// dal tempo trascorso, dalla data attuale e dalla scheda in cui ti trovi.
 function giorniTotaliMatrice() {
   const matrice = stato.schede[0];
   if (!matrice || !Array.isArray(matrice.opzioni)) return 0;
@@ -114,11 +73,6 @@ function giorniTotaliMatrice() {
   return Math.max(0, Math.round((prima - iniziale) / 86400000));
 }
 
-// v29 — La Matrice ha almeno un'opzione attiva (non nascosta, non chiusa)
-// con una scadenza valida? È la condizione di visibilità del PmG in
-// QUALSIASI modalità (azioni, futures indici, futures commodities):
-// il PmG si innesca solo quando esiste almeno un'opzione, perché è la
-// scadenza delle opzioni a fare da riferimento temporale.
 function matriceHaOpzioniAttive() {
   const matrice = stato.schede[0];
   if (!matrice || !Array.isArray(matrice.opzioni)) return false;
@@ -127,14 +81,6 @@ function matriceHaOpzioniAttive() {
   );
 }
 
-// PmG = PL a scadenza della MATRICE
-//        / giorni totali dell'operazione della MATRICE.
-// Tutto è calcolato sulla Matrice (stato.schede[0]): in qualunque
-// scheda ti trovi il valore resta quello dell'operazione della Matrice.
-// Il PL a scadenza combina TUTTI i totali della scheda: colonne
-// azioni/futures (P&L realizzato + aperto al prezzo medio), opzioni
-// (intrinseco alla prima scadenza + teorico residuo per le calendar)
-// e cash. Mostra «—» se la Matrice non ha opzioni attive con scadenza.
 function aggiornaPmG() {
   const label = el('pmgLabel');
   const val = el('pmgValue');
@@ -147,15 +93,6 @@ function aggiornaPmG() {
   const matrice = stato.schede[0];
   const giorni = giorniTotaliMatrice();
 
-  // PL a scadenza della Matrice: ricalcola le colonne della Matrice
-  // (NON della scheda attiva) con TUTTI i parametri della Matrice
-  // (spot, vol, risk-free, div, cash, data analisi attuale, strumento
-  // opzioni — salvati in matrice.par da parametri-scheda.js). Durante il
-  // calcolo gli input della pagina vengono temporaneamente impostati sui
-  // parametri della Matrice e poi ripristinati su quelli della scheda
-  // attiva. Il campo con il focus non viene mai toccato, così la
-  // digitazione non viene interrotta. Il set programmatico NON fa
-  // scattare gli event listener 'input'/'change'.
   let pnlScadMatrice = NaN;
   const parM = parMatrice(matrice);
   if (matrice && parM) {
@@ -195,4 +132,24 @@ function aggiornaPmG() {
   const pmg = (giorni > 0 && isFinite(pnlScadMatrice)) ? pnlScadMatrice / giorni : NaN;
   val.textContent = isFinite(pmg) ? formatEuro(pmg) + ' /gg' : '—';
   val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
+}
+
+// ============================================================
+// ROI = (PL a scadenza / Margine) × 100
+// ============================================================
+function aggiornaROI(pnlScad) {
+  const input = el('margineInput');
+  const out = el('roiValue');
+  if (!input || !out) return;
+
+  const margine = parseFloat(input.value);
+  if (!isFinite(margine) || margine <= 0 || !isFinite(pnlScad)) {
+    out.textContent = '—';
+    out.className = 'rg-val muted';
+    return;
+  }
+
+  const roi = (pnlScad / margine) * 100;
+  out.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
+  out.className = 'rg-val ' + (roi >= 0 ? 'green' : 'red');
 }
