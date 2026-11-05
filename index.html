@@ -35,23 +35,30 @@
   }
     .riepilogo-grid .rg-label.wrap{white-space:normal;line-height:1.25;}
 
-  
-  /* Margine e ROI compatti */
+  /* Margine e ROI compatti e forzati nelle loro colonne */
   .rg-mini-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     font-weight: 600;
-    text-align: right;
     white-space: nowrap;
   }
   .rg-val.rg-mini {
-    max-width: 88px;
     font-size: 13px;
-    padding: 3px 8px;
+    padding: 3px 6px;
+    min-width: 0;
   }
-  #margineInput.rg-mini {
-    width: 88px;
-    max-width: 88px;
+  .rg-cell-punti,
+  .rg-cell-pct {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .rg-cell-punti input,
+  .rg-cell-pct .rg-val {
+    width: 72px;
+    max-width: 72px;
     box-sizing: border-box;
   }
 
@@ -384,7 +391,10 @@
       <div class="rg-cell-pct">
         <span class="rg-mini-label">ROI</span>
         <strong id="roiValue" class="rg-val rg-mini">—</strong>
-      </div>        <span id="popZoneWrap"></span>
+      </div>
+      <!-- Elementi non visibili, mantenuti per il JS esistente -->
+      <div style="display:none;">
+        <span id="popZoneWrap"></span>
         <span id="cmpHeader"></span>
         <input type="checkbox" id="showSigma">
         <!-- AGGIUNTI PER FAR PASSARE IL CI -->
@@ -501,3 +511,4 @@
 </script>
 </body>
 </html>
+Grok ha terminato la risposta
