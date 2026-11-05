@@ -442,3 +442,16 @@ if (btnModalitaZoom) btnModalitaZoom.addEventListener('click', () => {
 // di pagina scaricava da Supabase tutte le strategie salvate e calcolava
 // le anteprime sparkline della modale. La lista ora viene scaricata e
 // costruita SOLO quando la modale viene aperta (vedi apriModaleStrategie).
+
+// Margine digitabile → ricalcola ROI
+if (el('margineInput')) {
+  el('margineInput').addEventListener('input', () => {
+    // salva nella scheda attiva
+    const s = schedaAttiva();
+    if (s) {
+      if (!s.par) s.par = {};
+      s.par.margine = el('margineInput').value;
+    }
+    calcolaTutto();
+  });
+}

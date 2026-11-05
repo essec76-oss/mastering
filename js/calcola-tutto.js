@@ -13,6 +13,8 @@ function calcolaTutto() {
   // non è più editabile dall'utente (niente pulsante sulla riga).
   if (typeof ricalcolaStatiSchedaAttiva === 'function') {
     ricalcolaStatiSchedaAttiva();
+      // --- ROI = PL a scadenza / Margine ---
+  aggiornaROI(pnlScad);
   }
 
   const resNES = calcolaColonna(scheda, 'NES');
@@ -49,6 +51,23 @@ function calcolaTutto() {
   // con come tempo di riferimento la scadenza delle opzioni. In qualunque
   // scheda ti trovi il PmG resta quello dell'operazione della Matrice.
   aggiornaPmG();
+
+  function aggiornaROI(pnlScad) {
+  const input = el('margineInput');
+  const out = el('roiValue');
+  if (!input || !out) return;
+
+  const margine = parseFloat(input.value);
+  if (!isFinite(margine) || margine <= 0 || !isFinite(pnlScad)) {
+    out.textContent = '—';
+    out.className = 'rg-val muted';
+    return;
+  }
+
+  const roi = (pnlScad / margine) * 100;
+  out.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
+  out.className = 'rg-val ' + (roi >= 0 ? 'green' : 'red');
+}
 
   // Aggiorna anteprima payoff (tutte le schede), breakeven,
   // delta totale nel riepilogo e legenda colori
