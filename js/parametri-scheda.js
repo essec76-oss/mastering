@@ -9,7 +9,7 @@
     { id: 'divYield',            key: 'divYield' },
     { id: 'cash',                key: 'cash' },
     { id: 'dataAnalisiIniziale', key: 'dataAnalisiIniziale' },
-    { id: 'dataAnalisi',         key: 'dataAnalisi' }
+    { id: 'dataAnalisi',         key: 'dataAnalisi' },
     { id: 'margineInput', key: 'margine' },
   ];
 
