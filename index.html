@@ -370,18 +370,21 @@
       <strong id="deltaTot" class="rg-val">—</strong>
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
-      <!-- PmG (prima voce, allineato come le altre alla colonna Valore) -->
+      <!-- PmG (etichetta + valore nella colonna Valore) -->
       <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza / giorni totali dell'operazione">PmG</span>
       <strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero">—</strong>
 
-      <!-- Margine (resta dentro la colonna Punti) -->
-      <span class="rg-mini-label">MARGINE</span>
-      <input type="number" id="margineInput" class="rg-val rg-mini" step="1" min="0" placeholder="—" title="Margine in uso per l'operazione">
+      <!-- Margine: tutto dentro la colonna Punti -->
+      <div class="rg-cell-punti">
+        <span class="rg-mini-label">MARGINE</span>
+        <input type="number" id="margineInput" class="rg-val rg-mini" step="1" min="0" placeholder="—" title="Margine in uso per l'operazione">
+      </div>
 
-      <!-- ROI (resta dentro la colonna %) -->
-      <span class="rg-mini-label">ROI</span>
-      <strong id="roiValue" class="rg-val rg-mini">—</strong>      <div style="display:none;">
-        <span id="popZoneWrap"></span>
+      <!-- ROI: tutto dentro la colonna % -->
+      <div class="rg-cell-pct">
+        <span class="rg-mini-label">ROI</span>
+        <strong id="roiValue" class="rg-val rg-mini">—</strong>
+      </div>        <span id="popZoneWrap"></span>
         <span id="cmpHeader"></span>
         <input type="checkbox" id="showSigma">
         <!-- AGGIUNTI PER FAR PASSARE IL CI -->
