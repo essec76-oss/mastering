@@ -92,6 +92,7 @@ function creaComparazione() {
   });
 
   const clone = JSON.parse(JSON.stringify(origine));
+  delete clone.popUltima;
   clone.nome = 'Comparazione ' + stato.schede.length;
 
   const iniziale = dataAnalisiInizialeMatrice();
