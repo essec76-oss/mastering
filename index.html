@@ -350,6 +350,12 @@
       <strong id="deltaTot" class="rg-val">—</strong>
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
+      <!-- Margine + ROI -->
+      <span class="rg-label" title="Margine impiegato nell'operazione (lo digiti tu)">MARGINE</span>
+      <input type="number" id="margineInput" class="rg-val" step="1" min="0" placeholder="—" title="Inserisci il margine in uso per l'operazione">
+      <span class="rg-label" title="ROI = (PL a scadenza ÷ Margine) × 100">ROI</span>
+      <strong id="roiValue" class="rg-val">—</strong>
+
       <!-- PmG: profitto medio giornaliero (visibile quando c'è almeno un'opzione attiva, in ogni modalità) -->
       <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG</span>
       <strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
