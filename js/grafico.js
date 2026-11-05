@@ -331,8 +331,9 @@ let rotellaZoomAttiva = false;
     
     chartView.breakevens = bes;
     updateBreakevenLabels(bes, spot);
-    updatePOPLabel(calcolaPOP(scheda, spot, bes, resNES, resMES, scan.minS, scan.maxS));
-    
+    const popAttiva = calcolaPOP(scheda, spot, bes, resNES, resMES, scan.minS, scan.maxS);
+    updatePOPLabel(popAttiva);
+    scheda.popUltima = (popAttiva && isFinite(popAttiva.total)) ? popAttiva.total : null;    
     const centered = centeredChartRange(spot, bes);
     chartView.userMoved = false;
     chartView.xMin = centered.minS;
@@ -589,9 +590,6 @@ let rotellaZoomAttiva = false;
     const resMESp = calcolaColonna(prec, 'MES');
     const pnlNowP = pnlCombinatoAt(prec, spot, 'now', resNESp, resMESp);
     const pnlScadP = pnlCombinatoAt(prec, spot, 'expiry', resNESp, resMESp);
-    const scan = scanRangeForBE(spot);
-    const bes = findBreakevensRobust(prec, spot, scan.minS, scan.maxS, resNESp, resMESp);
-    const popP = calcolaPOP(prec, spot, bes, resNESp, resMESp, scan.minS, scan.maxS);
 
     const nomePrec = prec.nome || 'Precedente';
 
@@ -632,7 +630,7 @@ let rotellaZoomAttiva = false;
       const n = parseFloat(popTxt.replace(/\./g, '').replace(',', '.').replace('%', '').trim());
       if (isFinite(n)) popC = n / 100;
     }
-    const popPrev = (popP && isFinite(popP.total)) ? popP.total : NaN;
+    const popPrev = (typeof prec.popUltima === 'number') ? prec.popUltima : NaN;
     const fmtPop = (v) => isFinite(v)
       ? (v * 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
       : '—';
@@ -765,8 +763,9 @@ let rotellaZoomAttiva = false;
     const scanMin = scan.minS, scanMax = scan.maxS;
     chartView.breakevens = findBreakevensRobust(scheda, spot, scanMin, scanMax, resNES, resMES);
     updateBreakevenLabels(chartView.breakevens, spot);
-    updatePOPLabel(calcolaPOP(scheda, spot, chartView.breakevens, resNES, resMES, scanMin, scanMax));
-    // Riepilogo comparazione: va chiamato dopo updatePOPLabel
+    const popAttiva = calcolaPOP(scheda, spot, chartView.breakevens, resNES, resMES, scanMin, scanMax);
+    updatePOPLabel(popAttiva);
+    scheda.popUltima = (popAttiva && isFinite(popAttiva.total)) ? popAttiva.total : null;    // Riepilogo comparazione: va chiamato dopo updatePOPLabel
     aggiornaHeaderComparazione(spot);
 
     const sig = structureSignature();
