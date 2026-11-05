@@ -1259,3 +1259,20 @@ body.modalita-locked #btnReset {
 }
 .rg-cmp .rg-cmp-delta.pos { color: var(--green); }
 .rg-cmp .rg-cmp-delta.neg { color: var(--red); }
+/* Sposta un po' a destra e dà respiro alla tabella posizioni */
+.scarico-lista {
+  padding: 10px 16px 10px 20px !important;   /* più padding a sinistra */
+  margin: 4px 4px 8px 4px;
+}
+
+.scarico-tabella th,
+.scarico-tabella td {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* Opzionale: centra meglio tutto il contenuto del modale */
+.modal-scarico {
+  padding-left: 18px;
+  padding-right: 18px;
+}

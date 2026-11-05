@@ -4,6 +4,10 @@
 // sulla riga chiusa (prezzoMedioChiusura): il P&L realizzato resta fisso e
 // non cambia quando si scaricano altre posizioni. Il prezzo di carico
 // originale (prezzoPulito) non viene mai modificato dallo scarico.
+//
+// v-edit: Spot e Prezzo di carico sono editabili direttamente nel modale.
+//         Se «Prezzo di carico» è vuoto → usa la media automatica.
+//         Se è compilato → P&L = Spot_modale − Prezzo_di_carico_digitato.
 // L'ordine di caricamento è definito in index.html (dopo eventi.js).
 (function () {
   'use strict';
@@ -21,6 +25,28 @@
       .tr-bloccata input, .tr-bloccata td {
         cursor: not-allowed !important;
       }
+      .scarico-edit-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+        margin: 10px 0 6px;
+      }
+      .scarico-edit-row label {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 0.85em;
+      }
+      .scarico-edit-row input[type="number"] {
+        width: 110px;
+        padding: 4px 6px;
+      }
+      .scarico-hint {
+        font-size: 0.8em;
+        opacity: 0.75;
+        margin-top: 2px;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -34,13 +60,12 @@
     btn.type = 'button';
     btn.className = 'btn-add btn-scarico';
     btn.dataset.col = btnAdd.dataset.col;
-    
-    // Applica il colore rosso al bottone (stile in linea per forzare la modifica)
+
     btn.style.color = '#ff4d4d';
     btn.style.borderColor = '#ff4d4d';
-    
+
     btn.textContent = '↓ Scarica posizione';
-    btn.title = 'Apre la finestra di chiusura. Il P&L usa il prezzo medio di carico corrente vs lo spot.';
+    btn.title = 'Apre la finestra di chiusura. Puoi editare Spot e Prezzo di carico solo nel modale.';
     btn.addEventListener('click', () => apriModaleScarico(btnAdd.dataset.col));
     btnAdd.insertAdjacentElement('afterend', btn);
   });
@@ -56,15 +81,14 @@
     chiudiModaleScarico();
     const scheda = schedaAttiva();
     const res = calcolaColonna(scheda, col);
-    const media = res.mediaPulita;
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const mediaAuto = res.mediaPulita;          // media automatica di riferimento
+    const spotPagina = parseFloat(el('prezzoSpot').value) || 0;
     const molt = (typeof risolviMoltiplicatore === 'function')
       ? risolviMoltiplicatore(scheda, col) : 1;
     const tipoLabel = (typeof _tipoLabelCol === 'function')
       ? _tipoLabelCol(scheda['tipo' + col], col) : col;
 
-    // Posizioni aperte in ordine di ANZIANITÀ (dalla più vecchia alla più recente).
-    // L'indice dell'array `aperte` corrisponde all'ordine di selezione FIFO.
+    // Posizioni aperte in ordine di ANZIANITÀ
     const aperte = [];
     (scheda[col] || []).forEach((m, idx) => {
       if (m.attivo === false) return;
@@ -86,28 +110,59 @@
     h3.textContent = 'Scarica posizione — ' + tipoLabel;
     box.appendChild(h3);
 
-    if (!aperte.length || !isFinite(media)) {
+    if (!aperte.length || !isFinite(mediaAuto)) {
       const vuoto = document.createElement('div');
       vuoto.className = 'scarico-empty';
       vuoto.textContent = '— nessuna posizione aperta in questa colonna —';
       box.appendChild(vuoto);
     } else {
-      const spotOk = spot > 0;
 
-      // Riga informativa: prezzo medio, spot, metodo
-      const info = document.createElement('div');
-      info.className = 'scarico-info';
-      info.innerHTML =
-        '<span>Prezzo medio di carico: <strong class="scarico-media">' + formatPrezzo(media) + '</strong></span>' +
-        '<span>Spot attuale: <strong class="scarico-spot">' + formatPrezzo(spot) + '</strong></span>' +
-        '<span class="scarico-nota">P&L = prezzo medio di carico vs spot (metodo prezzo medio IBKR).</span>';
-      box.appendChild(info);
+      // ---------- Campi editabili: Spot + Prezzo di carico ----------
+      const editRow = document.createElement('div');
+      editRow.className = 'scarico-edit-row';
 
-      if (!spotOk) {
-        const warn = document.createElement('div');
-        warn.className = 'scarico-warn';
-        warn.textContent = '⚠ Imposta il Prezzo Spot prima di scaricare la posizione.';
-        box.appendChild(warn);
+      // Spot locale
+      const labSpot = document.createElement('label');
+      labSpot.innerHTML = 'Spot <span class="scarico-hint">(solo nel modale)</span>';
+      const inSpot = document.createElement('input');
+      inSpot.type = 'number';
+      inSpot.step = '0.25';
+      inSpot.id = 'scaricoSpot';
+      inSpot.value = spotPagina > 0 ? spotPagina : '';
+      inSpot.placeholder = '—';
+      labSpot.appendChild(inSpot);
+      editRow.appendChild(labSpot);
+
+      // Prezzo di carico (inizialmente vuoto)
+      const labCarico = document.createElement('label');
+      labCarico.innerHTML = 'Prezzo di carico <span class="scarico-hint">(vuoto = media automatica)</span>';
+      const inCarico = document.createElement('input');
+      inCarico.type = 'number';
+      inCarico.step = '0.25';
+      inCarico.id = 'scaricoCarico';
+      inCarico.value = '';                 // ← inizialmente vuoto
+      inCarico.placeholder = formatPrezzo(mediaAuto);
+      labCarico.appendChild(inCarico);
+      editRow.appendChild(labCarico);
+
+      box.appendChild(editRow);
+
+      // Nota
+      const nota = document.createElement('div');
+      nota.className = 'scarico-nota';
+      nota.style.marginBottom = '8px';
+      nota.textContent = 'P&L = Spot (modale) − Prezzo di carico. Se il campo Prezzo di carico è vuoto viene usata la media automatica (' + formatPrezzo(mediaAuto) + ').';
+      box.appendChild(nota);
+
+      // Helper: valori effettivi in questo momento
+      function getSpotEff() {
+        const v = parseFloat(inSpot.value);
+        return (isFinite(v) && v > 0) ? v : 0;
+      }
+      function getMediaEff() {
+        const v = parseFloat(inCarico.value);
+        // se il campo è pieno e valido → usa quello, altrimenti media automatica
+        return (isFinite(v) && v > 0) ? v : mediaAuto;
       }
 
       // Tabella posizioni
@@ -124,15 +179,15 @@
         '</tr></thead>';
       const tb = document.createElement('tbody');
 
-      const updaters = [];   // refresh live di P&L riga, totale e bottone conferma
-      const checkboxes = []; // riferimenti ai checkbox per il controllo FIFO
-      const trs = [];        // riferimenti alle righe per applicare la classe di blocco
+      const updaters = [];
+      const checkboxes = [];
+      const trs = [];
       let totPnlEl = null, btnConferma = null;
 
       aperte.forEach((p, i) => {
         const tr = document.createElement('tr');
 
-        // Checkbox di selezione
+        // Checkbox
         const tdC = document.createElement('td');
         const chk = document.createElement('input');
         chk.type = 'checkbox';
@@ -141,7 +196,7 @@
         checkboxes.push(chk);
         tdC.appendChild(chk); tr.appendChild(tdC);
 
-        // # (anzianità)
+        // #
         const tdN = document.createElement('td');
         tdN.textContent = i + 1;
         tr.appendChild(tdN);
@@ -152,12 +207,12 @@
         tdP.className = p.m.direzione === 'LONG' ? 'green' : 'red';
         tr.appendChild(tdP);
 
-        // Q.tà aperta (residua)
+        // Q.tà aperta
         const tdQ = document.createElement('td');
         tdQ.textContent = p.residuo;
         tr.appendChild(tdQ);
 
-        // Q.tà da chiudere: default = tutto il residuo, parziale consentita
+        // Q.tà da chiudere
         const tdQC = document.createElement('td');
         const inQ = document.createElement('input');
         inQ.type = 'number';
@@ -167,15 +222,15 @@
         inQ.value = p.residuo;
         inQ.className = 'scarico-qta';
         inQ.dataset.idx = p.idx;
-        inQ.disabled = true; // Abilitato solo se il checkbox è spuntato
+        inQ.disabled = true;
         tdQC.appendChild(inQ); tr.appendChild(tdQC);
 
-        // Prezzo open attuale
+        // Prezzo open
         const tdPr = document.createElement('td');
         tdPr.textContent = formatPrezzo(p.m.prezzoPulito);
         tr.appendChild(tdPr);
 
-        // P&L stimato della riga (live)
+        // P&L stimato
         const tdPnl = document.createElement('td');
         tdPnl.className = 'scarico-pnl muted';
         tr.appendChild(tdPnl);
@@ -184,9 +239,15 @@
 
         const upd = () => {
           const q = Math.max(0, Math.min(parseFloat(inQ.value) || 0, p.residuo));
-          const pnl = (spot - media) * q * p.segno * (molt || 1);
-          tdPnl.textContent = q > 0 ? formatEuro(pnl) : '—';
-          tdPnl.className = 'scarico-pnl ' + (q > 0 ? (pnl >= 0 ? 'green' : 'red') : 'muted');
+          const spotEff = getSpotEff();
+          const mediaEff = getMediaEff();
+          const pnl = (spotEff > 0 && isFinite(mediaEff))
+            ? (spotEff - mediaEff) * q * p.segno * (molt || 1)
+            : 0;
+          tdPnl.textContent = (q > 0 && spotEff > 0) ? formatEuro(pnl) : '—';
+          tdPnl.className = 'scarico-pnl ' + ((q > 0 && spotEff > 0)
+            ? (pnl >= 0 ? 'green' : 'red')
+            : 'muted');
           aggiornaTotale();
         };
         chk.addEventListener('change', upd);
@@ -203,40 +264,23 @@
           const chk = checkboxes[i];
           const inQ = overlay.querySelector('.scarico-qta[data-idx="' + chk.dataset.idx + '"]');
           const tr = trs[i];
-          
+
           if (i === 0) {
-            // La prima posizione è sempre cliccabile
             chk.disabled = false;
             tr.classList.remove('tr-bloccata');
           } else {
-            // Le successive sono cliccabili solo se la precedente è selezionata
             const prevChk = checkboxes[i - 1];
             chk.disabled = !prevChk.checked;
-            
-            // Se la precedente viene deselezionata, questa si deseleziona e disabilita
-            if (!prevChk.checked && chk.checked) {
-              chk.checked = false;
-            }
+            if (!prevChk.checked && chk.checked) chk.checked = false;
+            if (chk.disabled) tr.classList.add('tr-bloccata');
+            else tr.classList.remove('tr-bloccata');
+          }
 
-            // Aggiunge o rimuove la classe visiva di blocco
-            if (chk.disabled) {
-              tr.classList.add('tr-bloccata');
-            } else {
-              tr.classList.remove('tr-bloccata');
-            }
-          }
-          
-          // Abilita/disabilita il campo di input in base al checkbox
           inQ.disabled = !chk.checked;
-          
-          // Se è deselezionato, resetta la quantità al massimo per quando verrà riattivato
-          if (!chk.checked) {
-             inQ.value = inQ.max;
-          }
+          if (!chk.checked) inQ.value = inQ.max;
         }
       }
 
-      // Aggancia l'evento per la logica a cascata ad ogni checkbox
       checkboxes.forEach(chk => {
         chk.addEventListener('change', () => {
           aggiornaStatoCheckbox();
@@ -244,7 +288,7 @@
         });
       });
 
-      // Totale stimato della selezione
+      // Totale
       const tot = document.createElement('div');
       tot.className = 'scarico-tot';
       tot.innerHTML = '<span>P&L totale stimato:</span> <strong>—</strong>';
@@ -276,7 +320,12 @@
           if (qty > 0) selezione.push({ idx, qty });
         });
         if (!selezione.length) return;
-        eseguiScarico(col, selezione, media, spot);
+
+        const spotEff = getSpotEff();
+        const mediaEff = getMediaEff();
+        if (!(spotEff > 0) || !isFinite(mediaEff)) return;
+
+        eseguiScarico(col, selezione, mediaEff, spotEff);
       });
 
       actions.appendChild(btnAnnulla);
@@ -285,6 +334,9 @@
 
       function aggiornaTotale() {
         let totPnl = 0, nessuna = true;
+        const spotEff = getSpotEff();
+        const mediaEff = getMediaEff();
+
         overlay.querySelectorAll('.scarico-chk').forEach(chk => {
           if (!chk.checked) return;
           const inQ = overlay.querySelector('.scarico-qta[data-idx="' + chk.dataset.idx + '"]');
@@ -292,28 +344,29 @@
           const p = aperte.find(a => a.idx === idx);
           if (!p) return;
           const q = Math.max(0, Math.min(parseFloat(inQ.value) || 0, p.residuo));
-          if (q > 0) {
+          if (q > 0 && spotEff > 0 && isFinite(mediaEff)) {
             nessuna = false;
-            totPnl += (spot - media) * q * p.segno * (molt || 1);
+            totPnl += (spotEff - mediaEff) * q * p.segno * (molt || 1);
           }
         });
         totPnlEl.textContent = nessuna ? '—' : formatEuro(totPnl);
         totPnlEl.className = nessuna ? '' : (totPnl >= 0 ? 'green' : 'red');
-        btnConferma.disabled = nessuna || !spotOk;
+        btnConferma.disabled = nessuna || !(spotEff > 0);
       }
 
-      // Seleziona/deseleziona tutte (attiva/disattiva la cascata)
+      // Aggiorna P&L quando cambiano Spot o Prezzo di carico
+      inSpot.addEventListener('input', () => updaters.forEach(u => u()));
+      inCarico.addEventListener('input', () => updaters.forEach(u => u()));
+
+      // Seleziona/deseleziona tutte
       const selTutte = tbl.querySelector('#scaricoSelTutte');
       selTutte.addEventListener('change', () => {
-        // Se seleziona tutte, attiva tutti i checkbox. Se deseleziona, disattiva tutto.
-        checkboxes.forEach(chk => {
-          chk.checked = selTutte.checked;
-        });
+        checkboxes.forEach(chk => { chk.checked = selTutte.checked; });
         aggiornaStatoCheckbox();
         updaters.forEach(u => u());
       });
 
-      // Inizializza lo stato (tutto disabilitato tranne la prima riga)
+      // Inizializza
       aggiornaStatoCheckbox();
       updaters.forEach(u => u());
     }
@@ -341,8 +394,7 @@
       const nuovaChiusa = Math.min(giaChiusa + s.qty, qAp);
       const qDaChiudere = nuovaChiusa - giaChiusa;
 
-      // Prezzo medio di carico al momento dello scarico, salvato sulla riga:
-      // il P&L realizzato di questa chiusura non cambierà più in seguito.
+      // Salva il prezzo medio di carico usato per questa chiusura
       if (qDaChiudere > 0) {
         const pm = m.prezzoMedioChiusura || { q: 0, prezzo: 0 };
         const qTot = pm.q + qDaChiudere;
@@ -354,13 +406,17 @@
 
       m.quantitaChiusa = nuovaChiusa;
       m.direzioneClose = direzioneInversa(m.direzione);
-      m.prezzoClose = spot;
+      m.prezzoClose = spot;   // usa lo spot del modale
     });
 
     chiudiModaleScarico();
     renderMovimenti(col);
-    calcolaTutto();   // ricalcola RLZD, totali, autosave
+    calcolaTutto();
     const st = el('saveStatus');
-    if (st) { st.textContent = '✓ Posizione scaricata'; st.classList.add('show'); setTimeout(() => st.classList.remove('show'), 2000); }
+    if (st) {
+      st.textContent = '✓ Posizione scaricata';
+      st.classList.add('show');
+      setTimeout(() => st.classList.remove('show'), 2000);
+    }
   }
 })();
