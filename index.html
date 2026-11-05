@@ -35,6 +35,26 @@
   }
     .riepilogo-grid .rg-label.wrap{white-space:normal;line-height:1.25;}
 
+  
+  /* Margine e ROI compatti */
+  .rg-mini-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .rg-val.rg-mini {
+    max-width: 88px;
+    font-size: 13px;
+    padding: 3px 8px;
+  }
+  #margineInput.rg-mini {
+    width: 88px;
+    max-width: 88px;
+    box-sizing: border-box;
+  }
+
   /* ===== Toggle-pill: scritte cliccabili al posto dei checkbox nel pannello Payoff ===== */
   .toggle-pill{
     display:inline-flex;align-items:center;gap:6px;
@@ -345,21 +365,22 @@
       <span></span>
       <div class="rg-sep"></div>
 
-<!-- Delta totale -->
-<span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
-<strong id="deltaTot" class="rg-val">—</strong>
-<strong id="deltaSens" class="rg-val rg-wide">—</strong>
+      <!-- Delta totale -->
+      <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
+      <strong id="deltaTot" class="rg-val">—</strong>
+      <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
-<!-- Margine + ROI (compatti) -->
-<span class="rg-label">MARGINE</span>
-<input type="number" id="margineInput" class="rg-val" style="max-width:90px;font-size:13px;" step="1" min="0" placeholder="—" title="Margine in uso per l'operazione">
-<span class="rg-label">ROI</span>
-<strong id="roiValue" class="rg-val" style="max-width:80px;font-size:13px;">—</strong>
+      <!-- PmG (prima voce, allineato come le altre alla colonna Valore) -->
+      <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza / giorni totali dell'operazione">PmG</span>
+      <strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero">—</strong>
 
-<!-- PmG (allineato come prima nella colonna Valore) -->
-<span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza / giorni totali dell'operazione">PmG</span>
-<strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero">—</strong>      <!-- Elementi non visibili, mantenuti per il JS esistente -->
-      <div style="display:none;">
+      <!-- Margine (resta dentro la colonna Punti) -->
+      <span class="rg-mini-label">MARGINE</span>
+      <input type="number" id="margineInput" class="rg-val rg-mini" step="1" min="0" placeholder="—" title="Margine in uso per l'operazione">
+
+      <!-- ROI (resta dentro la colonna %) -->
+      <span class="rg-mini-label">ROI</span>
+      <strong id="roiValue" class="rg-val rg-mini">—</strong>      <div style="display:none;">
         <span id="popZoneWrap"></span>
         <span id="cmpHeader"></span>
         <input type="checkbox" id="showSigma">
