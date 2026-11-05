@@ -9,7 +9,8 @@
     { id: 'divYield',            key: 'divYield' },
     { id: 'cash',                key: 'cash' },
     { id: 'dataAnalisiIniziale', key: 'dataAnalisiIniziale' },
-    { id: 'dataAnalisi',         key: 'dataAnalisi' }
+    { id: 'dataAnalisi',         key: 'dataAnalisi' },
+    { id: 'margineInput',        key: 'margine' }
   ];
 
   // Campi immutabili: una volta fissati non vengono più sovrascritti dai campi della pagina
