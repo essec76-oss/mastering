@@ -10,17 +10,18 @@
     { id: 'cash',                key: 'cash' },
     { id: 'dataAnalisiIniziale', key: 'dataAnalisiIniziale' },
     { id: 'dataAnalisi',         key: 'dataAnalisi' }
+    { id: 'margineInput', key: 'margine' },
   ];
 
   // Campi immutabili: una volta fissati non vengono più sovrascritti dai campi della pagina
   const IMMUTABILI = ['dataAnalisiIniziale'];
 
-  // Scheda i cui parametri sono attualmente nei campi della pagina
+  // Scheda i cui parametri sono attualmente nei  della pagina
   let _caricata = null;
 
   function leggi() {
     const p = {};
-    CAMPI.forEach(c => {
+    .forEach(c => {
       const e = document.getElementById(c.id);
       p[c.key] = e ? e.value : '';
     });
@@ -28,7 +29,7 @@
   }
 
   function scrivi(p) {
-    CAMPI.forEach(c => {
+    .forEach(c => {
       const e = document.getElementById(c.id);
       if (!e) return;
       const v = p[c.key];
@@ -49,13 +50,13 @@
     s.par.dataAnalisiIniziale = daMatrice || s.par.dataAnalisi || dataOggiIso();
   }
 
-  // Porta i campi sulla scheda attiva, se è cambiata
+  // Porta i  sulla scheda attiva, se è cambiata
   function applica() {
     const s = schedaAttiva();
     if (!s || s === _caricata) return;
     if (!s.par) {
       // Scheda senza parametri (es. appena azzerata o da file vecchio):
-      // non riusare l'iniziale presente nei campi, verrà ricavata sotto
+      // non riusare l'iniziale presente nei , verrà ricavata sotto
       s.par = leggi();
       delete s.par.dataAnalisiIniziale;
     }
@@ -64,7 +65,7 @@
     _caricata = s;
   }
 
-  // Salva i campi nella scheda caricata. Non tocca mai una scheda diversa.
+  // Salva i  nella scheda caricata. Non tocca mai una scheda diversa.
   // La data analisi iniziale resta quella già fissata.
   function salva() {
     const s = schedaAttiva();
@@ -77,7 +78,7 @@
     s.par = nuovo;
   }
 
-  CAMPI.forEach(c => {
+  .forEach(c => {
     const e = document.getElementById(c.id);
     if (!e) return;
     e.addEventListener('input', salva);
@@ -114,7 +115,7 @@
       if (nuova && prev && nuova !== prev) {
         nuova.par = { ...(prev.par || leggi()) };
       }
-      _caricata = null; // forza il ricaricamento dei campi dalla nuova scheda
+      _caricata = null; // forza il ricaricamento dei  dalla nuova scheda
       applica();
       return risultato;
     };
