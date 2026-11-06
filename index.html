@@ -12,7 +12,7 @@
   /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
   .riepilogo-grid{
     display:grid;
-    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(110px,auto);
+    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(100px,auto) 0fr;
     column-gap:12px;
     row-gap:8px;
     align-items:center;
@@ -317,11 +317,15 @@
       <span class="rg-label" title="Mark-to-market attuale della posizione">PL AT NOW</span>
       <strong id="pnlNowTot" class="rg-val big">—</strong>
       <span id="pnlNowCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
-
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>
       <span class="rg-label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <strong id="pnlScadenzaTot" class="rg-val big">—</strong>
       <span id="pnlScadCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
-
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>
       <div class="rg-sep"></div>
 
       <!-- Breakeven: valore, distanza, %, σ -->
@@ -345,10 +349,9 @@
       <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
       <strong id="popValue" class="rg-val pop">—</strong>
       <span id="popCmp" class="rg-cmp" style="display:none;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
-      <span></span>
-      <span></span>
-      <span></span>
-      <div class="rg-sep"></div>
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>      <div class="rg-sep"></div>
 
       <!-- Delta totale -->
       <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
@@ -356,7 +359,7 @@
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
       <!-- PmG + Margine + ROI: una sola riga (PmG su etichetta/Valore, Margine sotto Punti, ROI sotto %) -->
-      <span class="rg-label" id="pmgLabel" style="grid-column:1;" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG</span>
+      <span class="rg-label" id="pmgLabel" style="grid-column:1;" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG giornaliero</span>
       <strong id="pmgValue" class="rg-val" style="grid-column:2;" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
       <span class="rg-inline" style="grid-column:3;" title="Margine impiegato nell'operazione (lo digiti tu)">
         <span class="rg-mini">Margine</span>
@@ -414,7 +417,7 @@
       <button type="button" class="btn" id="btnModalitaZoom" title="Attiva/disattiva lo zoom con la sola rotella">Rotella: pagina</button>
       <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px;font-size:16px;min-width:42px;">−</button>
       <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px;font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;min-width:42px;">+</button>
+      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;">+</button>
       <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px;font-size:11px;">Reset</button>
     </span>
   </div>
@@ -485,3 +488,4 @@
 </script>
 </body>
 </html>
+
