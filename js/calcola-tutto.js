@@ -13,8 +13,6 @@ function calcolaTutto() {
   // non è più editabile dall'utente (niente pulsante sulla riga).
   if (typeof ricalcolaStatiSchedaAttiva === 'function') {
     ricalcolaStatiSchedaAttiva();
-      // --- ROI = PL a scadenza / Margine ---
-  aggiornaROI(pnlScad);
   }
 
   const resNES = calcolaColonna(scheda, 'NES');
@@ -42,6 +40,10 @@ function calcolaTutto() {
   pnlScadEl.textContent = formatEuro(pnlScad);
   pnlScadEl.className = 'rg-val big ' + (!isFinite(pnlScad) ? 'muted' : (pnlScad >= 0 ? 'green' : 'red'));
 
+  // --- ROI = PL a scadenza / Margine ---
+  // Va chiamato qui, dopo che pnlScad è stato definito.
+  aggiornaROI(pnlScad);
+
   // v29 — PmG (Profitto medio giornaliero): esteso a TUTTE le modalità
   // (azioni, futures su indici, futures su commodities). Visibile ogni
   // volta che la Matrice ha almeno un'opzione attiva con scadenza.
@@ -53,21 +55,21 @@ function calcolaTutto() {
   aggiornaPmG();
 
   function aggiornaROI(pnlScad) {
-  const input = el('margineInput');
-  const out = el('roiValue');
-  if (!input || !out) return;
+    const input = el('margineInput');
+    const out = el('roiValue');
+    if (!input || !out) return;
 
-  const margine = parseFloat(input.value);
-  if (!isFinite(margine) || margine <= 0 || !isFinite(pnlScad)) {
-    out.textContent = '—';
-    out.className = 'rg-val muted';
-    return;
+    const margine = parseFloat(input.value);
+    if (!isFinite(margine) || margine <= 0 || !isFinite(pnlScad)) {
+      out.textContent = '—';
+      out.className = 'rg-val muted';
+      return;
+    }
+
+    const roi = (pnlScad / margine) * 100;
+    out.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
+    out.className = 'rg-val ' + (roi >= 0 ? 'green' : 'red');
   }
-
-  const roi = (pnlScad / margine) * 100;
-  out.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
-  out.className = 'rg-val ' + (roi >= 0 ? 'green' : 'red');
-}
 
   // Aggiorna anteprima payoff (tutte le schede), breakeven,
   // delta totale nel riepilogo e legenda colori
