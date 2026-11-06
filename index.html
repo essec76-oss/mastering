@@ -12,7 +12,7 @@
   /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
   .riepilogo-grid{
     display:grid;
-    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(110px,auto);
+    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(100px,auto) 0fr;
     column-gap:12px;
     row-gap:8px;
     align-items:center;
@@ -312,11 +312,15 @@
       <span class="rg-label" title="Mark-to-market attuale della posizione">PL AT NOW</span>
       <strong id="pnlNowTot" class="rg-val big">—</strong>
       <span id="pnlNowCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
-
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>
       <span class="rg-label" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <strong id="pnlScadenzaTot" class="rg-val big">—</strong>
       <span id="pnlScadCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
-
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>
       <div class="rg-sep"></div>
 
       <!-- Breakeven: valore, distanza, %, σ -->
@@ -340,25 +344,24 @@
       <span class="rg-label wrap" id="popLabel" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
       <strong id="popValue" class="rg-val pop">—</strong>
       <span id="popCmp" class="rg-cmp" style="display:none;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
-      <span></span>
-      <span></span>
-      <span></span>
-      <div class="rg-sep"></div>
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>      <div class="rg-sep"></div>
 
       <!-- Delta totale -->
       <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
       <strong id="deltaTot" class="rg-val">—</strong>
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
-      <!-- Margine + ROI -->
+      <!-- PmG giornaliero + Margine + ROI (ordine richiesto) -->
+      <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG giornaliero</span>
+      <strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
+
       <span class="rg-label" title="Margine impiegato nell'operazione (lo digiti tu)">MARGINE</span>
       <input type="number" id="margineInput" class="rg-val" step="1" min="0" placeholder="—" title="Inserisci il margine in uso per l'operazione">
+
       <span class="rg-label" title="ROI = (PL a scadenza ÷ Margine) × 100">ROI</span>
       <strong id="roiValue" class="rg-val">—</strong>
-
-      <!-- PmG: profitto medio giornaliero (visibile quando c'è almeno un'opzione attiva, in ogni modalità) -->
-      <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG</span>
-      <strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
       <!-- Elementi non visibili, mantenuti per il JS esistente -->
       <div style="display:none;">
         <span id="popZoneWrap"></span>
