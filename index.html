@@ -35,6 +35,11 @@
   }
     .riepilogo-grid .rg-label.wrap{white-space:normal;line-height:1.25;}
 
+    /* Celle con mini-etichetta inline (Margine / ROI sulla riga del PmG) */
+    .riepilogo-grid .rg-inline{display:inline-flex;align-items:center;gap:6px;min-width:0;}
+    .riepilogo-grid .rg-mini{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;white-space:nowrap;}
+    .riepilogo-grid .rg-inline .rg-val{flex:1;min-width:0;}
+
   /* ===== Toggle-pill: scritte cliccabili al posto dei checkbox nel pannello Payoff ===== */
   .toggle-pill{
     display:inline-flex;align-items:center;gap:6px;
@@ -350,15 +355,17 @@
       <strong id="deltaTot" class="rg-val">—</strong>
       <strong id="deltaSens" class="rg-val rg-wide">—</strong>
 
-      <!-- Margine + ROI -->
-      <span class="rg-label" title="Margine impiegato nell'operazione (lo digiti tu)">MARGINE</span>
-      <input type="number" id="margineInput" class="rg-val" step="1" min="0" placeholder="—" title="Inserisci il margine in uso per l'operazione">
-      <span class="rg-label" title="ROI = (PL a scadenza ÷ Margine) × 100">ROI</span>
-      <strong id="roiValue" class="rg-val">—</strong>
-
-      <!-- PmG: profitto medio giornaliero (visibile quando c'è almeno un'opzione attiva, in ogni modalità) -->
-      <span class="rg-label" id="pmgLabel" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG</span>
-      <strong id="pmgValue" class="rg-val" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
+      <!-- PmG + Margine + ROI: una sola riga (PmG su etichetta/Valore, Margine sotto Punti, ROI sotto %) -->
+      <span class="rg-label" id="pmgLabel" style="grid-column:1;" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG</span>
+      <strong id="pmgValue" class="rg-val" style="grid-column:2;" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
+      <span class="rg-inline" style="grid-column:3;" title="Margine impiegato nell'operazione (lo digiti tu)">
+        <span class="rg-mini">Margine</span>
+        <input type="number" id="margineInput" class="rg-val" step="1" min="0" placeholder="—" title="Inserisci il margine in uso per l'operazione">
+      </span>
+      <span class="rg-inline" style="grid-column:4;" title="ROI = (PL a scadenza ÷ Margine) × 100">
+        <span class="rg-mini">ROI</span>
+        <strong id="roiValue" class="rg-val">—</strong>
+      </span>
       <!-- Elementi non visibili, mantenuti per il JS esistente -->
       <div style="display:none;">
         <span id="popZoneWrap"></span>
@@ -407,7 +414,7 @@
       <button type="button" class="btn" id="btnModalitaZoom" title="Attiva/disattiva lo zoom con la sola rotella">Rotella: pagina</button>
       <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px;font-size:16px;min-width:42px;">−</button>
       <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px;font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;">+</button>
+      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;min-width:42px;">+</button>
       <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px;font-size:11px;">Reset</button>
     </span>
   </div>
