@@ -56,6 +56,12 @@ function renderScheda() {
   const scheda = schedaAttiva();
   // Tema arancione sulla scheda attiva quando è una comparazione
   document.body.classList.toggle('scheda-comp', stato.attiva > 0);
+
+  // Sincronizza il campo Basis con la scheda attiva
+  if (el('basisInput')) {
+    el('basisInput').value = (scheda && typeof scheda.basis === 'number') ? scheda.basis : 0;
+  }
+
   // Re-applica la modalità globale (ricostruisce le option dei select
   // e i lock corretti: Azioni bloccato, Indici sbloccato, Commodities ZW)
   if (typeof applicaModalita === 'function') {

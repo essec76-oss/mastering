@@ -68,6 +68,17 @@ if (el('dataAnalisi')) el('dataAnalisi').addEventListener('change', () => {
   calcolaTutto();
 });
 
+// Front/Back — Basis: normalizza i prezzi della colonna Back (MES)
+if (el('basisInput')) {
+  el('basisInput').addEventListener('input', () => {
+    const scheda = schedaAttiva();
+    if (!scheda) return;
+    scheda.basis = parseFloat(el('basisInput').value) || 0;
+    aggiornaCalcolati('MES');
+    calcolaTutto();
+  });
+}
+
 if (el('showExpiryCorrente'))   el('showExpiryCorrente').addEventListener('change',   () => redrawChartFromView());
 if (el('showNowCorrente'))      el('showNowCorrente').addEventListener('change',      () => redrawChartFromView());
 if (el('showExpiryPrecedente')) el('showExpiryPrecedente').addEventListener('change', () => redrawChartFromView());
@@ -160,6 +171,10 @@ function setUIBloccata(locked) {
 function applicaModalita(mod) {
   const valore = (mod == null ? '' : String(mod)).trim();
   stato.modalita = valore;
+
+  // Classe body per nascondere FRONT/BACK/Basis in modalità Azioni
+  document.body.classList.toggle('mode-azioni', valore === 'azioni');
+  document.body.classList.toggle('mode-futures', valore === 'futures-indici' || valore === 'futures-commodities');
 
   // Nessuna modalità: blocca l'UI e non toccare tipi/righe
   if (!valore) {
