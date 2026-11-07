@@ -1,0 +1,51 @@
+/* FRONT / BACK labels + Basis field */
+.col-role {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+#roleNES.col-role { color: #94a3b8; }
+#roleMES.col-role { color: #fbbf24; border-color: rgba(251,191,36,.35); background: rgba(251,191,36,.08); }
+
+.basis-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+.basis-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.basis-input {
+  width: 72px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.basis-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Nascondi FRONT/BACK/Basis in modalità Azioni */
+body.mode-azioni .col-role,
+body.mode-azioni .basis-wrap {
+  display: none !important;
+}
