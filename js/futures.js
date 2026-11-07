@@ -34,6 +34,9 @@
 
     const molt = risolviMoltiplicatore(scheda, col);
     const spot = parseFloat(el('prezzoSpot').value) || 0;
+    // Front/Back: normalizza i prezzi del Back (colonna MES) sottraendo il basis.
+    // Così i calcoli di media, P&L, payoff e BE risultano allineati al Front.
+    const basis = (col === 'MES') ? (Number(scheda.basis) || 0) : 0;
 
     let qtaNetta = 0;
     let sommaPulitaPesata = 0;
@@ -56,10 +59,13 @@
       }
 
       const qAp = m.quantita || 0;
-      const prezzoOpen = m.prezzoPulito || 0;
+      // Prezzo normalizzato: per il Back togliamo il basis così i calcoli
+      // si comportano come se Front e Back fossero allo stesso livello.
+      const prezzoOpen = (m.prezzoPulito || 0) - basis;
       const segno = m.direzione === 'LONG' ? 1 : -1;
       const qCh = Math.min(m.quantitaChiusa || 0, qAp);
-      const prezzoClose = m.prezzoClose || 0;
+      // Anche il prezzo di chiusura va normalizzato allo stesso modo
+      const prezzoClose = (m.prezzoClose || 0) - (m.prezzoClose ? basis : 0);
       const fee = m.fee || 0;
 
       feeTotAttive += fee;
@@ -75,11 +81,13 @@
       // Se la riga è stata chiusa tramite lo scarico (Average Cost IBKR), 
       // usa il prezzo medio di carico salvato sulla riga (prezzoMedioChiusura) 
       // per far coincidere il calcolo con il modale.
+      // Anche questo prezzo va normalizzato se siamo sulla colonna Back.
       let pnlRea = 0;
       if (qCh > 0) {
-        const basePrezzo = (m.prezzoMedioChiusura && m.prezzoMedioChiusura.prezzo)
+        let basePrezzo = (m.prezzoMedioChiusura && m.prezzoMedioChiusura.prezzo)
           ? m.prezzoMedioChiusura.prezzo
-          : prezzoOpen;
+          : (m.prezzoPulito || 0);
+        basePrezzo = basePrezzo - basis; // normalizza
         pnlRea = (prezzoClose - basePrezzo) * qCh * segno * molt - feeRea;
         pnlRealizzatoTot += pnlRea;
       }

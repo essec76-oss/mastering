@@ -138,7 +138,8 @@ function nuovaScheda(nome) {
     nome: nome || 'Matrice',
     tipoNES: 'X', tipoMES: 'X',
     NES: [], MES: [], opzioni: [],
-    strumentoOpzioni: 'AZIONI'
+    strumentoOpzioni: 'AZIONI',
+    basis: 0   // Front/Back: basis = prezzo_back − prezzo_normalizzato usato nei calcoli
   };
 }
 

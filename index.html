@@ -67,6 +67,7 @@
   .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
 
   /* ===== Pulsante "Salva in cloud": evidenziato in verde ===== */
+  #btnSalvaCome{
     background:#1e9e4a;
     border:1px solid #1e9e4a;
     color:#fff;
@@ -74,10 +75,12 @@
     box-shadow:0 2px 8px rgba(30,158,74,.35);
     transition:background .15s, box-shadow .15s, transform .1s;
   }
+  #btnSalvaCome:hover{
     background:#24b857;
     border-color:#24b857;
     box-shadow:0 3px 12px rgba(30,158,74,.55);
   }
+  #btnSalvaCome:active{
     transform:translateY(1px);
     background:#178a3f;
   }
@@ -173,6 +176,7 @@
         <option value="ES">ES</option>
         <option value="X" selected>AZIONI</option>
       </select>
+      <span class="col-role" id="roleNES">FRONT</span>
       <div class="col-summary" id="summaryNES">
         <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
       </div>
@@ -220,6 +224,11 @@
         <option value="ES">ES</option>
         <option value="X" selected>AZIONI</option>
       </select>
+      <span class="col-role" id="roleMES">BACK</span>
+      <label class="basis-wrap" id="basisWrap" title="Basis (contango/backwardation): prezzo_back − basis = prezzo usato nei calcoli e nel grafico">
+        <span class="basis-label">Basis</span>
+        <input type="number" id="basisInput" class="basis-input" step="0.25" value="0" placeholder="0">
+      </label>
       <div class="col-summary" id="summaryMES">
         <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
       </div>
@@ -351,87 +360,57 @@
       <span id="popCmp" class="rg-cmp" style="display:none;grid-column:3;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
       <span class="rg-val rg-empty" style="grid-column:4;"></span>
       <span class="rg-val rg-empty" style="grid-column:5;"></span>
-      <span style="grid-column:6;"></span>      <div class="rg-sep"></div>
+      <span style="grid-column:6;"></span>
+      <div class="rg-sep"></div>
 
       <!-- Delta totale -->
-      <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo FUT). Tra parentesi: quanto muove il P&L per ogni punto di movimento del sottostante">DELTA TOTALE</span>
+      <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo futures)">DELTA NETTO</span>
       <strong id="deltaTot" class="rg-val">—</strong>
-      <strong id="deltaSens" class="rg-val rg-wide">—</strong>
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>
 
-      <!-- PmG + Margine + ROI: una sola riga (PmG su etichetta/Valore, Margine sotto Punti, ROI sotto %) -->
-      <span class="rg-label" id="pmgLabel" style="grid-column:1;" title="Profitto medio giornaliero: PL a scadenza di tutti i totali combinati (azioni/futures + opzioni + cash) / giorni totali dell'operazione (dalla Matrice: data analisi iniziale → prima scadenza tra le opzioni attive). Visibile ogni volta che c'è almeno un'opzione attiva, in qualunque modalità.">PmG giornaliero</span>
-      <strong id="pmgValue" class="rg-val" style="grid-column:2;" title="Profitto medio giornaliero (PL a scadenza / giorni totali)">—</strong>
-      <span class="rg-inline" style="grid-column:3;" title="Margine impiegato nell'operazione (lo digiti tu)">
+      <div class="rg-sep"></div>
+
+      <!-- PmG / Margine / ROI -->
+      <span class="rg-label" title="P&L medio giornaliero">PmG</span>
+      <strong id="pmgVal" class="rg-val">—</strong>
+      <span class="rg-inline" style="grid-column:3;">
         <span class="rg-mini">Margine</span>
-        <input type="number" id="margineInput" class="rg-val" step="1" min="0" placeholder="—" title="Inserisci il margine in uso per l'operazione">
+        <input type="number" id="margineInput" class="rg-val" step="0.01" placeholder="—" title="Margine richiesto (manuale)">
       </span>
-      <span class="rg-inline" style="grid-column:4;" title="ROI = (PL a scadenza ÷ Margine) × 100">
+      <span class="rg-inline" style="grid-column:4;">
         <span class="rg-mini">ROI</span>
-        <strong id="roiValue" class="rg-val">—</strong>
+        <strong id="roiVal" class="rg-val">—</strong>
       </span>
-      <!-- Elementi non visibili, mantenuti per il JS esistente -->
-      <div style="display:none;">
-        <span id="popZoneWrap"></span>
-        <span id="cmpHeader"></span>
-        <input type="checkbox" id="showSigma">
-        <!-- AGGIUNTI PER FAR PASSARE IL CI -->
-        <span id="bePopSup"></span>
-        <span id="bePopInf"></span>
-      </div>
+      <span class="rg-val rg-empty" style="grid-column:5;"></span>
+      <span style="grid-column:6;"></span>
     </div>
   </div>
 </div>
-  <!-- Grafico Payoff Combinato -->
-<div class="chart-panel" id="payoffPanel">
-  <h2>Payoff Combinato</h2>
-  <div class="chart-controls">
-    <div class="ctrl-group corrente" id="ctrlGroupCorrente">
-      <span class="dot"></span>
-      <span class="ctrl-label">Corrente</span>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L a scadenza della scheda corrente"><input type="checkbox" id="showExpiryCorrente" checked> P&L a scadenza</label>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L Now (teorico) della scheda corrente"><input type="checkbox" id="showNowCorrente" checked> Now (teorico)</label>
+
+<div class="chart-card">
+  <div class="chart-header">
+    <div class="chart-title">Payoff</div>
+    <div class="chart-controls">
+      <label class="toggle-pill"><input type="checkbox" id="showExpiryCorrente" checked> Expiry</label>
+      <label class="toggle-pill"><input type="checkbox" id="showNowCorrente" checked> Now</label>
+      <label class="toggle-pill"><input type="checkbox" id="showExpiryPrecedente"> Expiry prec.</label>
+      <label class="toggle-pill"><input type="checkbox" id="showNowPrecedente"> Now prec.</label>
+      <label class="toggle-pill"><input type="checkbox" id="showBE" checked> BE</label>
+      <label class="toggle-pill"><input type="checkbox" id="showSigma" checked> σ</label>
+      <select id="nSD" title="Numero di deviazioni standard">
+        <option value="1">±1σ</option>
+        <option value="2" selected>±2σ</option>
+      </select>
+      <button class="btn" id="btnResetZoom" title="Reimposta zoom grafico">Reset zoom</button>
     </div>
-    <div class="ctrl-group precedente" id="ctrlGroupPrecedente" style="display:none;">
-      <span class="dot"></span>
-      <span class="ctrl-label">Precedente</span>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L a scadenza della scheda precedente (comparazione)"><input type="checkbox" id="showExpiryPrecedente" checked> P&L a scadenza</label>
-      <label class="toggle-pill" title="Mostra/nascondi la curva P&L Now (teorico) della scheda precedente (comparazione)"><input type="checkbox" id="showNowPrecedente" checked> Now (teorico)</label>
-    </div>
-    <label class="toggle-pill" title="Mostra/nascondi i breakeven sul grafico"><input type="checkbox" id="showBE"> Breakeven</label>
-    <label class="toggle-pill" title="Mostra/nascondi le deviazioni standard sul grafico"><input type="checkbox" id="showSigmaUI"> Dev. std</label>
-    <select id="nSD" class="small" style="width:auto;padding:2px 4px;font-size:11px;" title="Numero di deviazioni standard (1–10) da disegnare sul grafico">
-      <option value="1">1° SD</option>
-      <option value="2" selected>2° SD</option>
-      <option value="3">3° SD</option>
-      <option value="4">4° SD</option>
-      <option value="5">5° SD</option>
-      <option value="6">6° SD</option>
-      <option value="7">7° SD</option>
-      <option value="8">8° SD</option>
-      <option value="9">9° SD</option>
-      <option value="10">10° SD</option>
-    </select>
   </div>
-  <div class="chart-controls" style="margin-top:-4px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
-    <span style="display:inline-flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
-      <button type="button" class="btn" id="btnModalitaZoom" title="Attiva/disattiva lo zoom con la sola rotella">Rotella: pagina</button>
-      <button type="button" class="btn" id="btnZoomOut" title="Zoom −" style="padding:6px 12px;font-size:16px;min-width:42px;">−</button>
-      <button type="button" class="btn primary" id="btnFitView" title="Centra sull'operazione" style="padding:6px 12px;font-size:12px;">Centra</button>
-      <button type="button" class="btn" id="btnZoomIn" title="Zoom +" style="padding:6px 12px;font-size:16px;">+</button>
-      <button type="button" class="btn" id="btnResetZoom" title="Vista ampia di default" style="padding:6px 10px;font-size:11px;">Reset</button>
-    </span>
-  </div>
-  <svg id="payoffChart" viewBox="0 0 920 570" preserveAspectRatio="xMidYMid meet" style="cursor:crosshair;touch-action:none;width:100%;"></svg>
-  <div class="chart-legend">
-    <span id="legendSchede" style="display:contents;"></span>
-<span><i style="background:#ffffff;"></i> P&L a scadenza (corrente: linea piena)</span>
-<span><i style="background:#ffffff;height:0;border-top:2px dashed #ffffff;width:18px;"></i> P&L Now (in comparazione: corrente piena, precedente tratteggiata)</span>
-    <span><i style="background:var(--accent);"></i> Spot</span>
-    <span><i style="background:#f1c40f;"></i> Breakeven</span>
-    <span><i style="background:#2ecc71;opacity:0.4;"></i> Dev. standard</span>
-    <span style="color:var(--muted);font-size:10px;">Desktop: rotella = zoom, trascina = sposta · Mobile: un dito = cursore prezzo, due dita = sposta + pinch zoom · I BE includono le commissioni solo se il toggle «Commissioni» è attivo (e solo per il NES)</span>
-  </div>
+  <div id="legendSchede" class="chart-legend"></div>
+  <canvas id="payoffChart" width="900" height="420"></canvas>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
 <script src="js/matematica.js"></script>
@@ -442,49 +421,10 @@
 <script src="js/grafico.js"></script>
 <script src="js/calcola-tutto.js"></script>
 <script src="js/schede.js"></script>
-<script src="js/storage.js"></script>
 <script src="js/parametri-scheda.js"></script>
-<script src="js/eventi.js"></script>
+<script src="js/storage.js"></script>
 <script src="js/scarico-posizione.js"></script>
+<script src="js/eventi.js"></script>
 <script src="js/main.js"></script>
-<script>
-  /* Ponte toggle Dev. std: la UI usa logica diretta (spuntato = visibile),
-     mentre il grafico usa la logica storica inversa (showSigma spuntato = nascosto).
-     Questo script li tiene sincronizzati invertiti. */
-  (function(){
-    var ui = document.getElementById('showSigmaUI');
-    var reale = document.getElementById('showSigma');
-    function sync(){ reale.checked = !ui.checked; }
-    sync(); // stato iniziale: pillola spenta -> bande nascoste
-    ui.addEventListener('change', function(){
-      sync();
-      reale.dispatchEvent(new Event('change', {bubbles:true}));
-    });
-  })();
-</script>
-<script>
-  /* Sicurezza scroll: il mouse wheel su un campo numerico modifica il valore
-     SOLO se tieni premuto SHIFT. Senza SHIFT la rotella scrolla normalmente
-     la pagina e non tocca nessun valore. */
-  (function(){
-    document.addEventListener('wheel', function(e){
-      var t = e.target;
-      var isNum = (t && t.tagName === 'INPUT' && t.type === 'number');
-      if(!isNum) return;
-      if(e.shiftKey){
-        e.preventDefault(); // con SHIFT: il valore cambia, la pagina non scrolla
-      }else{
-        // senza SHIFT: blocca l'handler che modifica il valore, lascia scorrere la pagina
-        e.stopPropagation();
-      }
-    }, {capture:true, passive:false});
-    // Alcuni script usano l'evento 'wheel' come alias: copriamo anche 'mousewheel' (vecchi browser)
-    document.addEventListener('mousewheel', function(e){
-      if(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number' && !e.shiftKey){
-        e.stopPropagation();
-      }
-    }, {capture:true, passive:false});
-  })();
-</script>
 </body>
 </html>
