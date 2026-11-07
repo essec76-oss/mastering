@@ -5,85 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mastering</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/front-back.css">
   <link rel="stylesheet" href="css/fix-riepilogo.css">
 <style>
-  /* Stili modale strategie: spostati in css/style.css */
-
-  /* Riepilogo: griglia a colonne fisse, etichette e valori allineati */
-  .riepilogo-grid{
-    display:grid;
-    grid-template-columns:170px minmax(120px,auto) minmax(110px,auto) minmax(90px,auto) minmax(100px,auto) 0fr;
-    column-gap:12px;
-    row-gap:8px;
-    align-items:center;
+  /* FRONT/BACK fallback styles (also in css/front-back.css) */
+  .col-role {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 3px 8px; border-radius: 4px;
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    white-space: nowrap;
   }
-  .riepilogo-grid .rg-head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:2px;border-bottom:1px solid var(--border);}
-  .riepilogo-grid .rg-label{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap;}
-  .riepilogo-grid .rg-sep{grid-column:1/-1;height:1px;background:var(--border);opacity:.6;margin:2px 0;}
-  .rg-val{font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 10px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:0;overflow:hidden;text-overflow:ellipsis;}
-  .rg-val.big{font-size:20px;padding:4px 14px;}
-  .rg-val.sigma{color:var(--yellow);border-color:rgba(241,196,15,.35);}
-  .rg-val.pop{color:var(--purple);border-color:rgba(155,89,182,.35);}
-  .rg-wide{grid-column:2/-1;justify-self:start;font-size:13px;color:var(--muted);}
-  .rg-empty{color:transparent;}
-  #cmpHeader{grid-column:1/-1;}
-  @media (max-width:640px){
-    .riepilogo-grid{grid-template-columns:120px repeat(5,minmax(70px,auto));column-gap:8px;}
-    .riepilogo-grid .rg-label{font-size:12px;}
-    .rg-val{font-size:12px;padding:4px 6px;}
-    .rg-val.big{font-size:16px;}
+  #roleNES.col-role { color: #94a3b8; }
+  #roleMES.col-role { color: #fbbf24; border-color: rgba(251,191,36,.35); background: rgba(251,191,36,.08); }
+  .basis-wrap { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; }
+  .basis-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .basis-input {
+    width: 72px; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 5px 8px;
+    font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right;
   }
-    .riepilogo-grid .rg-label.wrap{white-space:normal;line-height:1.25;}
-
-    /* Celle con mini-etichetta inline (Margine / ROI sulla riga del PmG) */
-    .riepilogo-grid .rg-inline{display:inline-flex;align-items:center;gap:6px;min-width:0;}
-    .riepilogo-grid .rg-mini{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;white-space:nowrap;}
-    .riepilogo-grid .rg-inline .rg-val{flex:1;min-width:0;}
-
-  /* ===== Toggle-pill: scritte cliccabili al posto dei checkbox nel pannello Payoff ===== */
-  .toggle-pill{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:5px 12px;border-radius:999px;cursor:pointer;user-select:none;
-    font-size:12px;font-weight:600;white-space:nowrap;
-    border:1px solid var(--border);
-    background:rgba(255,255,255,.04);
-    color:var(--muted);
-    transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
-  }
-  .toggle-pill input[type="checkbox"]{display:none;}
-  /* Stato ATTIVO (visibile sul grafico): colore acceso */
-  .toggle-pill:has(input:checked){
-    background:rgba(79,140,255,.22);
-    border-color:var(--accent,#4f8cff);
-    color:#fff;
-    box-shadow:inset 0 0 0 1px var(--accent,#4f8cff);
-  }
-  /* Stato SPENTO (nascosto sul grafico): colore spento */
-  .toggle-pill:has(input:not(:checked)){
-    background:rgba(255,255,255,.03);
-    border-color:var(--border);
-    color:var(--muted);
-  }
-  .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
-
-  /* ===== Pulsante "Salva in cloud": evidenziato in verde ===== */
-  #btnSalvaCome{
-    background:#1e9e4a;
-    border:1px solid #1e9e4a;
-    color:#fff;
-    font-weight:700;
-    box-shadow:0 2px 8px rgba(30,158,74,.35);
-    transition:background .15s, box-shadow .15s, transform .1s;
-  }
-  #btnSalvaCome:hover{
-    background:#24b857;
-    border-color:#24b857;
-    box-shadow:0 3px 12px rgba(30,158,74,.55);
-  }
-  #btnSalvaCome:active{
-    transform:translateY(1px);
-    background:#178a3f;
-  }
+  .basis-input:focus { outline: none; border-color: var(--accent); }
+  body.mode-azioni .col-role,
+  body.mode-azioni .basis-wrap { display: none !important; }
 </style>
 </head>
 <body>
@@ -117,7 +61,6 @@
   <button class="btn" id="btnImporta" title="Carica una strategia da file JSON esportato in precedenza">Importa file</button>
   <input type="file" id="fileImporta" accept="application/json,.json" style="display:none;">
 </div>
-<!-- Modale scelta strategia salvata -->
 <div class="modal-overlay" id="modalStrategieOverlay" style="display:none;" aria-hidden="true">
   <div class="modal-strategie" role="dialog" aria-modal="true" aria-labelledby="modalStrategieTitolo">
     <div class="modal-header">
@@ -137,11 +80,11 @@
   <input type="number" id="prezzoSpot" value="7700" step="0.25">
   <div class="param-group">
     <span class="label">Vol. storica %</span>
-    <input type="number" id="volStorica" class="small" value="" step="0.1" placeholder="—" title="Volatilità storica: riferimento visivo inserito manualmente, per ora non entra nei calcoli">
+    <input type="number" id="volStorica" class="small" value="" step="0.1" placeholder="—">
   </div>
   <div class="param-group">
     <span class="label">Vol ATM %</span>
-    <input type="number" id="volAtm" class="small" value="15" step="0.1" title="Volatilità ATM per POP, bande ±1σ/±2σ del grafico, curve Now e distanza σ dei breakeven">
+    <input type="number" id="volAtm" class="small" value="15" step="0.1">
   </div>
   <div class="param-group">
     <span class="label">Risk-free %</span>
@@ -149,20 +92,20 @@
   </div>
   <div class="param-group">
     <span class="label">Cash €</span>
-    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;" title="Incassi annotati manualmente: premi incassati a scadenza, P&L realizzati fuori dal tool. Entra nel TOTALE FUTURES TWS, nei totali PL NOW / A SCADENZA e nel grafico payoff.">
+    <input type="number" id="cash" class="small" value="0" step="0.01" style="width:110px;">
   </div>
   <div class="param-group">
     <span class="label">Div %</span>
-    <input type="number" id="divYield" class="small" value="0" step="0.1" title="Dividendo annuo % (continuo): usato da Black-Scholes per opzioni AZIONI. Per MES/ES (Black-76) non si applica.">
+    <input type="number" id="divYield" class="small" value="0" step="0.1">
   </div>
   <div class="param-group dates-pair" style="display:flex; align-items:center; gap:16px; flex-wrap:nowrap;">
     <div class="param-group">
       <span class="label">Data analisi iniziale</span>
-      <input type="date" id="dataAnalisiIniziale" class="small" style="width:140px;" disabled title="Data di partenza dell'operazione: fissata alla creazione e non modificabile. Usata per i giorni totali (PmG).">
+      <input type="date" id="dataAnalisiIniziale" class="small" style="width:140px;" disabled>
     </div>
     <div class="param-group">
       <span class="label">Data analisi attuale</span>
-      <input type="date" id="dataAnalisi" class="small" style="width:140px;" title="Data di riferimento per il time decay delle opzioni e i giorni residui della scheda corrente. Modificabile, indipendente per ogni scheda.">
+      <input type="date" id="dataAnalisi" class="small" style="width:140px;">
     </div>
   </div>
 </div>
@@ -185,32 +128,16 @@
       <table>
         <thead>
           <tr>
-            <th title="Elimina riga">DEL</th>
-            <th title="Nascondi la riga dai conteggi">Nascondi</th>
-            <th title="Tipo di operazione: BUY (acquisto) o SELL (vendita)">Tipo</th>
-            <th>Q.tà</th>
-            <th>Prezzo Open</th>
-            <th title="Quantità chiusa (chiusura parziale consentita)">Q.tà</th>
-            <th>Prezzo Close</th>
-            <th title="Fee totali della riga (sottratte dal P&L)">Fee</th>
-            <th title="P&L realizzato della chiusura, fee incluse">RLZD</th>
+            <th>DEL</th><th>Nascondi</th><th>Tipo</th><th>Q.tà</th><th>Prezzo Open</th>
+            <th>Q.tà</th><th>Prezzo Close</th><th>Fee</th><th>RLZD</th>
           </tr>
         </thead>
         <tbody id="bodyNES"></tbody>
       </table>
       <div class="col-footer">
-        <div class="cf-item cf-qta">
-          <span class="label">Q.tà netta</span>
-          <span class="value muted" id="qtaNettaNES">—</span>
-        </div>
-        <div class="cf-item cf-delta">
-          <span class="label" id="deltaLabelNES">Delta</span>
-          <span class="value muted" id="deltaAzColNES">—</span>
-        </div>
-        <div class="cf-item cf-pnl">
-          <span class="label">P&L</span>
-          <span class="value muted" id="csPnlNES">0,00</span>
-        </div>
+        <div class="cf-item cf-qta"><span class="label">Q.tà netta</span><span class="value muted" id="qtaNettaNES">—</span></div>
+        <div class="cf-item cf-delta"><span class="label" id="deltaLabelNES">Delta</span><span class="value muted" id="deltaAzColNES">—</span></div>
+        <div class="cf-item cf-pnl"><span class="label">P&L</span><span class="value muted" id="csPnlNES">0,00</span></div>
       </div>
       <button class="btn-add" data-col="NES">+ Aggiungi movimento</button>
     </div>
@@ -225,7 +152,7 @@
         <option value="X" selected>AZIONI</option>
       </select>
       <span class="col-role" id="roleMES">BACK</span>
-      <label class="basis-wrap" id="basisWrap" title="Basis (contango/backwardation): prezzo_back − basis = prezzo usato nei calcoli e nel grafico">
+      <label class="basis-wrap" id="basisWrap" title="Basis: prezzo_back − basis = prezzo usato nei calcoli">
         <span class="basis-label">Basis</span>
         <input type="number" id="basisInput" class="basis-input" step="0.25" value="0" placeholder="0">
       </label>
@@ -237,32 +164,16 @@
       <table>
         <thead>
           <tr>
-            <th title="Elimina riga">DEL</th>
-            <th title="Nascondi la riga dai conteggi">Nascondi</th>
-            <th title="Tipo di operazione: BUY (acquisto) o SELL (vendita)">Tipo</th>
-            <th>Q.tà</th>
-            <th>Prezzo Open</th>
-            <th title="Quantità chiusa (chiusura parziale consentita)">Q.tà</th>
-            <th>Prezzo Close</th>
-            <th title="Fee totali della riga (sottratte dal P&L)">Fee</th>
-            <th title="P&L realizzato della chiusura, fee incluse">RLZD</th>
+            <th>DEL</th><th>Nascondi</th><th>Tipo</th><th>Q.tà</th><th>Prezzo Open</th>
+            <th>Q.tà</th><th>Prezzo Close</th><th>Fee</th><th>RLZD</th>
           </tr>
         </thead>
         <tbody id="bodyMES"></tbody>
       </table>
       <div class="col-footer">
-        <div class="cf-item cf-qta">
-          <span class="label">Q.tà netta</span>
-          <span class="value muted" id="qtaNettaMES">—</span>
-        </div>
-        <div class="cf-item cf-delta">
-          <span class="label" id="deltaLabelMES">Delta</span>
-          <span class="value muted" id="deltaAzColMES">—</span>
-        </div>
-        <div class="cf-item cf-pnl">
-          <span class="label">P&L</span>
-          <span class="value muted" id="csPnlMES">0,00</span>
-        </div>
+        <div class="cf-item cf-qta"><span class="label">Q.tà netta</span><span class="value muted" id="qtaNettaMES">—</span></div>
+        <div class="cf-item cf-delta"><span class="label" id="deltaLabelMES">Delta</span><span class="value muted" id="deltaAzColMES">—</span></div>
+        <div class="cf-item cf-pnl"><span class="label">P&L</span><span class="value muted" id="csPnlMES">0,00</span></div>
       </div>
       <button class="btn-add" data-col="MES">+ Aggiungi movimento</button>
     </div>
@@ -272,7 +183,7 @@
   <div class="options-header">
     <div class="title-wrap">
       <span class="title">Opzioni</span>
-      <select id="strumentoOpzioni" title="Strumento della scheda opzioni" disabled>
+      <select id="strumentoOpzioni" disabled>
         <option value="MES">MES</option>
         <option value="ES">ES</option>
         <option value="AZIONI" selected>AZIONI</option>
@@ -284,23 +195,11 @@
     <table>
       <thead>
         <tr>
-          <th title="Clicca per nascondere la riga: esclusa da conteggi, valori e grafico">Nascondi</th>
-          <th title="Elimina riga"></th>
-          <th>Pos</th><th>Tipo</th><th>Q.tà</th>
+          <th>Nascondi</th><th></th><th>Pos</th><th>Tipo</th><th>Q.tà</th>
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
-          <th title="Giorni alla scadenza dalla data analisi">DTE</th>
-          <th title="ATM/OTM/ITM + distanza in σ">M/S</th>
-          <th title="Delta di posizione in contratti (q.tà × Δ × segno). Non include il moltiplicatore.">DELTA</th>
-          <th title="Gamma di posizione in contratti (q.tà × gamma × segno)">GAMMA</th>
-          <th title="Vega di posizione in contratti (q.tà × vega × segno)">VEGA</th>
-          <th title="Theta di posizione in contratti (q.tà × theta × segno)">THETA/gg</th>
-          <th title="Prezzo teorico attuale (Black-76 / Black-Scholes)">PREZZO ATT.</th>
-          <th title="Valore temporale">VAL. TEMP.</th>
-          <th title="Valore intrinseco">VAL. INTR.</th>
-          <th title="Probabilità di tocco dello strike">PROB. TOCCO</th>
-          <th title="P&L della riga a scadenza della gamba più corta">P&L SCAD. ($)</th>
-          <th title="P&L attuale mark-to-market">P&L NOW ($)</th>
-          <th title="Debit/Credit: premio × q.tà × moltiplicatore">DEBITO/CREDITO ($)</th>
+          <th>DTE</th><th>M/S</th><th>DELTA</th><th>GAMMA</th><th>VEGA</th><th>THETA/gg</th>
+          <th>PREZZO ATT.</th><th>VAL. TEMP.</th><th>VAL. INTR.</th><th>PROB. TOCCO</th>
+          <th>P&L SCAD. ($)</th><th>P&L NOW ($)</th><th>DEBITO/CREDITO ($)</th>
         </tr>
       </thead>
       <tbody id="bodyOpzioni"></tbody>
@@ -310,86 +209,50 @@
     <button class="btn-add" id="btnAddOpzione">+ Aggiungi opzione</button>
   </div>
 </div>
-
 <div class="riepilogo">
   <div class="highlight" style="margin-top:0;">
     <div class="riepilogo-grid">
-      <!-- Intestazioni colonne -->
       <span class="rg-head"></span>
       <span class="rg-head">Valore</span>
       <span class="rg-head">Punti</span>
       <span class="rg-head">%</span>
       <span class="rg-head">σ</span>
       <span class="rg-head"></span>
-
-      <!-- P&L -->
-      <span class="rg-label" style="grid-column:1;" title="Mark-to-market attuale della posizione">PL AT NOW</span>
-      <strong id="pnlNowTot" class="rg-val big" style="grid-column:2;">—</strong>
-      <span id="pnlNowCmp" class="rg-cmp" style="display:none;grid-column:3;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
-      <span class="rg-val rg-empty" style="grid-column:4;"></span>
-      <span class="rg-val rg-empty" style="grid-column:5;"></span>
-      <span style="grid-column:6;"></span>
-      <span class="rg-label" style="grid-column:1;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
-      <strong id="pnlScadenzaTot" class="rg-val big" style="grid-column:2;">—</strong>
-      <span id="pnlScadCmp" class="rg-cmp" style="display:none;grid-column:3;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
-      <span class="rg-val rg-empty" style="grid-column:4;"></span>
-      <span class="rg-val rg-empty" style="grid-column:5;"></span>
-      <span style="grid-column:6;"></span>
+      <span class="rg-label">PL AT NOW</span>
+      <strong id="pnlNowTot" class="rg-val big">—</strong>
+      <span id="pnlNowCmp" class="rg-cmp" style="display:none;"></span>
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>
+      <span class="rg-label">PL A SCADENZA</span>
+      <strong id="pnlScadenzaTot" class="rg-val big">—</strong>
+      <span id="pnlScadCmp" class="rg-cmp" style="display:none;"></span>
+      <span class="rg-val rg-empty"></span>
+      <span class="rg-val rg-empty"></span>
+      <span></span>
       <div class="rg-sep"></div>
-
-      <!-- Breakeven: valore, distanza, %, σ -->
-      <span class="rg-label" title="Breakeven superiore: valore, distanza dallo spot in punti, in percentuale e in deviazioni standard">BE SUPERIORE</span>
+      <span class="rg-label">BE SUPERIORE</span>
       <strong id="beSup" class="rg-val">—</strong>
       <strong id="beSupDist" class="rg-val">—</strong>
       <strong id="beSupPct" class="rg-val">—</strong>
-      <strong id="beSupSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
+      <strong id="beSupSigma" class="rg-val sigma">—</strong>
       <span></span>
-
-      <span class="rg-label" title="Breakeven inferiore: valore, distanza dallo spot in punti, in percentuale e in deviazioni standard">BE INFERIORE</span>
+      <span class="rg-label">BE INFERIORE</span>
       <strong id="beInf" class="rg-val">—</strong>
       <strong id="beInfDist" class="rg-val">—</strong>
       <strong id="beInfPct" class="rg-val">—</strong>
-      <strong id="beInfSigma" class="rg-val sigma" title="Distanza dallo spot in deviazioni standard (Vol ATM, orizzonte prima scadenza)">—</strong>
+      <strong id="beInfSigma" class="rg-val sigma">—</strong>
       <span></span>
-
       <div class="rg-sep"></div>
-
-      <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
-      <span class="rg-label wrap" id="popLabel" style="grid-column:1;" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
-      <strong id="popValue" class="rg-val pop" style="grid-column:2;">—</strong>
-      <span id="popCmp" class="rg-cmp" style="display:none;grid-column:3;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
-      <span class="rg-val rg-empty" style="grid-column:4;"></span>
-      <span class="rg-val rg-empty" style="grid-column:5;"></span>
-      <span style="grid-column:6;"></span>
-      <div class="rg-sep"></div>
-
-      <!-- Delta totale -->
-      <span class="rg-label" title="Delta netto: azioni equivalenti (mondo AZIONI) o contratti MES equivalenti (mondo futures)">DELTA NETTO</span>
-      <strong id="deltaTot" class="rg-val">—</strong>
-      <span class="rg-val rg-empty"></span>
+      <span class="rg-label wrap" id="popLabel">Probabilità di profitto nell'intervallo</span>
+      <strong id="popValue" class="rg-val pop">—</strong>
+      <span id="popCmp" class="rg-cmp" style="display:none;"></span>
       <span class="rg-val rg-empty"></span>
       <span class="rg-val rg-empty"></span>
       <span></span>
-
-      <div class="rg-sep"></div>
-
-      <!-- PmG / Margine / ROI -->
-      <span class="rg-label" title="P&L medio giornaliero">PmG</span>
-      <strong id="pmgVal" class="rg-val">—</strong>
-      <span class="rg-inline" style="grid-column:3;">
-        <span class="rg-mini">Margine</span>
-        <input type="number" id="margineInput" class="rg-val" step="0.01" placeholder="—" title="Margine richiesto (manuale)">
-      </span>
-      <span class="rg-inline" style="grid-column:4;">
-        <span class="rg-mini">ROI</span>
-        <strong id="roiVal" class="rg-val">—</strong>
-      </span>
-      <span class="rg-val rg-empty" style="grid-column:5;"></span>
-      <span style="grid-column:6;"></span>
     </div>
   </div>
 </div>
-
 <div class="chart-card">
   <div class="chart-header">
     <div class="chart-title">Payoff</div>
@@ -400,17 +263,13 @@
       <label class="toggle-pill"><input type="checkbox" id="showNowPrecedente"> Now prec.</label>
       <label class="toggle-pill"><input type="checkbox" id="showBE" checked> BE</label>
       <label class="toggle-pill"><input type="checkbox" id="showSigma" checked> σ</label>
-      <select id="nSD" title="Numero di deviazioni standard">
-        <option value="1">±1σ</option>
-        <option value="2" selected>±2σ</option>
-      </select>
-      <button class="btn" id="btnResetZoom" title="Reimposta zoom grafico">Reset zoom</button>
+      <select id="nSD"><option value="1">±1σ</option><option value="2" selected>±2σ</option></select>
+      <button class="btn" id="btnResetZoom">Reset zoom</button>
     </div>
   </div>
   <div id="legendSchede" class="chart-legend"></div>
   <canvas id="payoffChart" width="900" height="420"></canvas>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
 <script src="js/matematica.js"></script>
