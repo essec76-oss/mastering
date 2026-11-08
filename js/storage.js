@@ -511,10 +511,12 @@ function migraScheda(s) {
     moltiplicatoreCommodity: (s.moltiplicatoreCommodity !== undefined && s.moltiplicatoreCommodity !== null)
       ? s.moltiplicatoreCommodity : null,
     // parametri di mercato della scheda (spot, vol, tassi, cash, date)
-    par: (s.par && typeof s.par === 'object') ? { ...s.par } : null
+    par: (s.par && typeof s.par === 'object') ? { ...s.par } : null,
+    // Front/Back
+    basis: (s.basis !== undefined && s.basis !== null) ? s.basis : 0,
+    toggleBackView: s.toggleBackView !== false
   };
 }
-
 // v30 — Migrazione movimento:
 // - Rimuove i campi obsoleti (dataOpen, dataClose).
 // - Converte feeOpen + feeClose in un'unica fee di riga.
