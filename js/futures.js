@@ -33,7 +33,11 @@
     }
 
     const molt = risolviMoltiplicatore(scheda, col);
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const spotFront = parseFloat(el('prezzoSpot').value) || 0;
+    // Back (MES): contango/backwardation → valuta al livello Front + basis
+    // così il P&L del Back non è distorto dallo spot di Front puro.
+    const basis = (col === 'MES') ? (parseFloat(scheda.basis) || 0) : 0;
+    const spot = (col === 'MES') ? (spotFront + basis) : spotFront;
 
     let qtaNetta = 0;
     let sommaPulitaPesata = 0;

@@ -71,18 +71,25 @@
     return tot;
   }
 
+  // Vista Front del Back (solo visuale): prezzo Back − basis.
+  // Il basis è definito come Back − Front (vedi calcolaColonna).
+  function basisScheda(scheda) {
+    return parseFloat(scheda && scheda.basis) || 0;
+  }
+  function inVistaFrontMES(scheda) {
+    return !!scheda && scheda.toggleBackView === false;
+  }
+  function prezzoVistaMES(p, scheda) {
+    if (!(p > 0) || !inVistaFrontMES(scheda)) return p;
+    return Math.round((p - basisScheda(scheda)) * 10000) / 10000;
+  }
+
   function renderRigaTotale(col, res) {
     const prezzoEl = el('csPrezzo' + col);
     if (prezzoEl) {
-      // Back (MES): se toggle su Front (solo visuale), mostra la media del Front
       if (col === 'MES') {
-        const scheda = schedaAttiva();
-        if (scheda && scheda.toggleBackView === false) {
-          const resFront = calcolaColonna(scheda, 'NES');
-          prezzoEl.textContent = isNaN(resFront.mediaPulita) ? '—' : formatPrezzo(resFront.mediaPulita);
-        } else {
-          prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
-        }
+        const media = prezzoVistaMES(res.mediaPulita, schedaAttiva());
+        prezzoEl.textContent = isFinite(media) ? formatPrezzo(media) : '—';
       } else {
         prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
       }
@@ -180,6 +187,9 @@
     // Back bloccato in modifica se toggle visuale è su Front
     const backLocked = (col === 'MES' && scheda.toggleBackView === false);
 
+    const scheda0 = schedaAttiva();
+    const conv = (x) => (col === 'MES') ? prezzoVistaMES(x, scheda0) : x;
+
     const tbody = el('body' + col);
     tbody.innerHTML = '';
 
@@ -271,7 +281,7 @@
       const inPrezzo = document.createElement('input');
       inPrezzo.type = 'number'; inPrezzo.step = '0.25';
       inPrezzo.className = 'prezzo-nominale';
-      inPrezzo.value = (mov.prezzoPulito === 0 || mov.prezzoPulito === undefined) ? '' : mov.prezzoPulito;
+      inPrezzo.value = (mov.prezzoPulito > 0) ? conv(mov.prezzoPulito) : '';
       inPrezzo.placeholder = '—';
       inPrezzo.disabled = qCh > 0 || backLocked;
       inPrezzo.addEventListener('input', e => {
@@ -297,7 +307,7 @@
       inPrezzoC.type = 'number';
       inPrezzoC.step = '0.25';
       inPrezzoC.className = 'prezzo-nominale';
-      inPrezzoC.value = mov.prezzoClose ? mov.prezzoClose : '';
+      inPrezzoC.value = mov.prezzoClose ? conv(mov.prezzoClose) : '';
       inPrezzoC.placeholder = '—';
       inPrezzoC.disabled = true;
       inPrezzoC.title = 'Valorizzato dallo scarico con lo spot al momento della chiusura.';

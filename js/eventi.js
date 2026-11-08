@@ -309,8 +309,9 @@ if (el('basisInput')) {
     const scheda = schedaAttiva();
     if (!scheda) return;
     scheda.basis = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
-    // Aggiorna solo la visualizzazione del prezzo Back (non ricalcola P&L reali)
-    aggiornaCalcolati('MES');
+    // Il basis entra nello spot del Back: cambia P&L, prezzi Front e grafico
+    renderMovimenti('MES');
+    calcolaTutto();
   });
 }
 
@@ -320,7 +321,7 @@ if (el('toggleFrontBack')) {
     if (!scheda) return;
     scheda.toggleBackView = !(scheda.toggleBackView !== false);
     syncFrontBackUI();
-    aggiornaCalcolati('MES');
+    renderMovimenti('MES');
   });
 }
 
