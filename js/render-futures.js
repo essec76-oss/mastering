@@ -71,10 +71,21 @@
     return tot;
   }
 
-  function renderRigaTotale(col, res) {
+   function renderRigaTotale(col, res) {
     const prezzoEl = el('csPrezzo' + col);
     if (prezzoEl) {
-      prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
+      // Back (MES): se toggle su Front (solo visuale), mostra la media del Front
+      if (col === 'MES') {
+        const scheda = schedaAttiva();
+        if (scheda && scheda.toggleBackView === false) {
+          const resFront = calcolaColonna(scheda, 'NES');
+          prezzoEl.textContent = isNaN(resFront.mediaPulita) ? '—' : formatPrezzo(resFront.mediaPulita);
+        } else {
+          prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
+        }
+      } else {
+        prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
+      }
     }
 
     const qnEl = el('qtaNetta' + col);
@@ -169,6 +180,17 @@
     const tbody = el('body' + col);
     tbody.innerHTML = '';
 
+        const res = calcolaColonna(scheda, col);
+    renderRigaTotale(col, res);
+
+    // Back bloccato in modifica se toggle visuale è su Front
+    const backLocked = (col === 'MES' && scheda.toggleBackView === false);
+
+    const tbody = el('body' + col);
+    tbody.innerHTML = '';
+
+    if (typeof syncFrontBackUI === 'function') syncFrontBackUI();
+
     scheda[col].forEach((mov, idx) => {
       const info = res.righe[idx] || { tipo: 'vuota', qAperta: 0, qChiusa: 0, pnlRealizzato: 0, pnlTotale: 0 };
       const tr = document.createElement('tr');
@@ -191,8 +213,10 @@
       tdDel.dataset.label = 'DEL';
       const btnDel = document.createElement('button');
       btnDel.className = 'btn-del'; btnDel.textContent = 'DEL';
-      btnDel.title = 'Elimina riga';
+      btnDel.title = backLocked ? 'Imposta il toggle su Back per modificare' : 'Elimina riga';
+      btnDel.disabled = backLocked;
       btnDel.addEventListener('click', () => {
+        if (backLocked) return;
         if (!confirm('Eliminare questa riga di movimento?')) return;
         scheda[col].splice(idx, 1);
         renderMovimenti(col); calcolaTutto();
@@ -224,7 +248,7 @@
         <option value="LONG" ${!isShort ? 'selected' : ''}>BUY</option>
         <option value="SHORT" ${isShort ? 'selected' : ''}>SELL</option>
       `;
-      selTipo.disabled = qCh > 0; // bloccato se la riga ha chiusure
+      selTipo.disabled = qCh > 0 || backLocked;
       selTipo.addEventListener('change', e => {
         scheda[col][idx].direzione = e.target.value;
         e.target.dataset.tipo = e.target.value === 'SHORT' ? 'SELL' : 'BUY';
@@ -238,7 +262,7 @@
       const inQta = document.createElement('input');
       inQta.type = 'number'; inQta.step = '1'; inQta.min = '0';
       inQta.value = mov.quantita;
-      inQta.disabled = qCh > 0;
+      inQta.disabled = qCh > 0 || backLocked;
       inQta.addEventListener('input', e => {
         const q = (e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0));
         scheda[col][idx].quantita = q;
@@ -255,7 +279,7 @@
       inPrezzo.className = 'prezzo-nominale';
       inPrezzo.value = (mov.prezzoPulito === 0 || mov.prezzoPulito === undefined) ? '' : mov.prezzoPulito;
       inPrezzo.placeholder = '—';
-      inPrezzo.disabled = qCh > 0;
+      inPrezzo.disabled = qCh > 0 || backLocked;
       inPrezzo.addEventListener('input', e => {
         scheda[col][idx].prezzoPulito = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
         aggiornaCalcolati(col); calcolaTutto();
