@@ -113,8 +113,11 @@
 
   function pnlCombinatoAt(scheda, S, mode, resNES, resMES) {
     let tot = cashAttivo();
+    // FIX BASIS: l'ascissa S è in unità Front (spot Front).
+    // Il Back ha prezzi in unità Back → per valutarlo, S va portato a livello Back sommando il basis.
+    const basisMES = parseFloat(scheda.basis) || 0;
     if (colonnaNelMondo(resNES)) tot += pnlFutureApertoAt(S, 'NES', resNES);
-    if (colonnaNelMondo(resMES)) tot += pnlFutureApertoAt(S, 'MES', resMES);
+    if (colonnaNelMondo(resMES)) tot += pnlFutureApertoAt(S + basisMES, 'MES', resMES);
     const mondo = mondoAttivo();
     const firstExp = mode === 'expiry' ? firstExpiryOpzioni(scheda) : null;
     (scheda.opzioni || []).forEach(opz => {
@@ -231,13 +234,17 @@ let rotellaZoomAttiva = false;
     const pts = [spot];
     const target = scheda || schedaAttiva();
     if (!target) return pts.filter(p => isFinite(p) && p > 0);
+    // FIX BASIS: i prezzi del Back sono in unità Back. Per ancorare il grafico
+    // (ascissa in unità Front) vanno portati a livello Front sottraendo il basis.
+    const shiftMES = parseFloat(target.basis) || 0;
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(target, col);
       if (!colonnaNelMondo(res)) return;
-      if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita);
+      const shift = (col === 'MES') ? shiftMES : 0;
+      if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita - shift);
       (target[col] || []).forEach(m => {
         if (m.attivo === false) return;
-        if (m.prezzoPulito > 0) pts.push(m.prezzoPulito);
+        if (m.prezzoPulito > 0) pts.push(m.prezzoPulito - shift);
       });
     });
     const mondo = mondoAttivo();
@@ -347,6 +354,9 @@ let rotellaZoomAttiva = false;
   function collectPayoffEvents(scheda, minS, maxS, resNES, resMES) {
     const events = new Set([minS, maxS]);
     const mondo = mondoAttivo();
+    // FIX BASIS: i prezzi del Back sono in unità Back. Gli "eventi" del grafico
+    // (ascissa in unità Front) vanno portati a livello Front sottraendo il basis.
+    const shiftMES = parseFloat(scheda.basis) || 0;
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
       if (mondoOpzione(o) !== mondo) return;
@@ -355,10 +365,11 @@ let rotellaZoomAttiva = false;
     });
     [['NES', resNES], ['MES', resMES]].forEach(([col, res]) => {
       if (!colonnaNelMondo(res)) return;
-      if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) events.add(res.mediaPulita);
+      const shift = (col === 'MES') ? shiftMES : 0;
+      if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) events.add(res.mediaPulita - shift);
       (scheda[col] || []).forEach(m => {
         if (m.attivo === false) return;
-        if (m.prezzoPulito > 0) events.add(m.prezzoPulito);
+        if (m.prezzoPulito > 0) events.add(m.prezzoPulito - shift);
       });
     });
     return events;
@@ -689,6 +700,11 @@ let rotellaZoomAttiva = false;
     if (prec) parts.push('P:' + _firmaScheda(prec));
     parts.push(`cash:${(typeof stato.cash === 'number') ? stato.cash : 0}`);
     parts.push(`fee:${commissioniAttive() ? 1 : 0}`);
+    // FIX BASIS: il basis modifica la curva → deve invalidare la firma così
+    // il grafico si riadatta quando l'utente lo cambia (e per la scheda precedente).
+    const att = schedaAttiva();
+    parts.push(`basis:${(att && att.basis) || 0}`);
+    if (prec) parts.push(`basisP:${prec.basis || 0}`);
     return parts.join('|');
   }
 
