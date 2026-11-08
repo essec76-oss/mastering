@@ -138,7 +138,11 @@ function nuovaScheda(nome) {
     nome: nome || 'Matrice',
     tipoNES: 'X', tipoMES: 'X',
     NES: [], MES: [], opzioni: [],
-    strumentoOpzioni: 'AZIONI'
+    strumentoOpzioni: 'AZIONI',
+    // Front/Back: basis = scostamento prezzo Back rispetto al Front (contango/backwardation)
+    // toggleBackView = true → mostra prezzi reali del Back; false → mostra prezzi Front (solo visuale)
+    basis: 0,
+    toggleBackView: true
   };
 }
 
