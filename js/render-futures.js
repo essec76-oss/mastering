@@ -71,7 +71,7 @@
     return tot;
   }
 
-   function renderRigaTotale(col, res) {
+  function renderRigaTotale(col, res) {
     const prezzoEl = el('csPrezzo' + col);
     if (prezzoEl) {
       // Back (MES): se toggle su Front (solo visuale), mostra la media del Front
@@ -175,12 +175,6 @@
     ricalcolaStatiScheda(scheda, col);
 
     const res = calcolaColonna(scheda, col);
-    renderRigaTotale(col, res);
-
-    const tbody = el('body' + col);
-    tbody.innerHTML = '';
-
-        const res = calcolaColonna(scheda, col);
     renderRigaTotale(col, res);
 
     // Back bloccato in modifica se toggle visuale è su Front
