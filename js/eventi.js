@@ -265,11 +265,79 @@ if (el('modalitaGlobale')) {
   applicaModalita(el('modalitaGlobale').value || stato.modalita || '');
 }
 // ============================================================
+// FRONT / BACK — basis + toggle visuale
+// ============================================================
+function syncFrontBackUI() {
+  const scheda = schedaAttiva();
+  if (!scheda) return;
+
+  // Basis
+  const basisEl = el('basisInput');
+  if (basisEl && document.activeElement !== basisEl) {
+    basisEl.value = (scheda.basis != null && scheda.basis !== '') ? scheda.basis : 0;
+  }
+
+  // Toggle stato
+  const onBack = scheda.toggleBackView !== false; // default true
+  const btn = el('toggleFrontBack');
+  if (btn) {
+    btn.setAttribute('aria-pressed', onBack ? 'true' : 'false');
+    btn.classList.toggle('on-back', onBack);
+    btn.classList.toggle('on-front', !onBack);
+  }
+  const tfbFront = el('tfbFront');
+  const tfbBack = el('tfbBack');
+  if (tfbFront) tfbFront.classList.toggle('active', !onBack);
+  if (tfbBack) tfbBack.classList.toggle('active', onBack);
+
+  // Blocca inserimento/modifica sul Back se toggle su Front
+  const btnAddMES = document.querySelector('.btn-add[data-col="MES"]');
+  if (btnAddMES) {
+    btnAddMES.disabled = !onBack;
+    btnAddMES.title = onBack
+      ? 'Aggiungi movimento sul Back'
+      : 'Imposta il toggle su Back per inserire posizioni sul Back';
+  }
+  const colMES = el('colMES');
+  if (colMES) {
+    colMES.classList.toggle('back-locked', !onBack);
+  }
+}
+
+if (el('basisInput')) {
+  el('basisInput').addEventListener('input', e => {
+    const scheda = schedaAttiva();
+    if (!scheda) return;
+    scheda.basis = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
+    // Aggiorna solo la visualizzazione del prezzo Back (non ricalcola P&L reali)
+    aggiornaCalcolati('MES');
+  });
+}
+
+if (el('toggleFrontBack')) {
+  el('toggleFrontBack').addEventListener('click', () => {
+    const scheda = schedaAttiva();
+    if (!scheda) return;
+    scheda.toggleBackView = !(scheda.toggleBackView !== false);
+    syncFrontBackUI();
+    aggiornaCalcolati('MES');
+  });
+}
+
+// ============================================================
 // ALTRI EVENTI
 // ============================================================
 document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
   btn.addEventListener('click', () => {
     const col = btn.dataset.col;
+    // Blocco: non permettere inserimento sul Back se toggle è su Front
+    if (col === 'MES') {
+      const scheda = schedaAttiva();
+      if (scheda && scheda.toggleBackView === false) {
+        alert('Imposta il toggle su Back per inserire posizioni sul Back (prezzi reali).');
+        return;
+      }
+    }
     schedaAttiva()[col].push(nuovoMovimentoFutures('LONG'));
     renderMovimenti(col); calcolaTutto();
   });
