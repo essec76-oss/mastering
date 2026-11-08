@@ -349,6 +349,72 @@ select:focus {
     color: var(--text); border-radius: 6px; padding: 6px 10px;
     font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer; min-width: 90px; }
   .col-header select:focus { outline: none; border-color: var(--accent); }
+  /* Front / Back labels */
+  .col-role {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--accent, #4f8cff);
+    white-space: nowrap;
+  }
+  .col-header-back {
+    flex-wrap: wrap; row-gap: 8px;
+  }
+
+  /* Basis field */
+  .basis-wrap {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 8px;
+  }
+  .basis-label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .basis-input {
+    width: 72px; background: transparent; border: none;
+    color: var(--text); font-size: 14px; font-weight: 700;
+    font-variant-numeric: tabular-nums; text-align: right;
+    padding: 2px 4px;
+  }
+  .basis-input:focus { outline: none; color: var(--accent, #4f8cff); }
+
+  /* Toggle Front ↔ Back (solo visuale) */
+  .toggle-front-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    user-select: none;
+  }
+  .tfb-side {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--muted); transition: color .15s;
+  }
+  .tfb-side.active { color: var(--accent, #4f8cff); }
+  .tfb-toggle {
+    position: relative; width: 36px; height: 20px;
+    border-radius: 999px; border: 1px solid var(--border);
+    background: rgba(255,255,255,.06); cursor: pointer; padding: 0;
+    transition: background .15s, border-color .15s;
+  }
+  .tfb-toggle .tfb-knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--muted); transition: transform .18s, background .15s;
+  }
+  .tfb-toggle.on-back {
+    background: rgba(79,140,255,.25); border-color: var(--accent, #4f8cff);
+  }
+  .tfb-toggle.on-back .tfb-knob {
+    transform: translateX(16px); background: var(--accent, #4f8cff);
+  }
+  .tfb-toggle.on-front .tfb-knob {
+    transform: translateX(0); background: var(--muted);
+  }
+
+  /* Back bloccato (toggle su Front): attenua la colonna */
+  .column.back-locked .movimenti {
+    opacity: 0.55; pointer-events: none;
+  }
+  .column.back-locked .btn-add {
+    opacity: 0.5; cursor: not-allowed; pointer-events: auto;
+  }
 
   /* v27 — Fee stimate nell'header di colonna (solo NES) */
   .col-header .cs-fee {
