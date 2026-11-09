@@ -410,13 +410,8 @@ select:focus {
   }
 
   /* Back bloccato (toggle su Front): attenua la colonna */
-  .column.back-locked .movimenti {
-    opacity: 0.55; pointer-events: none;
-  }
-  .column.back-locked .btn-add {
-    opacity: 0.5; cursor: not-allowed; pointer-events: auto;
-  }
 
+  
   /* v27 — Fee stimate nell'header di colonna (solo NES) */
   .col-header .cs-fee {
     font-size: 11px; color: var(--muted);
@@ -522,9 +517,7 @@ select:focus {
 
   .movimenti tr.row-chiusura { background: rgba(79, 140, 255, 0.04); }
   /* Riga nascosta: oscuramento marcato, dati ancora leggibili */
-  .movimenti tr.row-off {
-    opacity: 0.55;
-    background: rgba(0, 0, 0, 0.18);
+      background: rgba(0, 0, 0, 0.18);
   }
   .movimenti tr.row-off input,
   .movimenti tr.row-off select {
