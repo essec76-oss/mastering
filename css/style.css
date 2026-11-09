@@ -1395,3 +1395,20 @@ body.modalita-locked #btnReset {
   background: var(--accent-soft);
   border-color: transparent;
 }
+/* Scadenza Front: campo data nell'header del Front dei futures */
+.scad-front-wrap {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px;
+}
+.scad-front-label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.scad-front-input {
+  background: transparent; border: none;
+  color: var(--text); font-size: 13px; font-weight: 700;
+  font-variant-numeric: tabular-nums; padding: 2px 4px;
+  color-scheme: dark;
+}
+.scad-front-input:focus { outline: none; color: var(--accent); }
