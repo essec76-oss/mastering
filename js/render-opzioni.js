@@ -143,7 +143,7 @@
     const tr = document.createElement('tr');
     tr.className = 'footer-opzioni';
     // Richiesta 4: una colonna in meno in tabella (rimosso il checkbox) → 9 celle vuote
-    for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < 10; i++) {
       const td = document.createElement('td');
       tr.appendChild(td);
     }
@@ -244,6 +244,15 @@
       });
       tdDel.appendChild(btnDel); tr.appendChild(tdDel);
 
+      // Lato (Front / Back): fissato alla creazione, sola lettura
+      const tdLato = document.createElement('td');
+      tdLato.dataset.label = 'Lato';
+      const badgeLato = document.createElement('span');
+      const latoOpz = (opz.lato === 'FRONT' || opz.lato === 'BACK') ? opz.lato : null;
+      badgeLato.className = 'lato-badge' + (latoOpz === 'BACK' ? ' lato-back' : '');
+      badgeLato.textContent = latoOpz === 'FRONT' ? 'Front' : (latoOpz === 'BACK' ? 'Back' : '—');
+      badgeLato.title = 'Lato fissato alla creazione (non modificabile)';
+      tdLato.appendChild(badgeLato); tr.appendChild(tdLato);
       // Pos
       const tdPos = document.createElement('td');
       tdPos.dataset.label = 'Pos';
