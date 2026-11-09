@@ -1341,3 +1341,19 @@ body.modalita-locked #btnReset {
   padding-left: 18px;
   padding-right: 18px;
 }
+/* S back: valore calcolato (spot Front + Basis), sola lettura */
+.sback-wrap {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px;
+}
+.sback-label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.sback-value {
+  min-width: 72px; text-align: right;
+  font-size: 14px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text); padding: 2px 4px;
+}
