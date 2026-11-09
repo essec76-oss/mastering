@@ -517,7 +517,12 @@ select:focus {
 
   .movimenti tr.row-chiusura { background: rgba(79, 140, 255, 0.04); }
   /* Riga nascosta: oscuramento marcato, dati ancora leggibili */
-      background: rgba(0, 0, 0, 0.18);
+  .movimenti tr.row-off {
+    opacity: 0.55;
+    background: rgba(0, 0, 0, 0.18);
+  }
+   .movimenti tr.row-off td:first-child {
+    box-shadow: inset 3px 0 0 var(--muted);
   }
   .movimenti tr.row-off input,
   .movimenti tr.row-off select {
