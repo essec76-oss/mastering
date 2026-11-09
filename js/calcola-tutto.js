@@ -76,6 +76,9 @@ function calcolaTutto() {
   aggiornaPayoffPreview(scheda, resNES, resMES);
   aggiornaLegendaGrafico();
 
+  // S back = spot Front ± Basis
+  aggiornaSBack();
+
   // Autosave (debounce): ogni modifica viene comunque persistita
   autosalva();
 }
@@ -198,3 +201,31 @@ function aggiornaPmG() {
   val.textContent = isFinite(pmg) ? formatEuro(pmg) + ' /gg' : '—';
   val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
 }
+// ============================================================
+// S BACK = spot Front ± Basis (sola lettura)
+// Basis positivo: sommato. Basis negativo: sottratto (già nel segno).
+// ============================================================
+function aggiornaSBack() {
+  const out = el('sBackValue');
+  if (!out) return;
+  const spot = parseFloat(el('prezzoSpot').value);
+  const basis = parseFloat(el('basisInput').value) || 0;
+  if (!isFinite(spot) || spot <= 0) {
+    out.textContent = '—';
+    return;
+  }
+  const sBack = spot + basis;
+  out.textContent = sBack.toLocaleString('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Si aggiorna da sola quando cambiano spot o basis
+['prezzoSpot', 'basisInput'].forEach(id => {
+  const e = el(id);
+  if (e) e.addEventListener('input', aggiornaSBack);
+});
+
+// Valore iniziale al caricamento
+aggiornaSBack();
