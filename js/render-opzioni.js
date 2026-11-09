@@ -6,6 +6,7 @@
 // riga resta visibile ma è esclusa da conteggi, valori numerici e grafico
 // (stesso effetto del vecchio checkbox). Lo stato APERTA/CHIUSA resta nel
 // dato per compatibilità con i salvataggi, ma non è più editabile da riga.
+// Lato (Front/Back): fissato alla creazione, mostrato come badge in sola lettura.
 
   function formatGreek(v, digits = 3) {
     if (!isFinite(v)) return '—';
@@ -142,8 +143,8 @@
     tfoot.innerHTML = '';
     const tr = document.createElement('tr');
     tr.className = 'footer-opzioni';
-    // Richiesta 4: una colonna in meno in tabella (rimosso il checkbox) → 9 celle vuote
-        for (let i = 0; i < 10; i++) {
+    // Celle vuote prima dei totali: Nascondi, DEL, Lato, Pos, Tipo, Q.tà, Strike, Premio, Vol%, Scadenza → 10
+    for (let i = 0; i < 10; i++) {
       const td = document.createElement('td');
       tr.appendChild(td);
     }
@@ -253,6 +254,7 @@
       badgeLato.textContent = latoOpz === 'FRONT' ? 'Front' : (latoOpz === 'BACK' ? 'Back' : '—');
       badgeLato.title = 'Lato fissato alla creazione (non modificabile)';
       tdLato.appendChild(badgeLato); tr.appendChild(tdLato);
+
       // Pos
       const tdPos = document.createElement('td');
       tdPos.dataset.label = 'Pos';
@@ -320,14 +322,23 @@
       });
       tdVol.appendChild(inVol); tr.appendChild(tdVol);
 
-      // Scadenza
+      // Scadenza: il lato è fissato, quindi la data deve restare coerente con esso
       const tdScad = document.createElement('td');
       tdScad.dataset.label = 'Scadenza';
       const inScad = document.createElement('input');
       inScad.type = 'date';
       inScad.value = opz.scadenza || '';
       inScad.addEventListener('change', e => {
-        opzioniScheda[idx].scadenza = e.target.value;
+        const nuova = e.target.value;
+        const opzCorrente = opzioniScheda[idx];
+        const errore = erroreScadenzaLato(opzCorrente.lato, nuova);
+        if (errore) {
+          alert(errore);
+          // Rifiuta il valore: torna all'ultima scadenza valida
+          e.target.value = opzCorrente.scadenza || '';
+          return;
+        }
+        opzCorrente.scadenza = nuova;
         aggiornaRigaOpzione(idx); calcolaTutto();
       });
       tdScad.appendChild(inScad); tr.appendChild(tdScad);
