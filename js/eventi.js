@@ -532,3 +532,39 @@ if (el('margineInput')) {
     calcolaTutto();
   });
 }
+// ============================================================
+// SCADENZA FRONT — terzo venerdì della prossima scadenza trimestrale
+// (mesi di scadenza: marzo, giugno, settembre, dicembre)
+// ============================================================
+function terzoVenerdi(anno, meseIdx) {
+  const primo = new Date(anno, meseIdx, 1);
+  const offset = (5 - primo.getDay() + 7) % 7; // 5 = venerdì
+  return new Date(anno, meseIdx, 1 + offset + 14);
+}
+
+function prossimaScadenzaFront(oggi = new Date()) {
+  const oggiGiorno = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate());
+  const mesiTrimestrali = [2, 5, 8, 11];
+  for (let anno = oggi.getFullYear(); anno <= oggi.getFullYear() + 1; anno++) {
+    for (const m of mesiTrimestrali) {
+      const tv = terzoVenerdi(anno, m);
+      if (tv >= oggiGiorno) return tv;
+    }
+  }
+  return null;
+}
+
+function dateToIso(d) {
+  if (!d) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+if (el('scadenzaFront')) {
+  el('scadenzaFront').value = dateToIso(prossimaScadenzaFront());
+  el('scadenzaFront').addEventListener('change', () => {
+    calcolaTutto();
+  });
+}
