@@ -568,3 +568,42 @@ if (el('scadenzaFront')) {
     calcolaTutto();
   });
 }
+// ============================================================
+// REGOLE SCADENZA OPZIONE vs SCADENZA FRONT
+// Front: scadenza <= scadenza Front. Back: scadenza > scadenza Front.
+// Confronto su stringhe ISO (YYYY-MM-DD), già ordinabili.
+// ============================================================
+function scadenzaFrontIso() {
+  const f = el('scadenzaFront');
+  return (f && f.value) ? f.value : '';
+}
+
+// Restituisce il messaggio di errore, oppure null se la scadenza è coerente
+function erroreScadenzaLato(lato, scadenzaIso) {
+  const front = scadenzaFrontIso();
+  if (!scadenzaIso || !front) return null;
+  if (lato === 'FRONT' && scadenzaIso > front) {
+    return 'La scadenza è successiva alla scadenza Front: usa Aggiungi opzione Back';
+  }
+  if (lato === 'BACK' && scadenzaIso <= front) {
+    return 'La scadenza è uguale o precedente alla scadenza Front: usa Aggiungi opzione Front';
+  }
+  return null;
+}
+
+// Data di partenza coerente con il lato (per il nuovo inserimento)
+function scadenzaDefaultPerLato(lato) {
+  const d = dataAnalisiDate();
+  d.setDate(d.getDate() + 30);
+  let iso = dateToIso(d);
+  const front = scadenzaFrontIso();
+  if (front) {
+    if (lato === 'FRONT' && iso > front) iso = front;
+    if (lato === 'BACK' && iso <= front) {
+      const f = new Date(front + 'T00:00:00');
+      f.setDate(f.getDate() + 1);
+      iso = dateToIso(f);
+    }
+  }
+  return iso;
+}  
