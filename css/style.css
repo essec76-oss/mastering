@@ -1376,3 +1376,22 @@ body.modalita-locked #btnReset {
   border-color: var(--purple);
   color: var(--purple);
 }
+/* Badge Lato opzione: sola lettura, fissato alla creazione */
+.lato-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  color: var(--text-secondary, var(--muted));
+  background: var(--panel-2);
+  border: 0.5px solid var(--border-strong);
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+.lato-badge.lato-back {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
+}
