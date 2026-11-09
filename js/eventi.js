@@ -347,16 +347,12 @@ document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
 // Crea una nuova opzione con il lato scelto dal pulsante (Front o Back).
 // Il lato è fissato alla creazione e non è modificabile dalla riga.
 function creaOpzione(lato) {
-  const defaultScad = dataAnalisiDate();
-  defaultScad.setDate(defaultScad.getDate() + 30);
-  const yyyy = defaultScad.getFullYear();
-  const mm = String(defaultScad.getMonth() + 1).padStart(2, '0');
-  const dd = String(defaultScad.getDate()).padStart(2, '0');
   schedaAttiva().opzioni.push({
     attivo: true, strumento: strumentoOpzSelezionato(),
     lato: lato,
     pos: 'SELL', tipo: 'PUT', qta: 1, assgn: false,
-    strike: 0, rlzd: '', premio: 0, vol: 15, scadenza: `${yyyy}-${mm}-${dd}`,
+    strike: 0, rlzd: '', premio: 0, vol: 15,
+    scadenza: scadenzaDefaultPerLato(lato),
     stato: 'APERTA'
   });
   renderOpzioni(); calcolaTutto();
@@ -532,6 +528,7 @@ if (el('margineInput')) {
     calcolaTutto();
   });
 }
+
 // ============================================================
 // SCADENZA FRONT — terzo venerdì della prossima scadenza trimestrale
 // (mesi di scadenza: marzo, giugno, settembre, dicembre)
@@ -568,6 +565,7 @@ if (el('scadenzaFront')) {
     calcolaTutto();
   });
 }
+
 // ============================================================
 // REGOLE SCADENZA OPZIONE vs SCADENZA FRONT
 // Front: scadenza <= scadenza Front. Back: scadenza > scadenza Front.
@@ -606,4 +604,4 @@ function scadenzaDefaultPerLato(lato) {
     }
   }
   return iso;
-}  
+}
