@@ -1357,3 +1357,22 @@ body.modalita-locked #btnReset {
   font-variant-numeric: tabular-nums;
   color: var(--text); padding: 2px 4px;
 }
+/* Pulsante "Aggiungi opzione" diviso: Front a sinistra, Back a destra */
+.btn-add-split {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.btn-add-split .btn-add {
+  margin-top: 0;
+  width: auto;
+  flex: 1 1 0;
+}
+.btn-add-front:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-add-back:hover {
+  border-color: var(--purple);
+  color: var(--purple);
+}
