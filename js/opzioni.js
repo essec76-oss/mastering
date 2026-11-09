@@ -9,11 +9,17 @@
   // - APERTA → mark-to-market: (teorico − premio) × side × qta × molt
   //   Se premio vuoto/0: usa il TEORICO CORRENTE come prezzo di carico
   //   (P&L now = 0 → coerente con "opzione non ancora caricata a prezzo fisso")
+  // Spot della singola opzione: Front per FRONT, S back (Front + Basis) per BACK
+  function spotOpzione(opz) {
+    const spotFront = parseFloat(el('prezzoSpot').value) || 0;
+    const basis = parseFloat(el('basisInput').value) || 0;
+    return opz.lato === 'BACK' ? spotFront + basis : spotFront;
+  }
+
   function calcolaPnlOpzione(opz) {
     if (opz.attivo === false) return 0;
     if (opz.stato === 'CHIUSA') return 0;
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
-    return pnlOpzioneAt(spot, opz, 'now');
+    return pnlOpzioneAt(spotOpzione(opz), opz, 'now');
   }
   // Totale P&L opzioni: con filtro = solo dello strumento indicato,
   // senza filtro = tutti gli strumenti (riepilogo, TWS, payoff)
