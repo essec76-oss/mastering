@@ -344,7 +344,9 @@ document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
   });
 });
 
-el('btnAddOpzione').addEventListener('click', () => {
+// Crea una nuova opzione con il lato scelto dal pulsante (Front o Back).
+// Il lato è fissato alla creazione e non è modificabile dalla riga.
+function creaOpzione(lato) {
   const defaultScad = dataAnalisiDate();
   defaultScad.setDate(defaultScad.getDate() + 30);
   const yyyy = defaultScad.getFullYear();
@@ -352,12 +354,18 @@ el('btnAddOpzione').addEventListener('click', () => {
   const dd = String(defaultScad.getDate()).padStart(2, '0');
   schedaAttiva().opzioni.push({
     attivo: true, strumento: strumentoOpzSelezionato(),
+    lato: lato,
     pos: 'SELL', tipo: 'PUT', qta: 1, assgn: false,
     strike: 0, rlzd: '', premio: 0, vol: 15, scadenza: `${yyyy}-${mm}-${dd}`,
     stato: 'APERTA'
   });
   renderOpzioni(); calcolaTutto();
-});
+}
+
+el('btnAddOpzione').addEventListener('click', () => creaOpzione('FRONT'));
+if (el('btnAddOpzioneBack')) {
+  el('btnAddOpzioneBack').addEventListener('click', () => creaOpzione('BACK'));
+}
 
 el('btnCreaComp').addEventListener('click', creaComparazione);
 el('btnReset').addEventListener('click', reset);
