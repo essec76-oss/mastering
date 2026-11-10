@@ -95,8 +95,11 @@ function parMatrice(matrice) {
 
 // Data analisi INIZIALE della Matrice (immutabile): è il punto di partenza
 // dell'operazione e determina la durata completa per il PmG.
+// Se non viene passata la matrice, usa automaticamente la Matrice (stato.schede[0]).
 function dataAnalisiInizialeMatrice(matrice) {
-  const p = parMatrice(matrice);
+  const m = matrice || (typeof stato !== 'undefined' ? stato.schede[0] : null);
+  if (!m) return dataOggiIso();
+  const p = parMatrice(m);
   if (p && p.dataAnalisiIniziale) return p.dataAnalisiIniziale;
   if (p && p.dataAnalisi) return p.dataAnalisi;
   return el('dataAnalisi') ? el('dataAnalisi').value : dataOggiIso();
