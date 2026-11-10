@@ -54,10 +54,7 @@ function selezionaScheda(i) {
 // Riporta la pagina sui dati della scheda attiva (valori solo della scheda)
 function renderScheda() {
   const scheda = schedaAttiva();
-  // Tema arancione sulla scheda attiva quando è una comparazione
   document.body.classList.toggle('scheda-comp', stato.attiva > 0);
-  // Re-applica la modalità globale (ricostruisce le option dei select
-  // e i lock corretti: Azioni bloccato, Indici sbloccato, Commodities ZW)
   if (typeof applicaModalita === 'function') {
     applicaModalita(stato.modalita || '');
   } else {
@@ -69,6 +66,7 @@ function renderScheda() {
     renderOpzioni();
     calcolaTutto();
   }
+  aggiornaHeaderBack(scheda);
 }
 
 // Data analisi iniziale della Matrice (immutabile), da propagare alle comparazioni
