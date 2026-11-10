@@ -73,6 +73,7 @@ function aggiornaHeaderBack(scheda) {
   const s = scheda || {};
   if (el('basisInput')) el('basisInput').value = (s.basis !== undefined && s.basis !== null) ? s.basis : 0;
   if (el('volAtmBack')) el('volAtmBack').value = (s.volAtmBack !== undefined && s.volAtmBack !== null) ? s.volAtmBack : '';
+  if (typeof aggiornaSBack === 'function') aggiornaSBack();
 }
 
 // Applica un oggetto dati (corrente, salvato o importato) ai controlli della pagina
