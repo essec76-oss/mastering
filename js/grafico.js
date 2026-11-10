@@ -16,9 +16,6 @@
   function opzioneSuBack(opz) {
     return ((opz && (opz.strumento || 'MES')) === 'MES');
   }
-  function ascissaOpzione(opz, S, basis) {
-    return opzioneSuBack(opz) ? S + basis : S;
-  }
   // Strike riportato su asse Front (per eventi e ancore del grafico)
   function strikeInFront(opz, basis) {
     const k = parseFloat(opz.strike) || 0;
@@ -136,7 +133,7 @@
     const firstExp = mode === 'expiry' ? firstExpiryOpzioni(scheda) : null;
     (scheda.opzioni || []).forEach(opz => {
       if (mondoOpzione(opz) !== mondo) return;
-      tot += pnlOpzioneAt(ascissaOpzione(opz, S, basisMES), opz, mode, firstExp, basisMES);
+      tot += pnlOpzioneSuScheda(scheda, opz, S, mode, firstExp);
     });
     return tot;
   }
