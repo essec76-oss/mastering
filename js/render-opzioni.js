@@ -38,6 +38,17 @@
     ggCell.style.color = gg < 0 ? 'var(--red)' : (gg <= 7 ? 'var(--yellow)' : 'var(--muted)');
   }
 
+  // Avviso visivo: opzione Back con vol di riga mancante → campo Vol% rosso.
+  // Il salvataggio è automatico, quindi non c'è un vero blocco: è solo un
+  // promemoria per inserire la vol letta dalla piattaforma.
+  function aggiornaAvvisoVol(tr, opz) {
+    const input = tr.querySelector('td[data-label="Vol%"] input');
+    if (!input) return;
+    const mancante = opzioneSuBack(opz) && !(parseFloat(opz.vol) > 0);
+    input.classList.toggle('input-warning', mancante);
+    input.title = mancante ? 'Opzione Back: inserisci la vol di riga letta dalla piattaforma' : '';
+  }
+
   function aggiornaExtraOpzione(tr, opz) {
     const setG = (f, val, dig) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -68,7 +79,7 @@
     setG('temporale', (isFinite(g.price) && isFinite(g.intrinsic)) ? g.price - g.intrinsic : NaN, 2);
 
     const spot = spotOpzione(opz);
-    const volFrac = (parseFloat(opz.vol) || 0) / 100;
+    const volFrac = volPerOpzione(opz);
     const T = (g && isFinite(g.T)) ? Math.max(0, g.T) : 0;
     setPct('tocco', touchProbability(spot, opz.strike, volFrac, T));
 
@@ -318,9 +329,11 @@
       inVol.addEventListener('input', e => {
         const v = e.target.value;
         opzioniScheda[idx].vol = v === '' ? 0 : (parseFloat(v) || 0);
+        aggiornaAvvisoVol(tr, opzioniScheda[idx]);
         aggiornaRigaOpzione(idx); calcolaTutto();
       });
       tdVol.appendChild(inVol); tr.appendChild(tdVol);
+      aggiornaAvvisoVol(tr, opz);
 
       // Scadenza: il lato è fissato, quindi la data deve restare coerente con esso
       const tdScad = document.createElement('td');
