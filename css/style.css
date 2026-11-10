@@ -1,4 +1,3 @@
-
 /* ============================================================
    MASTERING — Design System v1 (upgrade)
    ------------------------------------------------------------
@@ -1412,3 +1411,14 @@ body.modalita-locked #btnReset {
   color-scheme: dark;
 }
 .scad-front-input:focus { outline: none; color: var(--accent); }
+
+/* ============================================================
+   AVVISO VOL MANCANTE (opzioni Back senza vol di riga)
+   Applicata a input Vol% quando l'utente non ha ancora inserito
+   la vol letta dalla piattaforma. Il fallback su volAtmBack resta
+   attivo: il pricing non si blocca, è solo un promemoria visivo.
+   ============================================================ */
+.input-warning {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 1px var(--red);
+}
