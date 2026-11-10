@@ -6,6 +6,7 @@
 // riga resta visibile ma è esclusa da conteggi, valori numerici e grafico
 // (stesso effetto del vecchio checkbox). Lo stato APERTA/CHIUSA resta nel
 // dato per compatibilità con i salvataggi, ma non è più editabile da riga.
+// Lato (Front/Back): fissato alla creazione, mostrato come badge in sola lettura.
 
   function formatGreek(v, digits = 3) {
     if (!isFinite(v)) return '—';
@@ -37,6 +38,17 @@
     ggCell.style.color = gg < 0 ? 'var(--red)' : (gg <= 7 ? 'var(--yellow)' : 'var(--muted)');
   }
 
+  // Avviso visivo: opzione Back con vol di riga mancante → campo Vol% rosso.
+  // Il salvataggio è automatico, quindi non c'è un vero blocco: è solo un
+  // promemoria per inserire la vol letta dalla piattaforma.
+  function aggiornaAvvisoVol(tr, opz) {
+    const input = tr.querySelector('td[data-label="Vol%"] input');
+    if (!input) return;
+    const mancante = opzioneSuBack(opz) && !(parseFloat(opz.vol) > 0);
+    input.classList.toggle('input-warning', mancante);
+    input.title = mancante ? 'Opzione Back: inserisci la vol di riga letta dalla piattaforma' : '';
+  }
+
   function aggiornaExtraOpzione(tr, opz) {
     const setG = (f, val, dig) => {
       const cell = tr.querySelector(`[data-field="${f}"]`);
@@ -66,14 +78,15 @@
     setG('intrinseco', g.intrinsic, 2);
     setG('temporale', (isFinite(g.price) && isFinite(g.intrinsic)) ? g.price - g.intrinsic : NaN, 2);
 
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
-    const volFrac = (parseFloat(opz.vol) || 0) / 100;
+    const spot = spotOpzione(opz);
+    const volFrac = volPerOpzione(opz);
     const T = (g && isFinite(g.T)) ? Math.max(0, g.T) : 0;
     setPct('tocco', touchProbability(spot, opz.strike, volFrac, T));
 
     const sc = tr.querySelector('[data-field="pnlScad"]');
     if (sc) {
-      const pnlScad = pnlOpzioneAt(spot, opz, 'expiry', firstExpiryOpzioni(schedaAttiva()));
+      const spotFront = parseFloat(el('prezzoSpot').value) || 0;
+      const pnlScad = pnlOpzioneSuScheda(schedaAttiva(), opz, spotFront, 'expiry', firstExpiryOpzioni(schedaAttiva()));
       sc.textContent = formatEuro(pnlScad);
       sc.classList.remove('green', 'red', 'muted');
       sc.classList.add(pnlScad >= 0 ? 'green' : 'red');
@@ -142,8 +155,8 @@
     tfoot.innerHTML = '';
     const tr = document.createElement('tr');
     tr.className = 'footer-opzioni';
-    // Richiesta 4: una colonna in meno in tabella (rimosso il checkbox) → 9 celle vuote
-    for (let i = 0; i < 9; i++) {
+    // Celle vuote prima dei totali: Nascondi, DEL, Lato, Pos, Tipo, Q.tà, Strike, Premio, Vol%, Scadenza → 10
+    for (let i = 0; i < 10; i++) {
       const td = document.createElement('td');
       tr.appendChild(td);
     }
@@ -244,6 +257,16 @@
       });
       tdDel.appendChild(btnDel); tr.appendChild(tdDel);
 
+      // Lato (Front / Back): fissato alla creazione, sola lettura
+      const tdLato = document.createElement('td');
+      tdLato.dataset.label = 'Lato';
+      const badgeLato = document.createElement('span');
+      const latoOpz = (opz.lato === 'FRONT' || opz.lato === 'BACK') ? opz.lato : null;
+      badgeLato.className = 'lato-badge' + (latoOpz === 'BACK' ? ' lato-back' : '');
+      badgeLato.textContent = latoOpz === 'FRONT' ? 'Front' : (latoOpz === 'BACK' ? 'Back' : '—');
+      badgeLato.title = 'Lato fissato alla creazione (non modificabile)';
+      tdLato.appendChild(badgeLato); tr.appendChild(tdLato);
+
       // Pos
       const tdPos = document.createElement('td');
       tdPos.dataset.label = 'Pos';
@@ -307,18 +330,29 @@
       inVol.addEventListener('input', e => {
         const v = e.target.value;
         opzioniScheda[idx].vol = v === '' ? 0 : (parseFloat(v) || 0);
+        aggiornaAvvisoVol(tr, opzioniScheda[idx]);
         aggiornaRigaOpzione(idx); calcolaTutto();
       });
       tdVol.appendChild(inVol); tr.appendChild(tdVol);
+      aggiornaAvvisoVol(tr, opz);
 
-      // Scadenza
+      // Scadenza: il lato è fissato, quindi la data deve restare coerente con esso
       const tdScad = document.createElement('td');
       tdScad.dataset.label = 'Scadenza';
       const inScad = document.createElement('input');
       inScad.type = 'date';
       inScad.value = opz.scadenza || '';
       inScad.addEventListener('change', e => {
-        opzioniScheda[idx].scadenza = e.target.value;
+        const nuova = e.target.value;
+        const opzCorrente = opzioniScheda[idx];
+        const errore = erroreScadenzaLato(opzCorrente.lato, nuova);
+        if (errore) {
+          alert(errore);
+          // Rifiuta il valore: torna all'ultima scadenza valida
+          e.target.value = opzCorrente.scadenza || '';
+          return;
+        }
+        opzCorrente.scadenza = nuova;
         aggiornaRigaOpzione(idx); calcolaTutto();
       });
       tdScad.appendChild(inScad); tr.appendChild(tdScad);
@@ -488,7 +522,7 @@
       };
 
       // CHIUSA: azzera display. NASCOSTA o attiva: mostra greche e PREZZO ATT.
-      // Solo le righe attive e non chiuse entrano nei totali del footer.
+      // I totali NON vengono più accumulati qui: vedi il forEach sulla scheda sotto.
       if (opz.stato === 'CHIUSA') {
         ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
       } else {
@@ -505,26 +539,32 @@
         setPos('gamma', segno * qta * g.gamma, 2, 4);
         setPos('vega',  segno * qta * g.vega,  2, 3);
         setPos('theta', segno * qta * g.theta, 2, 3);
+      }
+    });
 
-        if (opz.attivo !== false) {
-          if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
-          if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
-          if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
-          if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
-          if (isFinite(g.price)) {
-            totPrice += g.price;
-            if (isFinite(g.intrinsic)) {
-              totIntr += g.intrinsic;
-              totTemp += g.price - g.intrinsic;
-            }
-          }
-          const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
-          if (isFinite(ps)) totPnlScad += ps;
-          const pn = calcolaPnlOpzione(opz);
-          if (isFinite(pn)) totPnlNow += pn;
-          totDebCred += premioEffettivo(opz) * qta * moltOpz(opz);
+    // Totali su TUTTE le opzioni attive della scheda, non solo sulle righe
+    // visibili con il filtro strumento: footer e grafico restano coerenti.
+    schedaAttiva().opzioni.forEach((opz) => {
+      if (opz.attivo === false || opz.stato === 'CHIUSA') return;
+      const g = calcolaGrecheOpzione(opz);
+      const segno = opz.pos === 'SELL' ? -1 : 1;
+      const qta = opz.qta || 0;
+      if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
+      if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
+      if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
+      if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
+      if (isFinite(g.price)) {
+        totPrice += g.price;
+        if (isFinite(g.intrinsic)) {
+          totIntr += g.intrinsic;
+          totTemp += g.price - g.intrinsic;
         }
       }
+      const ps = pnlOpzioneSuScheda(schedaAttiva(), opz, spot, 'expiry', firstExp);
+      if (isFinite(ps)) totPnlScad += ps;
+      const pn = calcolaPnlOpzione(opz);
+      if (isFinite(pn)) totPnlNow += pn;
+      totDebCred += premioEffettivo(opz) * qta * moltOpz(opz);
     });
 
     // v27 — i totali vivono SOLO nel footer della tabella opzioni (#footOpzioni).

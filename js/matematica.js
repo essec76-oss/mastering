@@ -70,6 +70,7 @@
   // Ritorna { total, zones } dove zones = [{ lo, hi, prob, profitable }].
   // Nota: tra due BE consecutivi il payoff a scadenza non può cambiare segno
   // (zero-crossing contigui), quindi il test a punto medio è corretto.
+  // POP calcolata sulla Vol ATM Front (vedi sigmaBandsAt).
   function calcolaPOP(scheda, spot, breakevens, resNES, resMES, scanMin, scanMax) {
     const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
     const vol = volPct / 100;
@@ -221,7 +222,7 @@
     }).join('<span style="opacity:0.35; margin:0 2px;">|</span>');
   }
 
-  // Bande ±1σ/±2σ attorno allo spot: Vol ATM e orizzonte T del POP
+  // Bande ±1σ/±2σ attorno allo spot Front: Vol ATM Front e orizzonte T del POP
   function sigmaBandsAt(spot, resNES, resMES) {
     const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
     const vol = volPct / 100;
@@ -282,9 +283,29 @@
     return Math.round((scad - dataAnalisiDate()) / 86400000);
   }
 
+  // NOTA: La funzione spotOpzione è definita in opzioni.js (che viene caricato dopo).
+  // La vecchia versione duplicata qui è stata rimossa per evitare codice morto.
+
+  // Vol ATM del lato dell'opzione: Front → header Vol ATM, Back → Vol ATM Back.
+  // Usata come fallback quando la riga non ha una vol propria.
+  function volAtmPerLato(opz) {
+    const id = (opz && opz.lato === 'BACK') ? 'volAtmBack' : 'volAtm';
+    const e = el(id);
+    return (parseFloat(e && e.value) || 0) / 100;
+  }
+
+  // Vol effettiva di una riga, in frazione.
+  // Priorità: vol letta dalla piattaforma sulla riga (opz.vol).
+  // Fallback: Vol ATM del lato (vedi volAtmPerLato).
+  function volPerOpzione(opz) {
+    const vRiga = parseFloat(opz && opz.vol) || 0;
+    if (vRiga > 0) return vRiga / 100;
+    return volAtmPerLato(opz);
+  }
+
   // Moneyness: ATM se |K−S| ≤ 25 punti, altrimenti ITM/OTM in base al tipo
   function moneynessOpzione(opz) {
-    const S = parseFloat(el('prezzoSpot').value) || 0;
+    const S = spotOpzione(opz);
     const K = parseFloat(opz.strike) || 0;
     if (!(S > 0) || !(K > 0)) return null;
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
@@ -298,12 +319,11 @@
     return { label, diff, S };
   }
 
-  // Distanza strike-spot in deviazioni standard: (K−S) / (S · VolATM · √(DTE/365.25))
+  // Distanza strike-spot in deviazioni standard: (K−S) / (S · VolATM del lato · √(DTE/365.25))
   function sigmaDistanceOpzione(opz) {
     const m = moneynessOpzione(opz);
     if (!m) return null;
-    const volPct = parseFloat(el('volAtm') && el('volAtm').value) || 0;
-    const vol = volPct / 100;
+    const vol = volAtmPerLato(opz);
     if (!(vol > 0)) return null;
     const gg = giorniResiduiOpzione(opz);
     if (gg === null || gg <= 0) return null;
@@ -417,10 +437,11 @@
   // Prezzo teorico di un'opzione a T anni dalla valutazione, col modello
   // corretto per strumento: AZIONI → Black-Scholes (r e q);
   // MES / ES → Black-76 (opzioni su futures, q non si applica).
+  // La vol è quella della riga (volPerOpzione), con fallback sulla Vol ATM del lato.
   // Ritorna null se gli input non bastano (chiamante: fallback intrinseco).
   function modelPrice(S, opz, T, tipo) {
     const r = (parseFloat(el('riskFree').value) || 0) / 100;
-    const vol = (parseFloat(opz.vol) || 0) / 100;
+    const vol = volPerOpzione(opz);
     const K = opz.strike || 0;
     if (!(T > 0) || !(vol > 0) || !(K > 0) || !(S > 0)) return null;
     if ((opz.strumento || 'MES') === 'AZIONI') {
@@ -430,10 +451,12 @@
     return black76(S, K, T, vol, tipo, r).price;
   }
 
+  // Greche e prezzo teorico di una singola opzione.
+  // S = spotOpzione(opz) (Front o Back), vol = volPerOpzione(opz).
   function calcolaGrecheOpzione(opz) {
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const spot = spotOpzione(opz);
     const r = (parseFloat(el('riskFree').value) || 0) / 100;
-    const vol = (parseFloat(opz.vol) || 0) / 100;
+    const vol = volPerOpzione(opz);
     const K = parseFloat(opz.strike) || 0;
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
     const today = dataAnalisiDate();

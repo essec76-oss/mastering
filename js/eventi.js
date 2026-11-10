@@ -344,20 +344,24 @@ document.querySelectorAll('.btn-add[data-col]').forEach(btn => {
   });
 });
 
-el('btnAddOpzione').addEventListener('click', () => {
-  const defaultScad = dataAnalisiDate();
-  defaultScad.setDate(defaultScad.getDate() + 30);
-  const yyyy = defaultScad.getFullYear();
-  const mm = String(defaultScad.getMonth() + 1).padStart(2, '0');
-  const dd = String(defaultScad.getDate()).padStart(2, '0');
+// Crea una nuova opzione con il lato scelto dal pulsante (Front o Back).
+// Il lato è fissato alla creazione e non è modificabile dalla riga.
+function creaOpzione(lato) {
   schedaAttiva().opzioni.push({
     attivo: true, strumento: strumentoOpzSelezionato(),
+    lato: lato,
     pos: 'SELL', tipo: 'PUT', qta: 1, assgn: false,
-    strike: 0, rlzd: '', premio: 0, vol: 15, scadenza: `${yyyy}-${mm}-${dd}`,
+    strike: 0, rlzd: '', premio: 0, vol: 15,
+    scadenza: scadenzaDefaultPerLato(lato),
     stato: 'APERTA'
   });
   renderOpzioni(); calcolaTutto();
-});
+}
+
+el('btnAddOpzione').addEventListener('click', () => creaOpzione('FRONT'));
+if (el('btnAddOpzioneBack')) {
+  el('btnAddOpzioneBack').addEventListener('click', () => creaOpzione('BACK'));
+}
 
 el('btnCreaComp').addEventListener('click', creaComparazione);
 el('btnReset').addEventListener('click', reset);
@@ -523,4 +527,81 @@ if (el('margineInput')) {
     }
     calcolaTutto();
   });
+}
+
+// ============================================================
+// SCADENZA FRONT — terzo venerdì della prossima scadenza trimestrale
+// (mesi di scadenza: marzo, giugno, settembre, dicembre)
+// ============================================================
+function terzoVenerdi(anno, meseIdx) {
+  const primo = new Date(anno, meseIdx, 1);
+  const offset = (5 - primo.getDay() + 7) % 7; // 5 = venerdì
+  return new Date(anno, meseIdx, 1 + offset + 14);
+}
+
+function prossimaScadenzaFront(oggi = new Date()) {
+  const oggiGiorno = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate());
+  const mesiTrimestrali = [2, 5, 8, 11];
+  for (let anno = oggi.getFullYear(); anno <= oggi.getFullYear() + 1; anno++) {
+    for (const m of mesiTrimestrali) {
+      const tv = terzoVenerdi(anno, m);
+      if (tv >= oggiGiorno) return tv;
+    }
+  }
+  return null;
+}
+
+function dateToIso(d) {
+  if (!d) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+if (el('scadenzaFront')) {
+  el('scadenzaFront').value = dateToIso(prossimaScadenzaFront());
+  el('scadenzaFront').addEventListener('change', () => {
+    calcolaTutto();
+  });
+}
+
+// ============================================================
+// REGOLE SCADENZA OPZIONE vs SCADENZA FRONT
+// Front: scadenza <= scadenza Front. Back: scadenza > scadenza Front.
+// Confronto su stringhe ISO (YYYY-MM-DD), già ordinabili.
+// ============================================================
+function scadenzaFrontIso() {
+  const f = el('scadenzaFront');
+  return (f && f.value) ? f.value : '';
+}
+
+// Restituisce il messaggio di errore, oppure null se la scadenza è coerente
+function erroreScadenzaLato(lato, scadenzaIso) {
+  const front = scadenzaFrontIso();
+  if (!scadenzaIso || !front) return null;
+  if (lato === 'FRONT' && scadenzaIso > front) {
+    return 'La scadenza è successiva alla scadenza Front: usa Aggiungi opzione Back';
+  }
+  if (lato === 'BACK' && scadenzaIso <= front) {
+    return 'La scadenza è uguale o precedente alla scadenza Front: usa Aggiungi opzione Front';
+  }
+  return null;
+}
+
+// Data di partenza coerente con il lato (per il nuovo inserimento)
+function scadenzaDefaultPerLato(lato) {
+  const d = dataAnalisiDate();
+  d.setDate(d.getDate() + 30);
+  let iso = dateToIso(d);
+  const front = scadenzaFrontIso();
+  if (front) {
+    if (lato === 'FRONT' && iso > front) iso = front;
+    if (lato === 'BACK' && iso <= front) {
+      const f = new Date(front + 'T00:00:00');
+      f.setDate(f.getDate() + 1);
+      iso = dateToIso(f);
+    }
+  }
+  return iso;
 }

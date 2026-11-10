@@ -54,10 +54,8 @@ function selezionaScheda(i) {
 // Riporta la pagina sui dati della scheda attiva (valori solo della scheda)
 function renderScheda() {
   const scheda = schedaAttiva();
-  // Tema arancione sulla scheda attiva quando è una comparazione
   document.body.classList.toggle('scheda-comp', stato.attiva > 0);
-  // Re-applica la modalità globale (ricostruisce le option dei select
-  // e i lock corretti: Azioni bloccato, Indici sbloccato, Commodities ZW)
+  
   if (typeof applicaModalita === 'function') {
     applicaModalita(stato.modalita || '');
   } else {
@@ -69,12 +67,12 @@ function renderScheda() {
     renderOpzioni();
     calcolaTutto();
   }
-}
 
-// Data analisi iniziale della Matrice (immutabile), da propagare alle comparazioni
-function dataAnalisiInizialeMatrice() {
-  const m = stato.schede[0];
-  return (m && m.par && m.par.dataAnalisiIniziale) || null;
+  // Aggiorna l'header (basis, volAtmBack) appena prima dei render finali
+  aggiornaHeaderBack(scheda);
+  
+  // Riallinea il toggle Front/Back della scheda attiva
+  if (typeof syncFrontBackUI === 'function') syncFrontBackUI();
 }
 
 // Clona la scheda attuale in una nuova "Comparazione N".
@@ -95,6 +93,7 @@ function creaComparazione() {
   delete clone.popUltima;
   clone.nome = 'Comparazione ' + stato.schede.length;
 
+  // Usa la funzione unificata da calcola-tutto.js (senza argomento)
   const iniziale = dataAnalisiInizialeMatrice();
   if (iniziale) {
     clone.par = { ...(clone.par || {}), dataAnalisiIniziale: iniziale };

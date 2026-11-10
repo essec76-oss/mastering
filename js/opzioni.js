@@ -1,5 +1,6 @@
 // opzioni.js — P&L opzioni: valore nominale, singola riga, totale
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+
   // ============================================================
   // OPZIONI
   // ============================================================
@@ -9,12 +10,32 @@
   // - APERTA → mark-to-market: (teorico − premio) × side × qta × molt
   //   Se premio vuoto/0: usa il TEORICO CORRENTE come prezzo di carico
   //   (P&L now = 0 → coerente con "opzione non ancora caricata a prezzo fisso")
+  // Spot della singola opzione: Front per FRONT, S back (Front + Basis) per BACK
+  function spotOpzione(opz) {
+    const spotFront = parseFloat(el('prezzoSpot').value) || 0;
+    const basis = parseFloat(el('basisInput').value) || 0;
+    return opz.lato === 'BACK' ? spotFront + basis : spotFront;
+  }
+
   function calcolaPnlOpzione(opz) {
     if (opz.attivo === false) return 0;
     if (opz.stato === 'CHIUSA') return 0;
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
-    return pnlOpzioneAt(spot, opz, 'now');
+    const basis = parseFloat(schedaAttiva().basis) || 0;
+    return pnlOpzioneAt(spotOpzione(opz), opz, 'now', null, basis);
   }
+
+  // P&L di un'opzione su una scheda arbitraria.
+  // Riceve lo spot FRONT (unità Front) e applica il basis della scheda
+  // per le opzioni Back. Passa firstExp e basis a pnlOpzioneAt:
+  // - firstExp serve per il calendar (mode='expiry')
+  // - basis serve per premioCarico (opzioni Back con premio vuoto)
+  function pnlOpzioneSuScheda(scheda, opz, spotFront, mode, firstExp) {
+    if (!opz || opz.attivo === false || opz.stato === 'CHIUSA') return 0;
+    const basis = parseFloat(scheda && scheda.basis) || 0;
+    const spot = (opz.lato === 'BACK') ? spotFront + basis : spotFront;
+    return pnlOpzioneAt(spot, opz, mode || 'now', firstExp, basis);
+  }
+
   // Totale P&L opzioni: con filtro = solo dello strumento indicato,
   // senza filtro = tutti gli strumenti (riepilogo, TWS, payoff)
   function calcolaPnlOpzioniTotale(filtro) {

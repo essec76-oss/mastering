@@ -95,8 +95,11 @@ function parMatrice(matrice) {
 
 // Data analisi INIZIALE della Matrice (immutabile): è il punto di partenza
 // dell'operazione e determina la durata completa per il PmG.
+// Se non viene passata la matrice, usa automaticamente la Matrice (stato.schede[0]).
 function dataAnalisiInizialeMatrice(matrice) {
-  const p = parMatrice(matrice);
+  const m = matrice || (typeof stato !== 'undefined' ? stato.schede[0] : null);
+  if (!m) return dataOggiIso();
+  const p = parMatrice(m);
   if (p && p.dataAnalisiIniziale) return p.dataAnalisiIniziale;
   if (p && p.dataAnalisi) return p.dataAnalisi;
   return el('dataAnalisi') ? el('dataAnalisi').value : dataOggiIso();
@@ -154,17 +157,18 @@ function aggiornaPmG() {
 
   // PL a scadenza della Matrice: ricalcola le colonne della Matrice
   // (NON della scheda attiva) con TUTTI i parametri della Matrice
-  // (spot, vol, risk-free, div, cash, data analisi attuale, strumento
-  // opzioni — salvati in matrice.par da parametri-scheda.js). Durante il
-  // calcolo gli input della pagina vengono temporaneamente impostati sui
-  // parametri della Matrice e poi ripristinati su quelli della scheda
-  // attiva. Il campo con il focus non viene mai toccato, così la
-  // digitazione non viene interrotta. Il set programmatico NON fa
-  // scattare gli event listener 'input'/'change'.
+  // (spot, vol, vol Back, risk-free, div, cash, data analisi attuale,
+  // strumento opzioni — salvati in matrice.par da parametri-scheda.js
+  // e, per la vol Back, nell'oggetto scheda). Durante il calcolo gli
+  // input della pagina vengono temporaneamente impostati sui parametri
+  // della Matrice e poi ripristinati su quelli della scheda attiva.
+  // Il campo con il focus non viene mai toccato, così la digitazione
+  // non viene interrotta. Il set programmatico NON fa scattare gli
+  // event listener 'input'/'change'.
   let pnlScadMatrice = NaN;
   const parM = parMatrice(matrice);
   if (matrice && parM) {
-    const CAMPI_SWAP = ['prezzoSpot', 'volStorica', 'volAtm', 'riskFree',
+    const CAMPI_SWAP = ['prezzoSpot', 'volStorica', 'volAtm', 'volAtmBack', 'riskFree',
                         'divYield', 'cash', 'dataAnalisi', 'strumentoOpzioni'];
     const precedenti = {};
     CAMPI_SWAP.forEach(id => {
@@ -176,6 +180,12 @@ function aggiornaPmG() {
       CAMPI_SWAP.forEach(id => {
         const e = el(id);
         if (!e || e === document.activeElement) return;
+        if (id === 'volAtmBack') {
+          // La vol Back è un attributo della scheda, non di matrice.par
+          e.value = (matrice.volAtmBack !== undefined && matrice.volAtmBack !== null)
+            ? matrice.volAtmBack : '';
+          return;
+        }
         const v = parM[id === 'prezzoSpot' ? 'spot' : id];
         if (v !== undefined && v !== null && v !== '') e.value = v;
       });
@@ -201,6 +211,7 @@ function aggiornaPmG() {
   val.textContent = isFinite(pmg) ? formatEuro(pmg) + ' /gg' : '—';
   val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
 }
+
 // ============================================================
 // S BACK = spot Front ± Basis (sola lettura)
 // Basis positivo: sommato. Basis negativo: sottratto (già nel segno).

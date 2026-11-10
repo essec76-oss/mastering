@@ -68,6 +68,14 @@ function deduciModalita(schedaODati) {
   return MODALITA_DEFAULT;
 }
 
+// Riporta nell'header Back i valori della scheda attiva (basis e vol ATM Back)
+function aggiornaHeaderBack(scheda) {
+  const s = scheda || {};
+  if (el('basisInput')) el('basisInput').value = (s.basis !== undefined && s.basis !== null) ? s.basis : 0;
+  if (el('volAtmBack')) el('volAtmBack').value = (s.volAtmBack !== undefined && s.volAtmBack !== null) ? s.volAtmBack : '';
+  if (typeof aggiornaSBack === 'function') aggiornaSBack();
+}
+
 // Applica un oggetto dati (corrente, salvato o importato) ai controlli della pagina
 function applicaDati(dati) {
     if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
@@ -94,6 +102,7 @@ function applicaDati(dati) {
       })];
     }
     stato.attiva = Math.max(0, Math.min(stato.schede.length - 1, dati.attiva || 0));
+    aggiornaHeaderBack(schedaAttiva());
 
     // v28 — Determina la modalità da ripristinare.
     const modSalvata = dati.modalitaGlobale
@@ -514,6 +523,7 @@ function migraScheda(s) {
     par: (s.par && typeof s.par === 'object') ? { ...s.par } : null,
     // Front/Back
     basis: (s.basis !== undefined && s.basis !== null) ? s.basis : 0,
+    volAtmBack: (s.volAtmBack !== undefined && s.volAtmBack !== null) ? s.volAtmBack : '',
     toggleBackView: s.toggleBackView !== false
   };
 }
@@ -549,6 +559,7 @@ function migraOpz(o) {
   return {
     attivo: o.attivo !== false,
     strumento: o.strumento || 'MES',
+    lato: o.lato === 'BACK' ? 'BACK' : 'FRONT',
     pos: o.pos || 'SELL',
     tipo: o.tipo || 'PUT',
     qta: o.qta || 0,
