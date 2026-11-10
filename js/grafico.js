@@ -11,6 +11,19 @@
   function mondoOpzione(opz) {
     return (opz && (opz.strumento || 'MES')) === 'AZIONI' ? 'AZIONI' : 'FUT';
   }
+  // Le opzioni su MES (Back) hanno prezzi in unità Back:
+  // per valutarle il sottostante va portato a S + basis.
+  function opzioneSuBack(opz) {
+    return ((opz && (opz.strumento || 'MES')) === 'MES');
+  }
+  function ascissaOpzione(opz, S, basis) {
+    return opzioneSuBack(opz) ? S + basis : S;
+  }
+  // Strike riportato su asse Front (per eventi e ancore del grafico)
+  function strikeInFront(opz, basis) {
+    const k = parseFloat(opz.strike) || 0;
+    return opzioneSuBack(opz) ? k - basis : k;
+  }
   function mondoAttivo() {
     return strumentoOpzSelezionato() === 'AZIONI' ? 'AZIONI' : 'FUT';
   }
@@ -55,9 +68,10 @@
     return minScad;
   }
 
-  function premioCarico(opz) {
+  function premioCarico(opz, basis) {
     if (opz.premio && opz.premio !== 0) return opz.premio;
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const spotFront = parseFloat(el('prezzoSpot').value) || 0;
+    const spot = spotFront + (opzioneSuBack(opz) ? (basis || 0) : 0);
     if (!(spot > 0)) return 0;
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
     const today = dataAnalisiDate();
@@ -66,7 +80,7 @@
     return teoSpot === null ? 0 : teoSpot;
   }
 
-  function pnlOpzioneAt(S, opz, mode, firstExpiry) {
+  function pnlOpzioneAt(S, opz, mode, firstExpiry, basis) {
     if (opz.attivo === false || opz.stato === 'CHIUSA') return 0;
     const qta = opz.qta || 0;
     if (qta === 0) return 0;
@@ -90,7 +104,7 @@
       valoreOpzione = teo === null ? intrinseco : teo;
     }
 
-    const premio = premioCarico(opz);
+    const premio = premioCarico(opz, basis);
     const side = opz.pos === 'SELL' ? -1 : 1;
     const fee = feeLatoOpzione() * qta;
     return (valoreOpzione - premio) * side * qta * moltOpz(opz) - fee;
@@ -122,7 +136,7 @@
     const firstExp = mode === 'expiry' ? firstExpiryOpzioni(scheda) : null;
     (scheda.opzioni || []).forEach(opz => {
       if (mondoOpzione(opz) !== mondo) return;
-      tot += pnlOpzioneAt(S, opz, mode, firstExp);
+      tot += pnlOpzioneAt(ascissaOpzione(opz, S, basisMES), opz, mode, firstExp, basisMES);
     });
     return tot;
   }
@@ -251,7 +265,7 @@ let rotellaZoomAttiva = false;
     (target.opzioni || []).forEach(o => {
       if (o.attivo === false) return;
       if (mondoOpzione(o) !== mondo) return;
-      const k = parseFloat(o.strike) || 0;
+      const k = strikeInFront(o, shiftMES);
       if (k > 0) pts.push(k);
     });
     return pts.filter(p => isFinite(p) && p > 0);
@@ -360,7 +374,7 @@ let rotellaZoomAttiva = false;
     (scheda.opzioni || []).forEach(o => {
       if (o.attivo === false || o.stato === 'CHIUSA') return;
       if (mondoOpzione(o) !== mondo) return;
-      const k = parseFloat(o.strike) || 0;
+      const k = strikeInFront(o, shiftMES);
       if (k > 0) events.add(k);
     });
     [['NES', resNES], ['MES', resMES]].forEach(([col, res]) => {
