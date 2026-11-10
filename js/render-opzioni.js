@@ -85,7 +85,8 @@
 
     const sc = tr.querySelector('[data-field="pnlScad"]');
     if (sc) {
-      const pnlScad = pnlOpzioneAt(spot, opz, 'expiry', firstExpiryOpzioni(schedaAttiva()));
+      const spotFront = parseFloat(el('prezzoSpot').value) || 0;
+      const pnlScad = pnlOpzioneSuScheda(schedaAttiva(), opz, spotFront, 'expiry', firstExpiryOpzioni(schedaAttiva()));
       sc.textContent = formatEuro(pnlScad);
       sc.classList.remove('green', 'red', 'muted');
       sc.classList.add(pnlScad >= 0 ? 'green' : 'red');
@@ -521,7 +522,7 @@
       };
 
       // CHIUSA: azzera display. NASCOSTA o attiva: mostra greche e PREZZO ATT.
-      // Solo le righe attive e non chiuse entrano nei totali del footer.
+      // I totali NON vengono più accumulati qui: vedi il forEach sulla scheda sotto.
       if (opz.stato === 'CHIUSA') {
         ['teorico','delta','gamma','vega','theta'].forEach(f => setG(`[data-field="${f}"]`, NaN, 2));
       } else {
@@ -538,26 +539,32 @@
         setPos('gamma', segno * qta * g.gamma, 2, 4);
         setPos('vega',  segno * qta * g.vega,  2, 3);
         setPos('theta', segno * qta * g.theta, 2, 3);
+      }
+    });
 
-        if (opz.attivo !== false) {
-          if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
-          if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
-          if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
-          if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
-          if (isFinite(g.price)) {
-            totPrice += g.price;
-            if (isFinite(g.intrinsic)) {
-              totIntr += g.intrinsic;
-              totTemp += g.price - g.intrinsic;
-            }
-          }
-          const ps = pnlOpzioneAt(spotOpzione(opz), opz, 'expiry', firstExp);
-          if (isFinite(ps)) totPnlScad += ps;
-          const pn = calcolaPnlOpzione(opz);
-          if (isFinite(pn)) totPnlNow += pn;
-          totDebCred += premioEffettivo(opz) * qta * moltOpz(opz);
+    // Totali su TUTTE le opzioni attive della scheda, non solo sulle righe
+    // visibili con il filtro strumento: footer e grafico restano coerenti.
+    schedaAttiva().opzioni.forEach((opz) => {
+      if (opz.attivo === false || opz.stato === 'CHIUSA') return;
+      const g = calcolaGrecheOpzione(opz);
+      const segno = opz.pos === 'SELL' ? -1 : 1;
+      const qta = opz.qta || 0;
+      if (isFinite(g.delta)) totDelta += segno * qta * g.delta;
+      if (isFinite(g.gamma)) totGamma += segno * qta * g.gamma;
+      if (isFinite(g.vega))  totVega  += segno * qta * g.vega;
+      if (isFinite(g.theta)) totTheta += segno * qta * g.theta;
+      if (isFinite(g.price)) {
+        totPrice += g.price;
+        if (isFinite(g.intrinsic)) {
+          totIntr += g.intrinsic;
+          totTemp += g.price - g.intrinsic;
         }
       }
+      const ps = pnlOpzioneSuScheda(schedaAttiva(), opz, spot, 'expiry', firstExp);
+      if (isFinite(ps)) totPnlScad += ps;
+      const pn = calcolaPnlOpzione(opz);
+      if (isFinite(pn)) totPnlNow += pn;
+      totDebCred += premioEffettivo(opz) * qta * moltOpz(opz);
     });
 
     // v27 — i totali vivono SOLO nel footer della tabella opzioni (#footOpzioni).
