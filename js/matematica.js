@@ -282,9 +282,16 @@
     return Math.round((scad - dataAnalisiDate()) / 86400000);
   }
 
+  // Spot dell'opzione: Front per FRONT, S back (Front + Basis) per BACK
+  function spotOpzione(opz) {
+    const spotFront = parseFloat(el('prezzoSpot').value) || 0;
+    const basis = parseFloat(el('basisInput') && el('basisInput').value) || 0;
+    return (opz && opz.lato === 'BACK') ? spotFront + basis : spotFront;
+  }
+
   // Moneyness: ATM se |K−S| ≤ 25 punti, altrimenti ITM/OTM in base al tipo
   function moneynessOpzione(opz) {
-    const S = parseFloat(el('prezzoSpot').value) || 0;
+    const S = spotOpzione(opz);
     const K = parseFloat(opz.strike) || 0;
     if (!(S > 0) || !(K > 0)) return null;
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
@@ -431,7 +438,7 @@
   }
 
   function calcolaGrecheOpzione(opz) {
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const spot = spotOpzione(opz);
     const r = (parseFloat(el('riskFree').value) || 0) / 100;
     const vol = (parseFloat(opz.vol) || 0) / 100;
     const K = parseFloat(opz.strike) || 0;
