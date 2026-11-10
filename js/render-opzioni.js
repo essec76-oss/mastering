@@ -67,7 +67,7 @@
     setG('intrinseco', g.intrinsic, 2);
     setG('temporale', (isFinite(g.price) && isFinite(g.intrinsic)) ? g.price - g.intrinsic : NaN, 2);
 
-    const spot = parseFloat(el('prezzoSpot').value) || 0;
+    const spot = spotOpzione(opz);
     const volFrac = (parseFloat(opz.vol) || 0) / 100;
     const T = (g && isFinite(g.T)) ? Math.max(0, g.T) : 0;
     setPct('tocco', touchProbability(spot, opz.strike, volFrac, T));
@@ -538,7 +538,7 @@
               totTemp += g.price - g.intrinsic;
             }
           }
-          const ps = pnlOpzioneAt(spot, opz, 'expiry', firstExp);
+          const ps = pnlOpzioneAt(spotOpzione(opz), opz, 'expiry', firstExp);
           if (isFinite(ps)) totPnlScad += ps;
           const pn = calcolaPnlOpzione(opz);
           if (isFinite(pn)) totPnlNow += pn;
