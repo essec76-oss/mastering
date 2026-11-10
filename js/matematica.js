@@ -283,13 +283,8 @@
     return Math.round((scad - dataAnalisiDate()) / 86400000);
   }
 
-  // Spot dell'opzione: Front per FRONT, Front + basis per BACK.
-  // Il basis è quello della scheda attiva (unico per scheda).
-  function spotOpzione(opz) {
-    const spotFront = parseFloat(el('prezzoSpot').value) || 0;
-    const basis = parseFloat(schedaAttiva().basis) || 0;
-    return (opz && opz.lato === 'BACK') ? spotFront + basis : spotFront;
-  }
+  // NOTA: La funzione spotOpzione è definita in opzioni.js (che viene caricato dopo).
+  // La vecchia versione duplicata qui è stata rimossa per evitare codice morto.
 
   // Vol ATM del lato dell'opzione: Front → header Vol ATM, Back → Vol ATM Back.
   // Usata come fallback quando la riga non ha una vol propria.
