@@ -558,6 +558,7 @@ function migraOpz(o) {
   return {
     attivo: o.attivo !== false,
     strumento: o.strumento || 'MES',
+    lato: o.lato === 'BACK' ? 'BACK' : 'FRONT',
     pos: o.pos || 'SELL',
     tipo: o.tipo || 'PUT',
     qta: o.qta || 0,
