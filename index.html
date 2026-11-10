@@ -226,6 +226,10 @@
         <span class="basis-label">Basis</span>
         <input type="number" id="basisInput" class="basis-input" value="0" step="0.25" placeholder="0">
       </div>
+      <div class="basis-wrap" title="Volatilità ATM del Back, letta dalla piattaforma. Usata come fallback per le opzioni Back senza vol di riga e per le bande/riferimenti Back.">
+        <span class="basis-label">Vol ATM %</span>
+        <input type="number" id="volAtmBack" class="basis-input" value="" step="0.1" min="0" placeholder="—">
+      </div>
       <div class="toggle-front-back" id="toggleFrontBackWrap" title="Solo visuale: Front mostra i prezzi del Front anche sul Back; Back mostra i prezzi reali (Front + Basis). Per inserire posizioni sul Back il toggle deve essere su Back.">
         <span class="tfb-side" id="tfbFront">Front</span>
         <button type="button" class="tfb-toggle" id="toggleFrontBack" aria-pressed="true" title="Cambia visualizzazione prezzi Back">
