@@ -245,14 +245,18 @@
       tdTipo.dataset.label = 'Tipo';
       const selTipo = document.createElement('select');
       selTipo.className = 'select-tipo';
-      selTipo.title = 'BUY = posizione long, SELL = posizione short';
       const isShort = mov.direzione === 'SHORT';
       selTipo.dataset.tipo = isShort ? 'SELL' : 'BUY';
       selTipo.innerHTML = `
         <option value="LONG" ${!isShort ? 'selected' : ''}>BUY</option>
         <option value="SHORT" ${isShort ? 'selected' : ''}>SELL</option>
       `;
-      selTipo.disabled = qCh > 0 || backLocked;
+      // Bloccato quando la riga ha già una posizione aperta (qAp > 0):
+      // l'unica inversione possibile è lo scarico.
+      selTipo.disabled = qAp > 0 || backLocked;
+      selTipo.title = (qAp > 0)
+        ? 'Direzione bloccata: l\'inversione avviene solo con lo scarico'
+        : 'BUY = posizione long, SELL = posizione short';
       selTipo.addEventListener('change', e => {
         scheda[col][idx].direzione = e.target.value;
         e.target.dataset.tipo = e.target.value === 'SHORT' ? 'SELL' : 'BUY';
