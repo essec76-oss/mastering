@@ -240,3 +240,13 @@ function aggiornaSBack() {
 
 // Valore iniziale al caricamento
 aggiornaSBack();
+
+// --- fix opzioneSuBack: priorità al lato FRONT/BACK (non allo strumento MES) ---
+// Ridefinisce la funzione di grafico.js per strikeInFront / premioCarico / avviso vol.
+function opzioneSuBack(opz) {
+  if (!opz) return false;
+  if (opz.lato === 'BACK') return true;
+  if (opz.lato === 'FRONT') return false;
+  // legacy senza campo lato
+  return (opz.strumento || 'MES') === 'MES';
+}
