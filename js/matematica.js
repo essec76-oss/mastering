@@ -303,19 +303,24 @@
     return volAtmPerLato(opz);
   }
 
-  // Moneyness: ATM se |K−S| ≤ 25 punti, altrimenti ITM/OTM in base al tipo
+  // Moneyness: ATM solo se S === K, altrimenti puro ITM/OTM
   function moneynessOpzione(opz) {
     const S = spotOpzione(opz);
     const K = parseFloat(opz.strike) || 0;
     if (!(S > 0) || !(K > 0)) return null;
+
     const tipo = (opz.tipo || 'PUT').toLowerCase() === 'call' ? 'call' : 'put';
     const diff = K - S;
-    // ATM: ±25 punti sui futures; sulle azioni ±1% del prezzo (min ±0,5)
-    const sogliaAtm = (opz.strumento || 'MES') === 'AZIONI' ? Math.max(0.5, S * 0.01) : 25;
+
     let label;
-    if (Math.abs(diff) <= sogliaAtm) label = 'ATM';
-    else if (tipo === 'put') label = diff < 0 ? 'OTM' : 'ITM';
-    else label = diff > 0 ? 'OTM' : 'ITM';
+    if (Math.abs(diff) < 1e-8) {          // praticamente uguali
+      label = 'ATM';
+    } else if (tipo === 'call') {
+      label = diff > 0 ? 'OTM' : 'ITM';   // K > S → OTM, K < S → ITM
+    } else {
+      label = diff < 0 ? 'OTM' : 'ITM';   // Put: inverso
+    }
+
     return { label, diff, S };
   }
 
