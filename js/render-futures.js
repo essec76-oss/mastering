@@ -319,20 +319,25 @@
       inPrezzoC.title = 'Valorizzato dallo scarico con lo spot al momento della chiusura.';
       tdPrezzoC.appendChild(inPrezzoC); tr.appendChild(tdPrezzoC);
 
-      // FEE (attiva solo dopo una chiusura)
+      // FEE (editabile sia in apertura che in chiusura)
       const tdFee = document.createElement('td');
       tdFee.dataset.label = 'Fee';
       const inFee = document.createElement('input');
-      inFee.type = 'number'; inFee.step = '0.01'; inFee.min = '0';
+      inFee.type = 'number';
+      inFee.step = '0.01';
+      inFee.min = '0';
       inFee.className = 'in-fee';
       inFee.value = (mov.fee === 0 || mov.fee === undefined) ? '' : mov.fee;
       inFee.placeholder = '0';
-      inFee.disabled = qCh === 0;
+      inFee.title = 'Fee totali della riga (sottratte dal P&L sia in apertura che in chiusura)';
+      inFee.disabled = backLocked;
       inFee.addEventListener('input', e => {
         scheda[col][idx].fee = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
-        aggiornaCalcolati(col); calcolaTutto();
+        aggiornaCalcolati(col);
+        calcolaTutto();
       });
-      tdFee.appendChild(inFee); tr.appendChild(tdFee);
+      tdFee.appendChild(inFee);
+      tr.appendChild(tdFee);
 
       // RLZD
       const tdRlzd = document.createElement('td');
