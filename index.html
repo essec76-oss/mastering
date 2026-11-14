@@ -62,21 +62,8 @@
     color:var(--muted);
   }
   .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
-  /* ===== Pulsante "Salva in cloud": evidenziato in verde ===== */
-    background:#1e9e4a;
-    border:1px solid #1e9e4a;
-    color:#fff;
-    font-weight:700;
-    box-shadow:0 2px 8px rgba(30,158,74,.35);
-    transition:background .15s, box-shadow .15s, transform .1s;
-  }
-    background:#24b857;
-    border-color:#24b857;
-    box-shadow:0 3px 12px rgba(30,158,74,.55);
-  }
-    transform:translateY(1px);
-    background:#178a3f;
-  }
+  /* Pulsante "Salva in cloud": usa la classe .btn.success del Design System
+     (definita in css/style.css). Nessun override inline necessario. */
 </style>
 </head>
 <body>
@@ -346,13 +333,13 @@
       <!-- P&L -->
       <span class="rg-label" style="grid-column:1;" title="Mark-to-market attuale della posizione">PL AT NOW</span>
       <strong id="pnlNowTot" class="rg-val big" style="grid-column:2;">—</strong>
-      <span id="pnlNowCmp" class="rg-cmp" style="display:none;grid-column:3;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
+      <span id="pnlNowCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
       <span class="rg-val rg-empty" style="grid-column:4;"></span>
       <span class="rg-val rg-empty" style="grid-column:5;"></span>
       <span style="grid-column:6;"></span>
       <span class="rg-label" style="grid-column:1;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <strong id="pnlScadenzaTot" class="rg-val big" style="grid-column:2;">—</strong>
-      <span id="pnlScadCmp" class="rg-cmp" style="display:none;grid-column:3;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
+      <span id="pnlScadCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
       <span class="rg-val rg-empty" style="grid-column:4;"></span>
       <span class="rg-val rg-empty" style="grid-column:5;"></span>
       <span style="grid-column:6;"></span>
@@ -374,7 +361,7 @@
       <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
       <span class="rg-label wrap" id="popLabel" style="grid-column:1;" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
       <strong id="popValue" class="rg-val pop" style="grid-column:2;">—</strong>
-      <span id="popCmp" class="rg-cmp" style="display:none;grid-column:3;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
+      <span id="popCmp" class="rg-cmp" style="display:none;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
       <span class="rg-val rg-empty" style="grid-column:4;"></span>
       <span class="rg-val rg-empty" style="grid-column:5;"></span>
       <span style="grid-column:6;"></span>      <div class="rg-sep"></div>
