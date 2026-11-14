@@ -62,21 +62,8 @@
     color:var(--muted);
   }
   .toggle-pill:hover{border-color:var(--accent,#4f8cff);}
-  /* ===== Pulsante "Salva in cloud": evidenziato in verde ===== */
-    background:#1e9e4a;
-    border:1px solid #1e9e4a;
-    color:#fff;
-    font-weight:700;
-    box-shadow:0 2px 8px rgba(30,158,74,.35);
-    transition:background .15s, box-shadow .15s, transform .1s;
-  }
-    background:#24b857;
-    border-color:#24b857;
-    box-shadow:0 3px 12px rgba(30,158,74,.55);
-  }
-    transform:translateY(1px);
-    background:#178a3f;
-  }
+  /* Pulsante "Salva in cloud": usa la classe .btn.success del Design System
+     (definita in css/style.css). Nessun override inline necessario. */
 </style>
 </head>
 <body>
@@ -162,28 +149,32 @@
 <div class="columns">
   <div class="column" id="colNES">
     <div class="col-header">
-      <span class="col-role" id="roleNES">Front</span>
-      <select id="tipoNES" data-col="NES" disabled>
-        <option value="-">-</option>
-        <option value="NES">NES</option>
-        <option value="MES">MES</option>
-        <option value="ES">ES</option>
-        <option value="X" selected>AZIONI</option>
-      </select>
-            <div class="scad-front-wrap" title="Scadenza del futures Front: data di riferimento per il lato delle opzioni (Front se la scadenza è uguale o precedente, Back se successiva)">
-        <span class="scad-front-label">Scad. Front</span>
-        <input type="date" id="scadenzaFront" class="scad-front-input">
+      <div class="col-header-row col-header-row-main">
+        <span class="col-role" id="roleNES">Front</span>
+        <select id="tipoNES" data-col="NES" disabled>
+          <option value="-">-</option>
+          <option value="NES">NES</option>
+          <option value="MES">MES</option>
+          <option value="ES">ES</option>
+          <option value="X" selected>AZIONI</option>
+        </select>
+        <div class="col-summary" id="summaryNES">
+          <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
+        </div>
       </div>
-      <div class="col-summary" id="summaryNES">
-        <span class="cs-prezzo">@ <strong id="csPrezzoNES">—</strong></span>
+      <div class="col-header-row col-header-row-controls">
+        <div class="scad-front-wrap" title="Scadenza del futures Front: data di riferimento per il lato delle opzioni (Front se la scadenza è uguale o precedente, Back se successiva)">
+          <span class="scad-front-label">Scad. Front</span>
+          <input type="date" id="scadenzaFront" class="scad-front-input">
+        </div>
       </div>
     </div>
     <div class="movimenti">
       <table>
         <thead>
           <tr>
-            <th title="Elimina riga">DEL</th>
-            <th title="Nascondi la riga dai conteggi">Nascondi</th>
+            <th title="Elimina riga" class="th-icon">🗑</th>
+            <th title="Nascondi la riga dai conteggi" class="th-icon">👁</th>
             <th title="Tipo di operazione: BUY (acquisto) o SELL (vendita)">Tipo</th>
             <th>Q.tà</th>
             <th>Prezzo Open</th>
@@ -214,43 +205,47 @@
   </div>
   <div class="column" id="colMES">
     <div class="col-header col-header-back">
-      <span class="col-role" id="roleMES">Back</span>
-      <select id="tipoMES" data-col="MES" disabled>
-        <option value="-">-</option>
-        <option value="NES">NES</option>
-        <option value="MES">MES</option>
-        <option value="ES">ES</option>
-        <option value="X" selected>AZIONI</option>
-      </select>
-      <div class="basis-wrap" title="Differenza di prezzo tra Back e Front (contango/backwardation). Prezzo Back = Prezzo Front + Basis.">
-        <span class="basis-label">Basis</span>
-        <input type="number" id="basisInput" class="basis-input" value="0" step="0.25" placeholder="0">
+      <div class="col-header-row col-header-row-main">
+        <span class="col-role" id="roleMES">Back</span>
+        <select id="tipoMES" data-col="MES" disabled>
+          <option value="-">-</option>
+          <option value="NES">NES</option>
+          <option value="MES">MES</option>
+          <option value="ES">ES</option>
+          <option value="X" selected>AZIONI</option>
+        </select>
+        <div class="col-summary" id="summaryMES">
+          <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
+        </div>
       </div>
-      <div class="basis-wrap" title="Volatilità ATM del Back, letta dalla piattaforma. Usata come fallback per le opzioni Back senza vol di riga e per le bande/riferimenti Back.">
-        <span class="basis-label">Vol ATM %</span>
-        <input type="number" id="volAtmBack" class="basis-input" value="" step="0.1" min="0" placeholder="—">
-      </div>
-      <div class="toggle-front-back" id="toggleFrontBackWrap" title="Solo visuale: Front mostra i prezzi del Front anche sul Back; Back mostra i prezzi reali (Front + Basis). Per inserire posizioni sul Back il toggle deve essere su Back.">
-        <span class="tfb-side" id="tfbFront">Front</span>
-        <button type="button" class="tfb-toggle" id="toggleFrontBack" aria-pressed="true" title="Cambia visualizzazione prezzi Back">
-          <span class="tfb-knob"></span>
-        </button>
-        <span class="tfb-side active" id="tfbBack">Back</span>
-      </div>
-            <div class="sback-wrap" title="S back = spot Front + Basis (valore calcolato, non modificabile)">
-        <span class="sback-label">S back</span>
-        <span class="sback-value" id="sBackValue">—</span>
-      </div>
-      <div class="col-summary" id="summaryMES">
-        <span class="cs-prezzo">@ <strong id="csPrezzoMES">—</strong></span>
+      <div class="col-header-row col-header-row-controls">
+        <div class="basis-wrap" title="Differenza di prezzo tra Back e Front (contango/backwardation). Prezzo Back = Prezzo Front + Basis.">
+          <span class="basis-label">Basis</span>
+          <input type="number" id="basisInput" class="basis-input" value="0" step="0.25" placeholder="0">
+        </div>
+        <div class="basis-wrap" title="Volatilità ATM del Back, letta dalla piattaforma. Usata come fallback per le opzioni Back senza vol di riga e per le bande/riferimenti Back.">
+          <span class="basis-label">Vol ATM %</span>
+          <input type="number" id="volAtmBack" class="basis-input" value="" step="0.1" min="0" placeholder="—">
+        </div>
+        <div class="toggle-front-back" id="toggleFrontBackWrap" title="Solo visuale: Front mostra i prezzi del Front anche sul Back; Back mostra i prezzi reali (Front + Basis). Per inserire posizioni sul Back il toggle deve essere su Back.">
+          <span class="tfb-side" id="tfbFront">Front</span>
+          <button type="button" class="tfb-toggle" id="toggleFrontBack" aria-pressed="true" title="Cambia visualizzazione prezzi Back">
+            <span class="tfb-knob"></span>
+          </button>
+          <span class="tfb-side active" id="tfbBack">Back</span>
+        </div>
+        <div class="sback-wrap" title="S back = spot Front + Basis (valore calcolato, non modificabile)">
+          <span class="sback-label">S back</span>
+          <span class="sback-value" id="sBackValue">—</span>
+        </div>
       </div>
     </div>
     <div class="movimenti">
       <table>
         <thead>
           <tr>
-            <th title="Elimina riga">DEL</th>
-            <th title="Nascondi la riga dai conteggi">Nascondi</th>
+            <th title="Elimina riga" class="th-icon">🗑</th>
+            <th title="Nascondi la riga dai conteggi" class="th-icon">👁</th>
             <th title="Tipo di operazione: BUY (acquisto) o SELL (vendita)">Tipo</th>
             <th>Q.tà</th>
             <th>Prezzo Open</th>
@@ -296,8 +291,8 @@
     <table>
       <thead>
         <tr>
-          <th title="Clicca per nascondere la riga: esclusa da conteggi, valori e grafico">Nascondi</th>
-          <th title="Elimina riga"></th>
+          <th title="Nascondi la riga dai conteggi" class="th-icon">👁</th>
+          <th title="Elimina riga" class="th-icon">🗑</th>
           <th title="Lato dell'opzione, fissato alla creazione">Lato</th>
           <th>Pos</th><th>Tipo</th><th>Q.tà</th>
           <th>Strike</th><th>Premio</th><th>Vol%</th><th>Scadenza</th>
@@ -338,13 +333,13 @@
       <!-- P&L -->
       <span class="rg-label" style="grid-column:1;" title="Mark-to-market attuale della posizione">PL AT NOW</span>
       <strong id="pnlNowTot" class="rg-val big" style="grid-column:2;">—</strong>
-      <span id="pnlNowCmp" class="rg-cmp" style="display:none;grid-column:3;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
+      <span id="pnlNowCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
       <span class="rg-val rg-empty" style="grid-column:4;"></span>
       <span class="rg-val rg-empty" style="grid-column:5;"></span>
       <span style="grid-column:6;"></span>
       <span class="rg-label" style="grid-column:1;" title="Valutato alla scadenza della gamba opzioni più corta: le gambe in scadenza al valore intrinseco, le gambe più lunghe (calendar) al prezzo teorico col tempo residuo a quella data.">PL A SCADENZA</span>
       <strong id="pnlScadenzaTot" class="rg-val big" style="grid-column:2;">—</strong>
-      <span id="pnlScadCmp" class="rg-cmp" style="display:none;grid-column:3;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
+      <span id="pnlScadCmp" class="rg-cmp" style="display:none;" title="Valore della scheda precedente e differenza (corrente − precedente)"></span>
       <span class="rg-val rg-empty" style="grid-column:4;"></span>
       <span class="rg-val rg-empty" style="grid-column:5;"></span>
       <span style="grid-column:6;"></span>
@@ -366,7 +361,7 @@
       <!-- Probabilità di profitto: l'etichetta cambia in base ai breakeven -->
       <span class="rg-label wrap" id="popLabel" style="grid-column:1;" title="Probabilità che a scadenza il P&L sia positivo (lognormale, Vol ATM, orizzonte prima scadenza)">Probabilità di profitto nell'intervallo</span>
       <strong id="popValue" class="rg-val pop" style="grid-column:2;">—</strong>
-      <span id="popCmp" class="rg-cmp" style="display:none;grid-column:3;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
+      <span id="popCmp" class="rg-cmp" style="display:none;" title="POP della scheda precedente e differenza in punti percentuali (corrente − precedente)"></span>
       <span class="rg-val rg-empty" style="grid-column:4;"></span>
       <span class="rg-val rg-empty" style="grid-column:5;"></span>
       <span style="grid-column:6;"></span>      <div class="rg-sep"></div>

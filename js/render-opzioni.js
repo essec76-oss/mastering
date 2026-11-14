@@ -235,8 +235,11 @@
       const btnStato = document.createElement('button');
       const isNascosta = opz.attivo === false;
       btnStato.className = 'btn-stato' + (isNascosta ? ' chiusa' : '');
-      btnStato.textContent = isNascosta ? 'MOSTRA' : 'NASCONDI';
-      btnStato.title = 'Clicca per nascondere la riga: resta visibile ma è esclusa da conteggi, valori numerici e grafico (clicca di nuovo per mostrarla)';
+      btnStato.innerHTML = isNascosta ? '👁‍🗨' : '👁';
+      btnStato.title = isNascosta
+        ? 'Mostra riga (inclusa di nuovo nei conteggi)'
+        : 'Nascondi riga: resta visibile ma è esclusa da conteggi, valori e grafico';
+      btnStato.setAttribute('aria-label', isNascosta ? 'Mostra riga' : 'Nascondi riga');
       btnStato.addEventListener('click', () => {
         opzioniScheda[idx].attivo = opzioniScheda[idx].attivo === false;
         renderOpzioni();
@@ -249,8 +252,9 @@
       tdDel.className = 'td-del';
       tdDel.dataset.label = 'DEL';
       const btnDel = document.createElement('button');
-      btnDel.className = 'btn-del'; btnDel.textContent = 'DEL';
+      btnDel.className = 'btn-del'; btnDel.innerHTML = '🗑';
       btnDel.title = 'Elimina riga';
+      btnDel.setAttribute('aria-label', 'Elimina riga');
       btnDel.addEventListener('click', () => {
         if (!confirm('Eliminare questa riga di opzione?')) return;
         opzioniScheda.splice(idx, 1); renderOpzioni(); calcolaTutto();

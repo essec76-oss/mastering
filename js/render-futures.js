@@ -216,8 +216,9 @@
       tdDel.className = 'td-del';
       tdDel.dataset.label = 'DEL';
       const btnDel = document.createElement('button');
-      btnDel.className = 'btn-del'; btnDel.textContent = 'DEL';
+      btnDel.className = 'btn-del'; btnDel.innerHTML = '🗑';
       btnDel.title = backLocked ? 'Imposta il toggle su Back per modificare' : 'Elimina riga';
+      btnDel.setAttribute('aria-label', 'Elimina riga');
       btnDel.disabled = backLocked;
       btnDel.addEventListener('click', () => {
         if (backLocked) return;
@@ -232,8 +233,9 @@
       tdAtt.dataset.label = 'Nascondi';
       const btnNascondi = document.createElement('button');
       btnNascondi.className = 'btn-stato' + (!isOn ? ' chiusa' : '');
-      btnNascondi.textContent = isOn ? 'NASCONDI' : 'MOSTRA';
-      btnNascondi.title = 'Clicca per nascondere la riga';
+      btnNascondi.innerHTML = isOn ? '👁' : '👁‍🗨';
+      btnNascondi.title = isOn ? 'Nascondi riga (esclusa dai conteggi)' : 'Mostra riga';
+      btnNascondi.setAttribute('aria-label', isOn ? 'Nascondi riga' : 'Mostra riga');
       btnNascondi.addEventListener('click', () => {
         scheda[col][idx].attivo = scheda[col][idx].attivo === false;
         renderMovimenti(col); calcolaTutto();
