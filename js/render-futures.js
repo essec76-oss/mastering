@@ -151,13 +151,24 @@
     // 4. CALCOLO P&L NON REALIZZATO (Mark-to-Market)
     let pnlNonRealizzatoTot = 0;
     if (res.qtaNetta !== 0 && res.mediaPulita > 0) {
-      const spot = parseFloat(el('prezzoSpot')?.value) || 0;
-      let molt = 1;
-      if (res.tipo === 'MES') molt = MOLTIPLICATORI.MES;
-      else if (res.tipo === 'ES') molt = MOLTIPLICATORI.ES;
-      else if (res.tipo === 'NES') molt = MOLTIPLICATORI.NES;
+      const spotFront = parseFloat(el('prezzoSpot')?.value) || 0;
       
-      pnlNonRealizzatoTot = (spot - res.mediaPulita) * res.qtaNetta * molt;
+      // Se siamo nel Back (MES), il prezzo corrente è Spot + Basis
+      let prezzoCorrente = spotFront;
+      if (col === 'MES') {
+        const basis = basisScheda(scheda);
+        prezzoCorrente = spotFront + basis;
+      }
+
+      // --- MOLTIPLICATORE ---
+      // Impostato a 0.5 per NES e MES come da specifica.
+      let molt = 1;
+      if (res.tipo === 'NES') molt = 0.5; 
+      else if (res.tipo === 'MES') molt = 0.5; 
+      else if (res.tipo === 'ES') molt = 1;
+      
+      // Calcolo: (Prezzo Corrente - Prezzo Medio) * Quantità * Moltiplicatore
+      pnlNonRealizzatoTot = (prezzoCorrente - res.mediaPulita) * res.qtaNetta * molt;
     }
 
     // 5. AGGIORNAMENTO HTML
