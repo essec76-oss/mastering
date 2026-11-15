@@ -299,15 +299,19 @@ async function renderListaSalvate(filtro) {
   const nomi = await listaSalvate();
   const f = (filtro || '').trim().toLowerCase();
   const visibili = nomi.filter(n => !f || n.toLowerCase().includes(f));
+
   const box = el('modalListaStrategie');
   if (box) {
     box.innerHTML = '';
     if (!visibili.length) {
       const vuoto = document.createElement('div');
       vuoto.className = 'strategia-empty';
-      vuoto.textContent = getSupabase() ? '— nessuna strategia in cloud —' : '— nessuna strategia salvata —';
+      vuoto.textContent = getSupabase()
+        ? '— nessuna strategia in cloud —'
+        : '— nessuna strategia salvata —';
       box.appendChild(vuoto);
     } else {
+      // Scarica i dati una sola volta per tutte le righe
       const datiPerNome = await mappaSalvatiDati();
       visibili.forEach(n => {
         const r = document.createElement('button');
@@ -318,6 +322,14 @@ async function renderListaSalvate(filtro) {
         nm.className = 'strategia-nome';
         nm.textContent = n;
         r.appendChild(nm);
+        const dati = datiPerNome[n];
+        if (dati) {
+          const wrap = document.createElement('span');
+          wrap.className = 'strategia-spark';
+          wrap.title = 'Anteprima payoff a scadenza (spot ±15%) · linea azzurra = spot · tacche gialle = breakeven';
+          wrap.innerHTML = sparklineSvg(dati);
+          r.appendChild(wrap);
+        }
         box.appendChild(r);
       });
     }
