@@ -45,7 +45,6 @@
     let qtaAssolutaCorrente = 0;
     let pnlRealizzatoTot = 0;
     let feeTotAttive = 0;
-    let feeResidue = 0;
 
     const righe = movimenti.map(m => ({
       tipo: 'vuota', qOriginale: m.quantita || 0, prezzo: m.prezzoPulito || 0,
@@ -76,23 +75,19 @@
       if (qAp === 0) return;
 
       const residuo = qAp - qCh;
-      const frazChiusa = qCh / qAp;
 
-      // --- LOGICA MODIFICATA: FEE CAPITALIZZATE NEL PREZZO MEDIO ---
-      // Calcoliamo il prezzo di carico "sporco" per questa specifica riga.
+      // --- LOGICA FEE CAPITALIZZATE NEL PREZZO MEDIO ---
       // Se LONG, la fee aumenta il prezzo di carico. Se SHORT, lo diminuisce.
-      // Dividiamo la fee per la quantità per ottenere l'impatto sul singolo prezzo.
       const impattoFeeSuPrezzo = (feeOpen / qAp) * segno;
       const prezzoCaricoSporco = prezzoOpen + impattoFeeSuPrezzo;
 
-      // P&L Realizzato (usiamo il prezzo sporco e NON sottraiamo più feeRea)
-      const feeRea = 0; // Le fee sono già nel prezzo
+      // P&L Realizzato (usiamo il prezzo sporco e NON sottraiamo più le fee)
       let pnlRea = 0;
       if (qCh > 0) {
         const basePrezzo = (m.prezzoMedioChiusura && m.prezzoMedioChiusura.prezzo)
           ? m.prezzoMedioChiusura.prezzo
-          : prezzoCaricoSporco; // Usa il prezzo sporco
-        pnlRea = (prezzoClose - basePrezzo) * qCh * segno * molt; // Niente - feeRea
+          : prezzoCaricoSporco;
+        pnlRea = (prezzoClose - basePrezzo) * qCh * segno * molt;
         pnlRealizzatoTot += pnlRea;
       }
 
@@ -102,7 +97,6 @@
       righe[idx].stato = qCh > 0 ? 'CHIUSA' : 'APERTA';
 
       if (residuo > 0) {
-        // La parte residua resta aperta: forma media e posizione netta
         righe[idx].tipo = qCh > 0 ? 'mista' : 'apertura';
         righe[idx].qAperta = residuo;
         
@@ -111,8 +105,6 @@
         
         qtaAssolutaCorrente += residuo;
         qtaNetta += segno * residuo;
-        
-        // Non accumuliamo più feeResidue perché sono già nel prezzo
       } else {
         righe[idx].tipo = 'chiusura';
       }
@@ -120,17 +112,12 @@
 
     const segnoAperto = Math.sign(qtaNetta) || 1;
     
-    // Calcolo P&L Aperto (usiamo il prezzo medio già sporco di fee)
-    let pnlApertoTot = 0;
-    if (qtaAssolutaCorrente > 0 && spot > 0 && isFinite(mediaAperta)) {
-      pnlApertoTot = (spot - mediaAperta) * qtaAssolutaCorrente * segnoAperto * molt;
-    }
-
+    // Calcolo media ponderata (sporca di fee)
     const mediaAperta = qtaAssolutaCorrente > 0
       ? sommaPulitaPesata / qtaAssolutaCorrente : 0;
 
-    // Ricalcoliamo pnlApertoTot ora che mediaAperta è definita
-    pnlApertoTot = 0;
+    // Calcolo P&L Aperto (usiamo il prezzo medio già sporco di fee)
+    let pnlApertoTot = 0;
     if (qtaAssolutaCorrente > 0 && spot > 0 && isFinite(mediaAperta)) {
       pnlApertoTot = (spot - mediaAperta) * qtaAssolutaCorrente * segnoAperto * molt;
     }
