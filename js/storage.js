@@ -186,7 +186,113 @@ async function mappaSalvatiDati() {
 }
 
 function sparklineSvg(dati) {
-  return '';
+  if (!dati || !Array.isArray(dati.schede) || !dati.schede.length) return '';
+
+  const campi = ['prezzoSpot', 'riskFree', 'volAtm', 'divYield', 'dataAnalisi',
+                 'strumentoOpzioni', 'tipoNES', 'tipoMES', 'cash'];
+  const bk = {};
+  campi.forEach(id => {
+    const e = el(id);
+    if (e) bk[id] = (e.type === 'checkbox') ? e.checked : e.value;
+  });
+  const bkStato = {
+    schede: stato.schede, attiva: stato.attiva, cash: stato.cash
+  };
+
+  let svg = '';
+  try {
+    // Applica i dati della strategia salvata
+    if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
+    if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
+    if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
+    if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
+    if (typeof dati.cash === 'number') el('cash').value = dati.cash;
+    if (dati.dataAnalisi && el('dataAnalisi')) el('dataAnalisi').value = dati.dataAnalisi;
+    stato.cash = dati.cash || 0;
+    stato.schede = dati.schede.map(migraScheda);
+    stato.attiva = 0;
+    const s0 = stato.schede[0] || {};
+    if (el('strumentoOpzioni')) el('strumentoOpzioni').value = s0.strumentoOpzioni || 'MES';
+    if (el('tipoNES')) el('tipoNES').value = s0.tipoNES || 'NES';
+    if (el('tipoMES')) el('tipoMES').value = s0.tipoMES || 'MES';
+
+    // Calcola il payoff a scadenza usando la stessa centratura del grafico
+    // principale: si aggancia a breakeven e struttura (strike/medie) della
+    // strategia, così l'anteprima è sempre centrata su ciò che conta.
+    const scheda = s0;
+    const resNES = calcolaColonna(scheda, 'NES');
+    const resMES = calcolaColonna(scheda, 'MES');
+    const spot = (dati.prezzoSpot > 0) ? dati.prezzoSpot : 100;
+    const scan = scanRangeForBE(spot);
+    const bes = findBreakevensRobust(scheda, spot, scan.minS, scan.maxS, resNES, resMES);
+    const rng = centeredChartRange(spot, bes);
+    const lo = rng.minS, hi = rng.maxS;
+    const n = 60;
+    const pnl = [];
+    for (let i = 0; i <= n; i++) {
+      const S = lo + (hi - lo) * i / n;
+      pnl.push(pnlCombinatoAt(scheda, S, 'expiry', resNES, resMES));
+    }
+
+    // Costruisce l'anteprima: mini grafico payoff con aree verde/rosso,
+    // curva, spot (linea azzurra) e breakeven (tacche gialle)
+    const min = Math.min(0, ...pnl), max = Math.max(0, ...pnl);
+    const W = 170, H = 54;
+    const range = (max - min) || 1;
+    const y = v => H * (1 - (v - min) / range);
+    const x = i => (i / n) * W;
+    const zeroY = y(0).toFixed(1);
+    const curva = pnl.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+    const area = `M 0 ${zeroY} ` +
+      pnl.map((v, i) => `L ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ') +
+      ` L ${W} ${zeroY} Z`;
+
+    // Breakeven (cambi di segno del payoff, interpolati)
+    const bePts = [];
+    for (let i = 1; i <= n; i++) {
+      const a = pnl[i - 1], b = pnl[i];
+      if ((a <= 0 && b > 0) || (a >= 0 && b < 0)) {
+        const frac = a === b ? 0 : (0 - a) / (b - a);
+        bePts.push(x(i - 1 + frac));
+      }
+    }
+    const beSvg = bePts.map(bx =>
+      `<line x1="${bx.toFixed(1)}" y1="${zeroY - 5}" x2="${bx.toFixed(1)}" y2="${+zeroY + 5}" stroke="#f1c40f" stroke-width="1.6"/>`
+    ).join('');
+
+    // Spot: posizione reale dello spot dentro il range centrato
+    const spotX = (Math.max(0, Math.min(1, (spot - lo) / ((hi - lo) || 1))) * W).toFixed(1);
+
+    const uid = 'ap' + Math.floor(Math.random() * 1e9);
+    svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="pointer-events:none;display:block;">` +
+          `<rect x="0" y="0" width="${W}" height="${H}" rx="5" fill="#0c0e12"/>` +
+          `<defs>` +
+          `<clipPath id="${uid}pos"><rect x="0" y="0" width="${W}" height="${zeroY}"/></clipPath>` +
+          `<clipPath id="${uid}neg"><rect x="0" y="${zeroY}" width="${W}" height="${H - zeroY}"/></clipPath>` +
+          `</defs>` +
+          `<path d="${area}" fill="#2ecc71" fill-opacity="0.30" clip-path="url(#${uid}pos)"/>` +
+          `<path d="${area}" fill="#e74c3c" fill-opacity="0.30" clip-path="url(#${uid}neg)"/>` +
+          `<line x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}" stroke="#2a2f3a" stroke-width="1"/>` +
+          beSvg +
+          `<line x1="${spotX}" y1="0" x2="${spotX}" y2="${H}" stroke="#4f8cff" stroke-width="1" stroke-dasharray="3,3" opacity="0.9"/>` +
+          `<path d="${curva}" fill="none" stroke="#e6e8ee" stroke-width="1.4" stroke-linejoin="round"/>` +
+          `</svg>`;
+  } catch (e) {
+    svg = '';
+  } finally {
+    // Ripristina SEMPRE il contesto della pagina corrente
+    campi.forEach(id => {
+      const e = el(id);
+      if (e) {
+        if (e.type === 'checkbox') e.checked = bk[id];
+        else e.value = bk[id];
+      }
+    });
+    stato.schede = bkStato.schede;
+    stato.attiva = bkStato.attiva;
+    stato.cash = bkStato.cash;
+  }
+  return svg;
 }
 
 async function renderListaSalvate(filtro) {
