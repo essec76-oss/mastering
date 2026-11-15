@@ -148,8 +148,8 @@
       });
     }
 
-    // 4. CALCOLO P&L POSIZIONE (Mark-to-Market)
-    let pnlPosizioneTot = 0;
+    // 4. CALCOLO P&L NON REALIZZATO (Mark-to-Market)
+    let pnlNonRealizzatoTot = 0;
     if (res.qtaNetta !== 0 && res.mediaPulita > 0) {
       const spot = parseFloat(el('prezzoSpot')?.value) || 0;
       let molt = 1;
@@ -157,29 +157,30 @@
       else if (res.tipo === 'ES') molt = MOLTIPLICATORI.ES;
       else if (res.tipo === 'NES') molt = MOLTIPLICATORI.NES;
       
-      pnlPosizioneTot = (spot - res.mediaPulita) * res.qtaNetta * molt;
+      pnlNonRealizzatoTot = (spot - res.mediaPulita) * res.qtaNetta * molt;
     }
 
     // 5. AGGIORNAMENTO HTML
-    // P&L RLZD (ex P&L Totale)
+    // P&L RLZD
     const pnlEl = el('csPnl' + col);
     if (pnlEl) {
       pnlEl.textContent = formatEuro(pnlRealizzatoTot);
       pnlEl.className = 'value ' + (pnlRealizzatoTot === 0 ? 'muted' : (pnlRealizzatoTot >= 0 ? 'green' : 'red'));
     }
 
-    // P&L POSIZIONE
-    const pnlPosEl = el('plPosizione' + col);
-    if (pnlPosEl) {
-      pnlPosEl.textContent = formatEuro(pnlPosizioneTot);
-      pnlPosEl.className = 'value ' + (pnlPosizioneTot === 0 ? 'muted' : (pnlPosizioneTot >= 0 ? 'green' : 'red'));
-    }
-
     // P&L NON RLZD
     const pnlNonRlzdEl = el('plNonRlzd' + col);
     if (pnlNonRlzdEl) {
-      pnlNonRlzdEl.textContent = formatEuro(pnlPosizioneTot);
-      pnlNonRlzdEl.className = 'value ' + (pnlPosizioneTot === 0 ? 'muted' : (pnlPosizioneTot >= 0 ? 'green' : 'red'));
+      pnlNonRlzdEl.textContent = formatEuro(pnlNonRealizzatoTot);
+      pnlNonRlzdEl.className = 'value ' + (pnlNonRealizzatoTot === 0 ? 'muted' : (pnlNonRealizzatoTot >= 0 ? 'green' : 'red'));
+    }
+
+    // P&L POSIZIONE (TOTALE: Realizzato + Non Realizzato)
+    const pnlPosEl = el('plPosizione' + col);
+    if (pnlPosEl) {
+      const pnlPosizioneComplessivo = pnlRealizzatoTot + pnlNonRealizzatoTot;
+      pnlPosEl.textContent = formatEuro(pnlPosizioneComplessivo);
+      pnlPosEl.className = 'value ' + (pnlPosizioneComplessivo === 0 ? 'muted' : (pnlPosizioneComplessivo >= 0 ? 'green' : 'red'));
     }
   }
 
