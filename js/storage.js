@@ -1,6 +1,11 @@
 // storage.js — persistenza localStorage + strategie cloud Supabase
 // Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
 
+/* global stato, el, MODALITA_DEFAULT, STORAGE_KEY, STORAGE_KEYS_LEGACY, calcolaColonna, scanRangeForBE, 
+findBreakevensRobust, centeredChartRange, pnlCombinatoAt, aggiornaStileCash, aggiornaSBack, applicaModalita,
+renderTabs, renderScheda, schedaAttiva, dataOggiIso, chartView, SUPABASE_URL, SUPABASE_ANON_KEY, salva,
+applicaDati, migraScheda, migraMov, migraOpz */
+
 // ============================================================
 // UTILITY
 // ============================================================
