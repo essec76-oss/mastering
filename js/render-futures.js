@@ -85,16 +85,18 @@
   }
 
   function renderRigaTotale(col, res) {
+    const scheda = schedaAttiva();
     const prezzoEl = el('csPrezzo' + col);
     if (prezzoEl) {
       if (col === 'MES') {
-        const media = prezzoVistaMES(res.mediaPulita, schedaAttiva());
+        const media = prezzoVistaMES(res.mediaPulita, scheda);
         prezzoEl.textContent = isFinite(media) ? formatPrezzo(media) : '—';
       } else {
         prezzoEl.textContent = isNaN(res.mediaPulita) ? '—' : formatPrezzo(res.mediaPulita);
       }
     }
 
+    // 1. QUANTITÀ NETTA
     const qnEl = el('qtaNetta' + col);
     if (qnEl) {
       if (!res.qtaNetta) {
@@ -107,6 +109,7 @@
       }
     }
 
+    // 2. DELTA
     const dEl = el('deltaAzCol' + col);
     const dLabelEl = el('deltaLabel' + col);
     if (dEl) {
@@ -124,7 +127,7 @@
       } else {
         if (dLabelEl) dLabelEl.textContent = 'Delta ' + tipoLabel;
         if (res.qtaNetta !== 0) {
-          const tipoRif = tipoRiferimentoFut(schedaAttiva());
+          const tipoRif = tipoRiferimentoFut(scheda);
           const dRif = deltaInRiferimento(res.qtaNetta, res.tipo, tipoRif);
           dEl.textContent = formatGreek(dRif, 2);
           dEl.className = 'value ' + (dRif >= 0 ? 'green' : 'red');
@@ -135,11 +138,60 @@
       }
     }
 
+    // 3. CALCOLO P&L REALIZZATO (Somma colonna RLZD)
+    let pnlRealizzatoTot = 0;
+    if (res.righe && Array.isArray(res.righe)) {
+      res.righe.forEach(info => {
+        if (info && info.pnlRealizzato) {
+          pnlRealizzatoTot += info.pnlRealizzato;
+        }
+      });
+    }
+
+    // 4. CALCOLO P&L NON REALIZZATO (Mark-to-Market)
+    let pnlNonRealizzatoTot = 0;
+    if (res.qtaNetta !== 0 && res.mediaPulita > 0) {
+      const spotFront = parseFloat(el('prezzoSpot')?.value) || 0;
+      
+      // Se siamo nel Back (MES), il prezzo corrente è Spot + Basis
+      let prezzoCorrente = spotFront;
+      if (col === 'MES') {
+        const basis = basisScheda(scheda);
+        prezzoCorrente = spotFront + basis;
+      }
+
+      // --- MOLTIPLICATORE ---
+      // Impostato a 0.5 per NES e MES come da specifica.
+      let molt = 1;
+      if (res.tipo === 'NES') molt = 0.5; 
+      else if (res.tipo === 'MES') molt = 0.5; 
+      else if (res.tipo === 'ES') molt = 1;
+      
+      // Calcolo: (Prezzo Corrente - Prezzo Medio) * Quantità * Moltiplicatore
+      pnlNonRealizzatoTot = (prezzoCorrente - res.mediaPulita) * res.qtaNetta * molt;
+    }
+
+    // 5. AGGIORNAMENTO HTML
+    // P&L RLZD
     const pnlEl = el('csPnl' + col);
     if (pnlEl) {
-      const p = res.pnlTotale || 0;
-      pnlEl.textContent = formatEuro(p);
-      pnlEl.className = 'value ' + (!isFinite(p) || p === 0 ? 'muted' : (p >= 0 ? 'green' : 'red'));
+      pnlEl.textContent = formatEuro(pnlRealizzatoTot);
+      pnlEl.className = 'value ' + (pnlRealizzatoTot === 0 ? 'muted' : (pnlRealizzatoTot >= 0 ? 'green' : 'red'));
+    }
+
+    // P&L NON RLZD
+    const pnlNonRlzdEl = el('plNonRlzd' + col);
+    if (pnlNonRlzdEl) {
+      pnlNonRlzdEl.textContent = formatEuro(pnlNonRealizzatoTot);
+      pnlNonRlzdEl.className = 'value ' + (pnlNonRealizzatoTot === 0 ? 'muted' : (pnlNonRealizzatoTot >= 0 ? 'green' : 'red'));
+    }
+
+    // P&L POSIZIONE (TOTALE: Realizzato + Non Realizzato)
+    const pnlPosEl = el('plPosizione' + col);
+    if (pnlPosEl) {
+      const pnlPosizioneComplessivo = pnlRealizzatoTot + pnlNonRealizzatoTot;
+      pnlPosEl.textContent = formatEuro(pnlPosizioneComplessivo);
+      pnlPosEl.className = 'value ' + (pnlPosizioneComplessivo === 0 ? 'muted' : (pnlPosizioneComplessivo >= 0 ? 'green' : 'red'));
     }
   }
 
