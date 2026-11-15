@@ -523,7 +523,6 @@ const btnModalitaZoom = el('btnModalitaZoom');
 if (btnModalitaZoom) btnModalitaZoom.addEventListener('click', () => {
   rotellaZoomAttiva = !rotellaZoomAttiva;
   btnModalitaZoom.textContent = rotellaZoomAttiva ? 'Rotella: zoom' : 'Rotella: pagina';
-});
   btnModalitaZoom.classList.toggle('primary', rotellaZoomAttiva);
 });
 
