@@ -187,18 +187,33 @@
         </thead>
         <tbody id="bodyNES"></tbody>
       </table>
-      <div class="col-footer">
-        <div class="cf-item cf-qta">
-          <span class="label">Q.tà netta</span>
-          <span class="value muted" id="qtaNettaNES">—</span>
+      <div class="col-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 12px;">
+        <!-- Lato Sinistro: Qta e Delta -->
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div class="cf-item cf-qta">
+            <span class="label">Q.tà netta</span>
+            <span class="value muted" id="qtaNettaNES">—</span>
+          </div>
+          <div class="cf-item cf-delta">
+            <span class="label" id="deltaLabelNES">Delta</span>
+            <span class="value muted" id="deltaAzColNES">—</span>
+          </div>
         </div>
-        <div class="cf-item cf-delta">
-          <span class="label" id="deltaLabelNES">Delta</span>
-          <span class="value muted" id="deltaAzColNES">—</span>
-        </div>
-        <div class="cf-item cf-pnl">
-          <span class="label">P&L</span>
-          <span class="value muted" id="csPnlNES">0,00</span>
+        
+        <!-- Lato Destro: P&L -->
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div class="cf-item">
+            <span class="label" style="color:var(--muted); font-size:10px;">P&L POSIZIONE</span>
+            <span class="value" id="plPosizioneNES" style="color:#f1c40f; font-weight:bold;">0,00</span>
+          </div>
+          <div class="cf-item">
+            <span class="label" style="color:var(--muted); font-size:10px;">P&L NON RLZD</span>
+            <span class="value" id="plNonRlzdNES" style="color:#f1c40f; font-weight:bold;">0,00</span>
+          </div>
+          <div class="cf-item cf-pnl">
+            <span class="label" style="color:var(--muted); font-size:10px;">P&L RLZD</span>
+            <span class="value muted" id="csPnlNES">0,00</span>
+          </div>
         </div>
       </div>
       <button class="btn-add" data-col="NES">+ Aggiungi movimento</button>
@@ -259,18 +274,33 @@
         </thead>
         <tbody id="bodyMES"></tbody>
       </table>
-      <div class="col-footer">
-        <div class="cf-item cf-qta">
-          <span class="label">Q.tà netta</span>
-          <span class="value muted" id="qtaNettaMES">—</span>
+      <div class="col-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 12px;">
+        <!-- Lato Sinistro: Qta e Delta -->
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div class="cf-item cf-qta">
+            <span class="label">Q.tà netta</span>
+            <span class="value muted" id="qtaNettaMES">—</span>
+          </div>
+          <div class="cf-item cf-delta">
+            <span class="label" id="deltaLabelMES">Delta</span>
+            <span class="value muted" id="deltaAzColMES">—</span>
+          </div>
         </div>
-        <div class="cf-item cf-delta">
-          <span class="label" id="deltaLabelMES">Delta</span>
-          <span class="value muted" id="deltaAzColMES">—</span>
-        </div>
-        <div class="cf-item cf-pnl">
-          <span class="label">P&L</span>
-          <span class="value muted" id="csPnlMES">0,00</span>
+        
+        <!-- Lato Destro: P&L -->
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div class="cf-item">
+            <span class="label" style="color:var(--muted); font-size:10px;">P&L POSIZIONE</span>
+            <span class="value" id="plPosizioneMES" style="color:#f1c40f; font-weight:bold;">0,00</span>
+          </div>
+          <div class="cf-item">
+            <span class="label" style="color:var(--muted); font-size:10px;">P&L NON RLZD</span>
+            <span class="value" id="plNonRlzdMES" style="color:#f1c40f; font-weight:bold;">0,00</span>
+          </div>
+          <div class="cf-item cf-pnl">
+            <span class="label" style="color:var(--muted); font-size:10px;">P&L RLZD</span>
+            <span class="value muted" id="csPnlMES">0,00</span>
+          </div>
         </div>
       </div>
       <button class="btn-add" data-col="MES">+ Aggiungi movimento</button>
