@@ -15,7 +15,8 @@
       direzioneClose: (direzione || 'LONG') === 'LONG' ? 'SHORT' : 'LONG',
       quantitaChiusa: 0,
       prezzoClose: 0,
-      fee: 0
+      feeOpen: 0,
+      feeClose: 0
     };
   }
 
@@ -64,16 +65,23 @@
       const segno = m.direzione === 'LONG' ? 1 : -1;
       const qCh = Math.min(m.quantitaChiusa || 0, qAp);
       const prezzoClose = m.prezzoClose || 0;
-      const fee = m.fee || 0;
 
-      feeTotAttive += fee;
+      // Compatibilità: se esiste ancora il vecchio campo unico "fee", lo tratta come feeOpen
+      const feeOpen = (typeof m.feeOpen === 'number') ? m.feeOpen
+        : ((typeof m.fee === 'number') ? m.fee : 0);
+      const feeClose = (typeof m.feeClose === 'number') ? m.feeClose : 0;
+
+      feeTotAttive += feeOpen + feeClose;
 
       if (qAp === 0) return;
 
       const residuo = qAp - qCh;
       const frazChiusa = qCh / qAp;
-      const feeRea = fee * frazChiusa;
-      const feeRes = fee - feeRea;
+
+      // Fee Open proporzionale alla parte chiusa + Fee Close intera → realizzate
+      // Fee Open residua → P&L aperto
+      const feeRea = (feeOpen * frazChiusa) + feeClose;
+      const feeRes = feeOpen * (1 - frazChiusa);
 
       // P&L realizzato del lato chiuso.
       // Se la riga è stata chiusa tramite lo scarico (Average Cost IBKR), 
