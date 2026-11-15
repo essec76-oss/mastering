@@ -1,6 +1,5 @@
 // storage.js — persistenza localStorage + strategie cloud Supabase
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
-
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
 
 // ============================================================
 // UTILITY
@@ -31,6 +30,7 @@ function raccogliDati() {
     tipoMES: el('tipoMES').value,
     attiva: stato.attiva,
     schede: stato.schede,
+    // v28 — modalità globale: necessaria per riallineare il menu padre al load
     modalitaGlobale: (el('modalitaGlobale') ? el('modalitaGlobale').value : (stato.modalita || MODALITA_DEFAULT))
   };
   return dati;
@@ -52,10 +52,13 @@ function carica() {
     }
     if (!raw) return false;
     applicaDati(JSON.parse(raw));
+
     return true;
   } catch (e) { return false; }
 }
 
+// Deduce la modalità globale da una scheda (o da un dato legacy) quando il campo
+// `modalitaGlobale` non è presente nei salvataggi precedenti alla v28.
 function deduciModalita(schedaODati) {
   const s = schedaODati || {};
   const t = s.tipoNES || s.tipoMES || '';
@@ -65,6 +68,7 @@ function deduciModalita(schedaODati) {
   return MODALITA_DEFAULT;
 }
 
+// Riporta nell'header Back i valori della scheda attiva (basis e vol ATM Back)
 function aggiornaHeaderBack(scheda) {
   const s = scheda || {};
   if (el('basisInput')) el('basisInput').value = (s.basis !== undefined && s.basis !== null) ? s.basis : 0;
@@ -72,6 +76,7 @@ function aggiornaHeaderBack(scheda) {
   if (typeof aggiornaSBack === 'function') aggiornaSBack();
 }
 
+// Applica un oggetto dati (corrente, salvato o importato) ai controlli della pagina
 function applicaDati(dati) {
     if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
     if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
@@ -83,6 +88,7 @@ function applicaDati(dati) {
     }
     if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
 
+    // Schede: prima carica lo stato, poi applica la modalità (che sistema i select globali)
     if (Array.isArray(dati.schede) && dati.schede.length) {
       stato.schede = dati.schede.map(migraScheda);
     } else if (Array.isArray(dati.NES) || Array.isArray(dati.MES) || Array.isArray(dati.opzioni)) {
@@ -98,6 +104,7 @@ function applicaDati(dati) {
     stato.attiva = Math.max(0, Math.min(stato.schede.length - 1, dati.attiva || 0));
     aggiornaHeaderBack(schedaAttiva());
 
+    // v28 — Determina la modalità da ripristinare.
     const modSalvata = dati.modalitaGlobale
       || deduciModalita(stato.schede[stato.attiva] || dati);
 
@@ -107,6 +114,9 @@ function applicaDati(dati) {
     applicaModalita(modSalvata);
 }
 
+// ============================================================
+// SUPABASE — client + test connessione
+// ============================================================
 let _sbClient = null;
 
 function supabaseConfigurato() {
@@ -142,6 +152,9 @@ async function testaConnessioneSupabase() {
   }
 }
 
+// ============================================================
+// STRATEGIE SALVATE — cloud Supabase + cache localStorage
+// ============================================================
 const STORAGE_SALVATI = 'mastering_salvati_v1';
 
 function leggiSalvatiLocal() {
@@ -169,6 +182,7 @@ async function listaSalvate() {
   return Object.keys(leggiSalvatiLocal()).sort((a, b) => a.localeCompare(b));
 }
 
+// Scarica nome+dati di tutte le strategie salvate (cloud, fallback locale)
 async function mappaSalvatiDati() {
   const sb = getSupabase();
   const out = {};
@@ -179,13 +193,16 @@ async function mappaSalvatiDati() {
         data.forEach(r => { if (r && r.nome && r.dati) out[r.nome] = r.dati; });
         return out;
       }
-    } catch (e) { }
+    } catch (e) { /* fallback locale sotto */ }
   }
   const map = leggiSalvatiLocal();
   Object.keys(map).forEach(n => { if (map[n] && map[n].dati) out[n] = map[n].dati; });
   return out;
 }
 
+// Sparkline di anteprima: payoff a scadenza della strategia salvata,
+// calcolato in un contesto temporaneo (input e stato vengono applicati,
+// usati e ripristinati — la pagina corrente non cambia).
 function sparklineSvg(dati) {
   if (!dati || !Array.isArray(dati.schede) || !dati.schede.length) return '';
 
@@ -308,7 +325,7 @@ async function renderListaSalvate(filtro) {
       const vuoto = document.createElement('div');
       vuoto.className = 'strategia-empty';
       vuoto.textContent = getSupabase()
-        ? '— nessuna strategia in cloud —'
+        ? '— nessuna strategia nel cloud —'
         : '— nessuna strategia salvata —';
       box.appendChild(vuoto);
     } else {
@@ -327,7 +344,7 @@ async function renderListaSalvate(filtro) {
         if (dati) {
           const wrap = document.createElement('span');
           wrap.className = 'strategia-spark';
-          wrap.title = 'Anteprima payoff a scadenza (spot ±15%) · linea azzurra = spot · tacche gialle = breakeven';
+          wrap.title = 'Anteprima payoff a scadenza · linea azzurra = spot · tacche gialle = breakeven';
           wrap.innerHTML = sparklineSvg(dati);
           r.appendChild(wrap);
         }
@@ -339,7 +356,7 @@ async function renderListaSalvate(filtro) {
 
 async function salvaConNome(nome) {
   if (!stato.modalita) {
-    mostraStatus('Scegli prima un asset (Azioni / Indici / Commodities)', true);
+    mostraStatus('Scegli prima un asset (azioni / indici / commodities)', true);
     if (el('modalitaGlobale')) el('modalitaGlobale').focus();
     return;
   }
@@ -348,6 +365,7 @@ async function salvaConNome(nome) {
   if (!nome) { mostraStatus('Inserisci un nome (es. AMZN)', true); if (input) input.focus(); return; }
   const dati = raccogliDati();
   const salvatoIl = new Date().toISOString();
+
   const map = leggiSalvatiLocal();
   const esisteLocale = !!(map[nome] && map[nome].dati);
   let esisteCloud = false;
@@ -356,16 +374,24 @@ async function salvaConNome(nome) {
     try {
       const { data } = await sb.from('strategie').select('nome').eq('nome', nome).maybeSingle();
       esisteCloud = !!(data && data.nome);
-    } catch (e) { }
+    } catch (e) { /* ignore */ }
   }
-  if ((esisteLocale || esisteCloud) && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
+  if ((esisteLocale || esisteCloud) && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) {
+    mostraStatus('Salvataggio annullato', true);
+    return;
+  }
+
   map[nome] = { salvatoIl: salvatoIl, dati: dati };
-  try { scriviSalvatiLocal(map); } catch (e) { mostraStatus('Errore salvataggio locale', true); return; }
+  try { scriviSalvatiLocal(map); }
+  catch (e) { mostraStatus('Errore salvataggio locale', true); return; }
+
   if (sb) {
     try {
-      const { error } = await sb.from('strategie').upsert({ nome: nome, dati: dati, salvato_il: salvatoIl }, { onConflict: 'nome' });
+      const { error } = await sb
+        .from('strategie')
+        .upsert({ nome: nome, dati: dati, salvato_il: salvatoIl }, { onConflict: 'nome' });
       if (error) throw error;
-      mostraStatus('✓ "' + nome + '" salvata in cloud');
+      mostraStatus('✓ "' + nome + '" salvata nel cloud');
     } catch (e) {
       mostraStatus('Salvata in locale; cloud non raggiungibile', true);
     }
@@ -379,7 +405,11 @@ async function caricaSalvato(nome) {
   const sb = getSupabase();
   if (sb) {
     try {
-      const { data, error } = await sb.from('strategie').select('nome, dati, salvato_il').eq('nome', nome).maybeSingle();
+      const { data, error } = await sb
+        .from('strategie')
+        .select('nome, dati, salvato_il')
+        .eq('nome', nome)
+        .maybeSingle();
       if (error) throw error;
       if (data && data.dati) {
         applicaDati(data.dati);
@@ -389,11 +419,14 @@ async function caricaSalvato(nome) {
         if (el('nomeStrategia')) el('nomeStrategia').value = nome;
         renderTabs(); renderScheda();
         await renderListaSalvate();
-        mostraStatus('✓ "' + nome + '" caricata da cloud');
+        mostraStatus('✓ "' + nome + '" caricata dal cloud');
         return;
       }
-    } catch (e) { }
+    } catch (e) {
+      // fallback locale
+    }
   }
+
   const entry = leggiSalvatiLocal()[nome];
   if (!entry || !entry.dati) { mostraStatus('Strategia non trovata', true); return; }
   applicaDati(entry.dati);
@@ -406,15 +439,17 @@ async function caricaSalvato(nome) {
 async function eliminaSalvato(nome) {
   if (!nome) return;
   if (!confirm('Eliminare la strategia salvata "' + nome + '"?\n\n(Il lavoro corrente a video non cambia.)')) return;
+
   const map = leggiSalvatiLocal();
   delete map[nome];
   scriviSalvatiLocal(map);
+
   const sb = getSupabase();
   if (sb) {
     try {
       const { error } = await sb.from('strategie').delete().eq('nome', nome);
       if (error) throw error;
-      mostraStatus('✓ "' + nome + '" eliminata da cloud');
+      mostraStatus('✓ "' + nome + '" eliminata dal cloud');
     } catch (e) {
       mostraStatus('Eliminata in locale; cloud non aggiornato', true);
     }
@@ -424,9 +459,12 @@ async function eliminaSalvato(nome) {
   await renderListaSalvate();
 }
 
+// ============================================================
+// EXPORT / IMPORT FILE JSON
+// ============================================================
 function esportaFile() {
   if (!stato.modalita) {
-    mostraStatus('Scegli prima un asset (Azioni / Indici / Commodities)', true);
+    mostraStatus('Scegli prima un asset (azioni / indici / commodities)', true);
     if (el('modalitaGlobale')) el('modalitaGlobale').focus();
     return;
   }
@@ -453,11 +491,21 @@ function importaDaJson(testo) {
   const dati = (obj && obj.formato === 'mastering-strategia') ? obj.dati : obj;
   if (!dati || !Array.isArray(dati.schede)) throw new Error('formato non riconosciuto');
   applicaDati(dati);
-  if (obj && obj.nome && el('nomeStrategia')) el('nomeStrategia').value = obj.nome;
-  renderTabs(); renderScheda();
+  if (el('nomeStrategia') && obj && obj.nome) el('nomeStrategia').value = obj.nome;
+  renderTabs(); renderScheda(); renderListaSalvate();
   mostraStatus('✓ Strategia importata');
 }
 
+function importaDaInputFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try { importaDaJson(String(reader.result)); }
+    catch (e) { mostraStatus('File non valido', true); }
+  };
+  reader.readAsText(file);
+}
+
+// Migrazione di una scheda (dati vecchi/corrotti non rompono nulla)
 function migraScheda(s) {
   return {
     nome: s.nome || 'Matrice',
@@ -467,38 +515,43 @@ function migraScheda(s) {
     MES: Array.isArray(s.MES) ? s.MES.map(migraMov) : [],
     opzioni: Array.isArray(s.opzioni) ? s.opzioni.map(migraOpz) : [],
     strumentoOpzioni: s.strumentoOpzioni || 'MES',
+    // v29 — override commodities
     tickerCommodity: s.tickerCommodity || '',
     moltiplicatoreCommodity: (s.moltiplicatoreCommodity !== undefined && s.moltiplicatoreCommodity !== null)
       ? s.moltiplicatoreCommodity : null,
+    // parametri di mercato della scheda (spot, vol, tassi, cash, date)
     par: (s.par && typeof s.par === 'object') ? { ...s.par } : null,
+    // Front/Back
     basis: (s.basis !== undefined && s.basis !== null) ? s.basis : 0,
     volAtmBack: (s.volAtmBack !== undefined && s.volAtmBack !== null) ? s.volAtmBack : '',
     toggleBackView: s.toggleBackView !== false
   };
 }
-
-// v31 — Migrazione movimento:
-// - Preferisce feeOpen + feeClose separati.
-// - Se esiste solo il vecchio campo "fee", lo mette in feeOpen (feeClose = 0).
+// v30 — Migrazione movimento:
+// - Rimuove i campi obsoleti (dataOpen, dataClose).
+// - Converte feeOpen + feeClose in un'unica fee di riga.
+// - Rimuove i flag di "manuale" non più necessari.
 function migraMov(m) {
+  // compatibilità prezzo (vecchia chiave "prezzo")
   if (m.prezzoPulito === undefined) m.prezzoPulito = m.prezzo || 0;
   delete m.prezzo;
   if (m.attivo === undefined) m.attivo = true;
 
-  const hasOpen = (typeof m.feeOpen === 'number');
-  const hasClose = (typeof m.feeClose === 'number');
-  if (!hasOpen && !hasClose && typeof m.fee === 'number') {
-    m.feeOpen = m.fee;
-    m.feeClose = 0;
-  } else {
-    if (!hasOpen) m.feeOpen = 0;
-    if (!hasClose) m.feeClose = 0;
+  // fee: se esistono feeOpen/feeClose li somma in fee, poi li elimina
+  if (m.fee === undefined) {
+    const fo = (typeof m.feeOpen === 'number') ? m.feeOpen : 0;
+    const fc = (typeof m.feeClose === 'number') ? m.feeClose : 0;
+    m.fee = fo + fc;
   }
-  delete m.fee;
+  delete m.feeOpen;
+  delete m.feeClose;
   delete m.feeOpenManuale;
   delete m.feeCloseManuale;
+
+  // date: eliminate (non più usate)
   delete m.dataOpen;
   delete m.dataClose;
+
   return m;
 }
 
@@ -521,9 +574,10 @@ function migraOpz(o) {
 }
 
 function reset(senzaConferma) {
-  if (!senzaConferma && !confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.\nDovrai scegliere di nuovo l\'asset (Azioni / Indici / Commodities).')) return;
+  if (!senzaConferma && !confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.\nDovrai scegliere di nuovo l\'asset (azioni / indici / commodities).')) return;
   localStorage.removeItem(STORAGE_KEY);
   STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
+  // Nuovo foglio: nessuna modalità → UI bloccata fino a «Scegli asset»
   stato.modalita = '';
   if (el('modalitaGlobale')) el('modalitaGlobale').value = '';
   stato.schede = [{
@@ -552,6 +606,11 @@ function reset(senzaConferma) {
     chartView._sig = null;
   }
   if (el('nomeStrategia')) el('nomeStrategia').value = '';
+  // Svuota esplicitamente i select globali: applicaModalita('') blocca l'UI
+  // ma non ripulisce i valori precedenti.
+  if (el('tipoNES')) el('tipoNES').value = '';
+  if (el('tipoMES')) el('tipoMES').value = '';
+  if (el('strumentoOpzioni')) el('strumentoOpzioni').value = '';
   renderListaSalvate('');
   renderTabs();
   if (typeof applicaModalita === 'function') applicaModalita('');
