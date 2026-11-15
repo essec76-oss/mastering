@@ -496,6 +496,21 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') chiudiModaleStrategie();
 });
 
+// Legge il file scelto dall'input e lo passa a importaDaJson
+function importaDaInputFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      importaDaJson(e.target.result);
+    } catch (err) {
+      mostraStatus('File JSON non valido o corrotto', true);
+    }
+  };
+  reader.onerror = () => mostraStatus('Errore durante la lettura del file', true);
+  reader.readAsText(file);
+}
+
 if (el('btnEsporta')) el('btnEsporta').addEventListener('click', esportaFile);
 if (el('btnImporta')) el('btnImporta').addEventListener('click', () => el('fileImporta').click());
 if (el('fileImporta')) el('fileImporta').addEventListener('change', e => {

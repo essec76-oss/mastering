@@ -66,7 +66,7 @@
     let tot = 0;
     (scheda[col] || []).forEach(m => {
       if (m.attivo === false) return;
-      tot += (m.fee || 0);
+      tot += (m.feeOpen || 0) + (m.feeClose || 0);
     });
     return tot;
   }
@@ -296,6 +296,28 @@
       });
       tdPrezzo.appendChild(inPrezzo); tr.appendChild(tdPrezzo);
 
+      // FEE OP. (dopo Prezzo Open) — editabile anche dopo chiusura
+      const tdFeeOp = document.createElement('td');
+      tdFeeOp.dataset.label = 'Fee Op.';
+      const inFeeOp = document.createElement('input');
+      inFeeOp.type = 'number';
+      inFeeOp.step = '0.01';
+      inFeeOp.min = '0';
+      inFeeOp.className = 'in-fee';
+      const feeOpVal = (typeof mov.feeOpen === 'number') ? mov.feeOpen : (mov.fee || 0);
+      inFeeOp.value = (feeOpVal === 0) ? '' : feeOpVal;
+      inFeeOp.placeholder = '0';
+      inFeeOp.title = 'Fee di apertura';
+      inFeeOp.disabled = backLocked;
+      inFeeOp.addEventListener('input', e => {
+        scheda[col][idx].feeOpen = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
+        delete scheda[col][idx].fee;
+        aggiornaCalcolati(col);
+        calcolaTutto();
+      });
+      tdFeeOp.appendChild(inFeeOp);
+      tr.appendChild(tdFeeOp);
+
       // QTA CLOSE (sola lettura: la valorizza solo lo scarico)
       const tdQtaC = document.createElement('td');
       tdQtaC.dataset.label = 'Q.tà Close';
@@ -319,25 +341,27 @@
       inPrezzoC.title = 'Valorizzato dallo scarico con lo spot al momento della chiusura.';
       tdPrezzoC.appendChild(inPrezzoC); tr.appendChild(tdPrezzoC);
 
-      // FEE (editabile sia in apertura che in chiusura)
-      const tdFee = document.createElement('td');
-      tdFee.dataset.label = 'Fee';
-      const inFee = document.createElement('input');
-      inFee.type = 'number';
-      inFee.step = '0.01';
-      inFee.min = '0';
-      inFee.className = 'in-fee';
-      inFee.value = (mov.fee === 0 || mov.fee === undefined) ? '' : mov.fee;
-      inFee.placeholder = '0';
-      inFee.title = 'Fee totali della riga (sottratte dal P&L sia in apertura che in chiusura)';
-      inFee.disabled = backLocked;
-      inFee.addEventListener('input', e => {
-        scheda[col][idx].fee = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
+      // FEE CL.
+      const tdFeeCl = document.createElement('td');
+      tdFeeCl.dataset.label = 'Fee Cl.';
+      const inFeeCl = document.createElement('input');
+      inFeeCl.type = 'number';
+      inFeeCl.step = '0.01';
+      inFeeCl.min = '0';
+      inFeeCl.className = 'in-fee';
+      const feeClVal = (typeof mov.feeClose === 'number') ? mov.feeClose : 0;
+      inFeeCl.value = (feeClVal === 0) ? '' : feeClVal;
+      inFeeCl.placeholder = '0';
+      inFeeCl.title = 'Fee di chiusura';
+      inFeeCl.disabled = backLocked;
+      inFeeCl.addEventListener('input', e => {
+        scheda[col][idx].feeClose = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
+        delete scheda[col][idx].fee;
         aggiornaCalcolati(col);
         calcolaTutto();
       });
-      tdFee.appendChild(inFee);
-      tr.appendChild(tdFee);
+      tdFeeCl.appendChild(inFeeCl);
+      tr.appendChild(tdFeeCl);
 
       // RLZD
       const tdRlzd = document.createElement('td');

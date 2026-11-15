@@ -1,5 +1,5 @@
 // storage.js — persistenza localStorage + strategie cloud Supabase
-// Parte di Mastering (già app.js): l ordine di caricamento è definito in index.html.
+// Parte di Mastering (già app.js): l'ordine di caricamento è definito in index.html.
 
 // ============================================================
 // UTILITY
@@ -182,9 +182,6 @@ async function listaSalvate() {
   return Object.keys(leggiSalvatiLocal()).sort((a, b) => a.localeCompare(b));
 }
 
-// Riempe la finestra di scelta strategie (#modalListaStrategie) con i nomi
-// disponibili (cloud, fallback locale). `filtro` (opzionale) filtra per nome,
-// come digitato nel campo di ricerca del modale.
 // Scarica nome+dati di tutte le strategie salvate (cloud, fallback locale)
 async function mappaSalvatiDati() {
   const sb = getSupabase();
@@ -328,7 +325,7 @@ async function renderListaSalvate(filtro) {
       const vuoto = document.createElement('div');
       vuoto.className = 'strategia-empty';
       vuoto.textContent = getSupabase()
-        ? '— nessuna strategia in cloud —'
+        ? '— nessuna strategia nel cloud —'
         : '— nessuna strategia salvata —';
       box.appendChild(vuoto);
     } else {
@@ -347,7 +344,7 @@ async function renderListaSalvate(filtro) {
         if (dati) {
           const wrap = document.createElement('span');
           wrap.className = 'strategia-spark';
-          wrap.title = 'Anteprima payoff a scadenza (spot ±15%) · linea azzurra = spot · tacche gialle = breakeven';
+          wrap.title = 'Anteprima payoff a scadenza · linea azzurra = spot · tacche gialle = breakeven';
           wrap.innerHTML = sparklineSvg(dati);
           r.appendChild(wrap);
         }
@@ -359,7 +356,7 @@ async function renderListaSalvate(filtro) {
 
 async function salvaConNome(nome) {
   if (!stato.modalita) {
-    mostraStatus('Scegli prima un asset (Azioni / Indici / Commodities)', true);
+    mostraStatus('Scegli prima un asset (azioni / indici / commodities)', true);
     if (el('modalitaGlobale')) el('modalitaGlobale').focus();
     return;
   }
@@ -379,7 +376,10 @@ async function salvaConNome(nome) {
       esisteCloud = !!(data && data.nome);
     } catch (e) { /* ignore */ }
   }
-  if ((esisteLocale || esisteCloud) && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) return;
+  if ((esisteLocale || esisteCloud) && !confirm('Esiste già una strategia "' + nome + '".\nSovrascriverla con i dati correnti?')) {
+    mostraStatus('Salvataggio annullato', true);
+    return;
+  }
 
   map[nome] = { salvatoIl: salvatoIl, dati: dati };
   try { scriviSalvatiLocal(map); }
@@ -391,7 +391,7 @@ async function salvaConNome(nome) {
         .from('strategie')
         .upsert({ nome: nome, dati: dati, salvato_il: salvatoIl }, { onConflict: 'nome' });
       if (error) throw error;
-      mostraStatus('✓ "' + nome + '" salvata in cloud');
+      mostraStatus('✓ "' + nome + '" salvata nel cloud');
     } catch (e) {
       mostraStatus('Salvata in locale; cloud non raggiungibile', true);
     }
@@ -419,7 +419,7 @@ async function caricaSalvato(nome) {
         if (el('nomeStrategia')) el('nomeStrategia').value = nome;
         renderTabs(); renderScheda();
         await renderListaSalvate();
-        mostraStatus('✓ "' + nome + '" caricata da cloud');
+        mostraStatus('✓ "' + nome + '" caricata dal cloud');
         return;
       }
     } catch (e) {
@@ -449,7 +449,7 @@ async function eliminaSalvato(nome) {
     try {
       const { error } = await sb.from('strategie').delete().eq('nome', nome);
       if (error) throw error;
-      mostraStatus('✓ "' + nome + '" eliminata da cloud');
+      mostraStatus('✓ "' + nome + '" eliminata dal cloud');
     } catch (e) {
       mostraStatus('Eliminata in locale; cloud non aggiornato', true);
     }
@@ -464,7 +464,7 @@ async function eliminaSalvato(nome) {
 // ============================================================
 function esportaFile() {
   if (!stato.modalita) {
-    mostraStatus('Scegli prima un asset (Azioni / Indici / Commodities)', true);
+    mostraStatus('Scegli prima un asset (azioni / indici / commodities)', true);
     if (el('modalitaGlobale')) el('modalitaGlobale').focus();
     return;
   }
@@ -574,7 +574,7 @@ function migraOpz(o) {
 }
 
 function reset(senzaConferma) {
-  if (!senzaConferma && !confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.\nDovrai scegliere di nuovo l\'asset (Azioni / Indici / Commodities).')) return;
+  if (!senzaConferma && !confirm('Vuoi davvero azzerare tutti i dati?\n\nIl foglio tornerà completamente vuoto, pronto per nuovi inserimenti.\nDovrai scegliere di nuovo l\'asset (azioni / indici / commodities).')) return;
   localStorage.removeItem(STORAGE_KEY);
   STORAGE_KEYS_LEGACY.forEach(k => localStorage.removeItem(k));
   // Nuovo foglio: nessuna modalità → UI bloccata fino a «Scegli asset»
@@ -606,6 +606,11 @@ function reset(senzaConferma) {
     chartView._sig = null;
   }
   if (el('nomeStrategia')) el('nomeStrategia').value = '';
+  // Svuota esplicitamente i select globali: applicaModalita('') blocca l'UI
+  // ma non ripulisce i valori precedenti.
+  if (el('tipoNES')) el('tipoNES').value = '';
+  if (el('tipoMES')) el('tipoMES').value = '';
+  if (el('strumentoOpzioni')) el('strumentoOpzioni').value = '';
   renderListaSalvate('');
   renderTabs();
   if (typeof applicaModalita === 'function') applicaModalita('');
