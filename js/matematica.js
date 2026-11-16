@@ -247,7 +247,8 @@
     const start = typeof d1 === 'string' ? parseDataLocal(d1) : d1;
     const end = typeof d2 === 'string' ? parseDataLocal(d2) : d2;
     if (!(start instanceof Date) || !(end instanceof Date) || isNaN(start) || isNaN(end)) return null;
-    return (end - start) / (365.25 * 86400000);
+    // Giorni interi (evita lo sfasamento di un'ora dell'ora legale) / 365 (convenzione Actual/365)
+    return Math.round((end - start) / 86400000) / 365;
   }
 
   // Parse 'YYYY-MM-DD' come mezzanotte locale (coerente col today locale:
