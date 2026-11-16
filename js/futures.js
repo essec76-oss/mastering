@@ -78,7 +78,7 @@
 
       // --- LOGICA FEE CAPITALIZZATE NEL PREZZO MEDIO ---
       // Se LONG, la fee aumenta il prezzo di carico. Se SHORT, lo diminuisce.
-      const impattoFeeSuPrezzo = (feeOpen / qAp) * segno;
+      const impattoFeeSuPrezzo = (feeOpen / (qAp * molt)) * segno;
       const prezzoCaricoSporco = prezzoOpen + impattoFeeSuPrezzo;
 
       // P&L Realizzato (usiamo il prezzo sporco e NON sottraiamo più le fee)
@@ -87,7 +87,8 @@
         const basePrezzo = (m.prezzoMedioChiusura && m.prezzoMedioChiusura.prezzo)
           ? m.prezzoMedioChiusura.prezzo
           : prezzoCaricoSporco;
-        pnlRea = (prezzoClose - basePrezzo) * qCh * segno * molt;
+        pnlRea = (prezzoClose - basePrezzo) * qCh * segno * molt
+          - (feeClose * qCh / qAp);
         pnlRealizzatoTot += pnlRea;
       }
 
