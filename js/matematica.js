@@ -37,12 +37,14 @@
   }
 
   // CDF lognormale del sottostante a scadenza T (anni), vol ATM in frazione
-  function lognormalCDF(S, S0, vol, T) {
+  // mu = drift del sottostante (0 per futures / Black-76, r per azioni)
+  function lognormalCDF(S, S0, vol, T, mu) {
+    mu = Number(mu) || 0;
     if (!(S > 0) || !(S0 > 0)) return S >= S0 ? 1 : 0;
     const sigT = vol * Math.sqrt(T);
     if (!(sigT > 0)) return S >= S0 ? 1 : 0;
-    // P(S_T <= S) con drift 0 (futures / Black-76)
-    const d = (Math.log(S / S0) + 0.5 * vol * vol * T) / sigT;
+    // P(S_T <= S) con drift mu (0 per futures / Black-76, r per azioni)
+    const d = (Math.log(S / S0) - (mu - 0.5 * vol * vol) * T) / sigT;
     return normCDF(d);
   }
 
@@ -84,6 +86,9 @@
       T = 30 / 365.25;
     }
     if (!(spot > 0) || !(vol > 0) || !(T > 0)) return null;
+    // Drift: risk-free per le azioni (S è spot), zero per i futures (S è già il forward)
+    const rFree = (parseFloat(el('riskFree') && el('riskFree').value) || 0) / 100;
+    const mu = (mondoAttivo() === 'AZIONI') ? rFree : 0;
 
     const bes = (breakevens || []).filter(b => isFinite(b) && b > 0).sort((a, b) => a - b);
 
@@ -110,8 +115,8 @@
         : (lo + hi) / 2;
       const midS = mid <= 0 ? 0.01 : mid;
       const pnl = pnlCombinatoAt(scheda, midS, 'expiry', resNES, resMES);
-      const cdfHi = hi === Infinity ? 1 : lognormalCDF(hi, spot, vol, T);
-      const cdfLo = lognormalCDF(lo <= 0 ? 0.0001 : lo, spot, vol, T);
+      const cdfHi = hi === Infinity ? 1 : lognormalCDF(hi, spot, vol, T, mu);
+      const cdfLo = lognormalCDF(lo <= 0 ? 0.0001 : lo, spot, vol, T, mu);
       const pZone = Math.max(0, cdfHi - cdfLo);
       const profitable = pnl > 0;
       if (profitable) prob += pZone;
