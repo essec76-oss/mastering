@@ -148,27 +148,8 @@
       });
     }
 
-    // 4. CALCOLO P&L NON REALIZZATO (Mark-to-Market)
-    let pnlNonRealizzatoTot = 0;
-    if (res.qtaNetta !== 0 && res.mediaPulita > 0) {
-      const spotFront = parseFloat(el('prezzoSpot')?.value) || 0;
-      
-      // Se siamo nel Back (MES), il prezzo corrente è Spot + Basis
-      let prezzoCorrente = spotFront;
-      if (col === 'MES') {
-        const basis = basisScheda(scheda);
-        prezzoCorrente = spotFront + basis;
-      }
-
-      // --- MOLTIPLICATORE ---
-      // Impostato a 0.5 per NES e MES come da specifica.
-      const molt = (res.tipo === 'X')
-        ? MOLTIPLICATORI.X
-        : (MOLTIPLICATORI[res.tipo] || 1);
-      
-      // Calcolo: (Prezzo Corrente - Prezzo Medio) * Quantità * Moltiplicatore
-      pnlNonRealizzatoTot = (prezzoCorrente - res.mediaPulita) * res.qtaNetta * molt;
-    }
+    // 4. P&L NON REALIZZATO (calcolato in calcolaColonna con prezzo medio e spot)
+    const pnlNonRealizzatoTot = res.pnlAperto || 0;
 
     // 5. AGGIORNAMENTO HTML
     // P&L RLZD
