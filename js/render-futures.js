@@ -162,10 +162,9 @@
 
       // --- MOLTIPLICATORE ---
       // Impostato a 0.5 per NES e MES come da specifica.
-      let molt = 1;
-      if (res.tipo === 'NES') molt = 0.5; 
-      else if (res.tipo === 'MES') molt = 0.5; 
-      else if (res.tipo === 'ES') molt = 1;
+      const molt = (res.tipo === 'X')
+        ? MOLTIPLICATORI.X
+        : (MOLTIPLICATORI[res.tipo] || 1);
       
       // Calcolo: (Prezzo Corrente - Prezzo Medio) * Quantità * Moltiplicatore
       pnlNonRealizzatoTot = (prezzoCorrente - res.mediaPulita) * res.qtaNetta * molt;
