@@ -271,6 +271,10 @@ function syncFrontBackUI() {
   const scheda = schedaAttiva();
   if (!scheda) return;
 
+  // Filtro "solo aperte": rispecchia lo stato della scheda attiva
+  const soloAp = el('soloAperteToggle');
+  if (soloAp) soloAp.checked = !!scheda.soloAperte;
+
   // Basis
   const basisEl = el('basisInput');
   if (basisEl && document.activeElement !== basisEl) {
@@ -322,6 +326,18 @@ if (el('toggleFrontBack')) {
     scheda.toggleBackView = !(scheda.toggleBackView !== false);
     syncFrontBackUI();
     renderMovimenti('MES');
+  });
+}
+
+// ============================================================
+// FILTRO SOLO OPZIONI APERTE
+// ============================================================
+if (el('soloAperteToggle')) {
+  el('soloAperteToggle').addEventListener('change', e => {
+    const scheda = schedaAttiva();
+    if (!scheda) return;
+    scheda.soloAperte = e.target.checked;
+    calcolaTutto();
   });
 }
 
