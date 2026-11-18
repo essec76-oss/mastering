@@ -89,7 +89,7 @@
           : prezzoCaricoSporco;
         pnlRea = (prezzoClose - basePrezzo) * qCh * segno * molt
           - (feeClose * qCh / qAp);
-        pnlRealizzatoTot += pnlRea;
+        if (!scheda.soloAperte) pnlRealizzatoTot += pnlRea;
       }
 
       righe[idx].qChiusa = qCh;
