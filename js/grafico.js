@@ -255,6 +255,7 @@ let rotellaZoomAttiva = false;
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) pts.push(res.mediaPulita - shift);
       (target[col] || []).forEach(m => {
         if (m.attivo === false) return;
+        if (target.soloAperte && (m.quantitaChiusa || 0) >= (m.quantita || 0)) return;
         if (m.prezzoPulito > 0) pts.push(m.prezzoPulito - shift);
       });
     });
@@ -380,6 +381,7 @@ let rotellaZoomAttiva = false;
       if (res && !isNaN(res.mediaPulita) && res.qtaNetta !== 0) events.add(res.mediaPulita - shift);
       (scheda[col] || []).forEach(m => {
         if (m.attivo === false) return;
+        if (scheda.soloAperte && (m.quantitaChiusa || 0) >= (m.quantita || 0)) return;
         if (m.prezzoPulito > 0) events.add(m.prezzoPulito - shift);
       });
     });
