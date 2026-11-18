@@ -689,7 +689,7 @@ let rotellaZoomAttiva = false;
   }
 
   function _firmaScheda(scheda) {
-    const parts = [];
+    const parts = [`sa:${scheda.soloAperte ? 1 : 0}`];
     ['NES', 'MES'].forEach(col => {
       const res = calcolaColonna(scheda, col);
       parts.push(`${res.qtaNetta}:${res.mediaPulita || 0}:${res.pnlRealizzato || 0}`);
