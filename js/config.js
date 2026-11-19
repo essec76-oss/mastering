@@ -96,10 +96,6 @@ function feeLatoFuture(tipo) {
   if (!STRUMENTI_CON_COMMISSIONI.includes(tipo)) return 0;
   return FEE_FUTURES_LATO;
 }
-// Alias usato da futures.js per la whitelist (retrocompatibile).
-function feeLatoFutureAttiva(tipo) {
-  return feeLatoFuture(tipo);
-}
 // Fee opzioni per lato: sempre 0 (le opzioni del tool sono MES/ES/AZIONI,
 // mai NES: nessuno strumento opzionabile paga commissioni in questa sim).
 function feeLatoOpzione() {
@@ -113,11 +109,6 @@ const STORAGE_KEYS_LEGACY = ['mastering_v19', 'mastering_v18', 'mastering_v17', 
 // Progetto Trading (essec76-oss). Publishable key = uso browser + RLS.
 const SUPABASE_URL = 'https://twulifdttpamrmjvpwia.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_AlJOIOMpTdqBA43Ugcd1Lg_V70uVRXP';
-
-// Colori delle curve sul grafico: Matrice = bianco, comparazioni = palette
-// (mantenuta per usi futuri, non più usata nel disegno del payoff).
-const PALETTE_COMP = ['#f97316', '#22d3e8', '#e879f9', '#a78bfa', '#fb7185', '#facc15'];
-function coloreScheda(i) { return i === 0 ? '#ffffff' : PALETTE_COMP[(i - 1) % PALETTE_COMP.length]; }
 
 // --- Colori del grafico di confronto (v25) ---
 // Azzurro = scheda corrente (attiva); Ambra = scheda precedente (confronto).
@@ -156,11 +147,5 @@ const stato = {
 };
 
 function schedaAttiva() { return stato.schede[stato.attiva] || stato.schede[0]; }
-
-// Scheda precedente (per il confronto). Null se siamo sulla Matrice.
-function schedaPrecedente() {
-  if (stato.attiva <= 0) return null;
-  return stato.schede[stato.attiva - 1] || null;
-}
 
 const el = id => document.getElementById(id);

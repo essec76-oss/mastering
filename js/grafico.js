@@ -13,8 +13,12 @@
   }
   // Le opzioni su MES (Back) hanno prezzi in unità Back:
   // per valutarle il sottostante va portato a S + basis.
+  // ← MODIFICATO: versione "buona" (priorità lato FRONT/BACK, fallback legacy strumento)
   function opzioneSuBack(opz) {
-    return ((opz && (opz.strumento || 'MES')) === 'MES');
+    if (!opz) return false;
+    if (opz.lato === 'BACK') return true;
+    if (opz.lato === 'FRONT') return false;
+    return (opz.strumento || 'MES') === 'MES';
   }
   // Strike riportato su asse Front (per eventi e ancore del grafico)
   function strikeInFront(opz, basis) {
@@ -679,10 +683,11 @@ let rotellaZoomAttiva = false;
     const showExpiryP = el('showExpiryPrecedente') ? el('showExpiryPrecedente').checked : true;
     const showNowP    = el('showNowPrecedente')    ? el('showNowPrecedente').checked    : true;
     const curveSets = buildCurveSets(xMin, xMax);
+    // ← MODIFICATO: rimossa la coda ", stato.attiva"
     drawPayoffChart(
       curveSets, lastSpot,
       { showExpiryC, showNowC, showExpiryP, showNowP },
-      breakevens || [], chartView.sigma, stato.attiva
+      breakevens || [], chartView.sigma
     );
   }
 
@@ -755,7 +760,8 @@ let rotellaZoomAttiva = false;
       updatePOPLabel(null);
       aggiornaHeaderComparazione(spot);
       chartView.sigma = null;
-      drawPayoffChart([], spot, { showExpiryC: false, showNowC: false, showExpiryP: false, showNowP: false }, [], null, stato.attiva);
+      // ← MODIFICATO: rimossa la coda ", stato.attiva"
+      drawPayoffChart([], spot, { showExpiryC: false, showNowC: false, showExpiryP: false, showNowP: false }, [], null);
       return;
     }
 
@@ -816,10 +822,11 @@ let rotellaZoomAttiva = false;
 
     chartView.sigma = sigmaBandsAt(spot, resNES, resMES);
     const curveSets = buildCurveSets(chartView.xMin, chartView.xMax);
+    // ← MODIFICATO: rimossa la coda ", stato.attiva"
     drawPayoffChart(
       curveSets, spot,
       { showExpiryC, showNowC, showExpiryP, showNowP },
-      chartView.breakevens, chartView.sigma, stato.attiva
+      chartView.breakevens, chartView.sigma
     );
   }
 
@@ -830,7 +837,8 @@ let rotellaZoomAttiva = false;
     };
   }
 
-  function drawPayoffChart(curveSets, spot, flags, breakevens, sigma, attivaIdx) {
+  // ← MODIFICATO: rimosso il parametro attivaIdx (non utilizzato nel corpo)
+  function drawPayoffChart(curveSets, spot, flags, breakevens, sigma) {
     const svg = el('payoffChart');
     if (!svg) return;
     breakevens = breakevens || [];

@@ -496,14 +496,9 @@ function importaDaJson(testo) {
   mostraStatus('✓ Strategia importata');
 }
 
-function importaDaInputFile(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    try { importaDaJson(String(reader.result)); }
-    catch (e) { mostraStatus('File non valido', true); }
-  };
-  reader.readAsText(file);
-}
+// [RIMOSSA: importaDaInputFile — duplicato di quella in eventi.js (caricato dopo,
+//  quindi vinceva a runtime). La versione in eventi.js è più robusta: ha il guard
+//  `if (!file) return`, gestisce `reader.onerror` e usa un messaggio d'errore più chiaro.]
 
 // Migrazione di una scheda (dati vecchi/corrotti non rompono nulla)
 function migraScheda(s) {
