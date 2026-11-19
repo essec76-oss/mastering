@@ -9,14 +9,8 @@
     return tipo;
   }
 
-  function deltaRiga(info, tipo) {
-    if (!info || !(info.qAperta > 0)) return NaN;
-    if (tipo === 'X') return NaN;
-    const molt = MOLTIPLICATORI[tipo] || 0;
-    if (!molt) return NaN;
-    const segno = info.direzione === 'LONG' ? 1 : -1;
-    return segno * info.qAperta * (molt / MOLTIPLICATORI.MES);
-  }
+  // [RIMOSSA: deltaRiga — codice morto, sostituita da deltaInRiferimento
+  //  chiamata inline in renderRigaTotale.]
 
   function tipoRiferimentoFut(scheda) {
     const candidati = [];
@@ -59,17 +53,8 @@
     ricalcolaStatiScheda(scheda, 'MES');
   }
 
-  function calcolaFeeStimate(col) {
-    const scheda = schedaAttiva();
-    const tipo = scheda['tipo' + col];
-    if (!tipo || tipo === '-') return 0;
-    let tot = 0;
-    (scheda[col] || []).forEach(m => {
-      if (m.attivo === false) return;
-      tot += (m.feeOpen || 0) + (m.feeClose || 0);
-    });
-    return tot;
-  }
+  // [RIMOSSA: calcolaFeeStimate — codice morto, mai chiamata. Inoltre leggeva
+  //  m.feeOpen/m.feeClose che migraMov() ha già consolidato in m.fee.]
 
   // Vista Front del Back (solo visuale): prezzo Back − basis.
   // Il basis è definito come Back − Front (vedi calcolaColonna).
