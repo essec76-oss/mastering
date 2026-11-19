@@ -143,7 +143,59 @@ function matriceHaOpzioniAttive() {
 // azioni/futures (P&L realizzato + aperto al prezzo medio), opzioni
 // (intrinseco alla prima scadenza + teorico residuo per le calendar)
 // e cash. Mostra «—» se la Matrice non ha opzioni attive con scadenza.
+// v30 — PmG per scheda: visibile solo con opzioni attive con scadenza;
+// giorni e PL a scadenza calcolati sulla scheda attiva (non sulla Matrice).
+function schedaHaOpzioniAttive(scheda) {
+  if (!scheda || !Array.isArray(scheda.opzioni)) return false;
+  return scheda.opzioni.some(o =>
+    o && o.attivo !== false && o.stato !== 'CHIUSA' && o.scadenza
+  );
+}
+
+function dataAnalisiInizialeScheda(scheda) {
+  const p = scheda && scheda.par;
+  if (p && p.dataAnalisiIniziale) return p.dataAnalisiIniziale;
+  if (p && p.dataAnalisi) return p.dataAnalisi;
+  return el('dataAnalisi') ? el('dataAnalisi').value : dataOggiIso();
+}
+
+function giorniTotaliScheda(scheda) {
+  const scadenze = (scheda.opzioni || [])
+    .filter(o => o && o.attivo !== false && o.stato !== 'CHIUSA' && o.scadenza)
+    .map(o => new Date(o.scadenza + 'T00:00:00'))
+    .filter(d => !isNaN(d.getTime()));
+  if (!scadenze.length) return 0;
+  const prima = new Date(Math.min(...scadenze));
+  const iniziale = new Date(dataAnalisiInizialeScheda(scheda) + 'T00:00:00');
+  return Math.max(0, Math.round((prima - iniziale) / 86400000));
+}
+
 function aggiornaPmG() {
+  const label = el('pmgLabel');
+  const val = el('pmgValue');
+  if (!label || !val) return;
+
+  const scheda = schedaAttiva();
+  const visibile = schedaHaOpzioniAttive(scheda);
+  label.style.display = visibile ? '' : 'none';
+  val.style.display = visibile ? '' : 'none';
+  if (!visibile) return;
+
+  const giorni = giorniTotaliScheda(scheda);
+  const spot = parseFloat(el('prezzoSpot').value) || 0;
+  let pnlScad = NaN;
+  if (spot > 0) {
+    const resNES = calcolaColonna(scheda, 'NES');
+    const resMES = calcolaColonna(scheda, 'MES');
+    pnlScad = pnlCombinatoAt(scheda, spot, 'expiry', resNES, resMES);
+  }
+
+  const pmg = (giorni > 0 && isFinite(pnlScad)) ? pnlScad / giorni : NaN;
+  val.textContent = isFinite(pmg) ? formatEuro(pmg) + ' /gg' : '—';
+  val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
+}
+
+function _vecchioAggiornaPmG() {
   const label = el('pmgLabel');
   const val = el('pmgValue');
   if (!label || !val) return;
