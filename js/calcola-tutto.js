@@ -195,75 +195,6 @@ function aggiornaPmG() {
   val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
 }
 
-function _vecchioAggiornaPmG() {
-  const label = el('pmgLabel');
-  const val = el('pmgValue');
-  if (!label || !val) return;
-  const visibile = matriceHaOpzioniAttive();
-  label.style.display = visibile ? '' : 'none';
-  val.style.display = visibile ? '' : 'none';
-  if (!visibile) return;
-
-  const matrice = stato.schede[0];
-  const giorni = giorniTotaliMatrice();
-
-  // PL a scadenza della Matrice: ricalcola le colonne della Matrice
-  // (NON della scheda attiva) con TUTTI i parametri della Matrice
-  // (spot, vol, vol Back, risk-free, div, cash, data analisi attuale,
-  // strumento opzioni — salvati in matrice.par da parametri-scheda.js
-  // e, per la vol Back, nell'oggetto scheda). Durante il calcolo gli
-  // input della pagina vengono temporaneamente impostati sui parametri
-  // della Matrice e poi ripristinati su quelli della scheda attiva.
-  // Il campo con il focus non viene mai toccato, così la digitazione
-  // non viene interrotta. Il set programmatico NON fa scattare gli
-  // event listener 'input'/'change'.
-  let pnlScadMatrice = NaN;
-  const parM = parMatrice(matrice);
-  if (matrice && parM) {
-    const CAMPI_SWAP = ['prezzoSpot', 'volStorica', 'volAtm', 'volAtmBack', 'riskFree',
-                        'divYield', 'cash', 'dataAnalisi', 'strumentoOpzioni'];
-    const precedenti = {};
-    CAMPI_SWAP.forEach(id => {
-      const e = el(id);
-      if (e) precedenti[id] = e.value;
-    });
-    const cashPrecedente = stato.cash;
-    try {
-      CAMPI_SWAP.forEach(id => {
-        const e = el(id);
-        if (!e || e === document.activeElement) return;
-        if (id === 'volAtmBack') {
-          // La vol Back è un attributo della scheda, non di matrice.par
-          e.value = (matrice.volAtmBack !== undefined && matrice.volAtmBack !== null)
-            ? matrice.volAtmBack : '';
-          return;
-        }
-        const v = parM[id === 'prezzoSpot' ? 'spot' : id];
-        if (v !== undefined && v !== null && v !== '') e.value = v;
-      });
-      const spotVal = parseFloat(el('prezzoSpot').value) || 0;
-      stato.cash = parseFloat(parM.cash) || 0;
-      if (spotVal > 0) {
-        const resM_NES = calcolaColonna(matrice, 'NES');
-        const resM_MES = calcolaColonna(matrice, 'MES');
-        pnlScadMatrice = pnlCombinatoAt(matrice, spotVal, 'expiry', resM_NES, resM_MES);
-      }
-    } catch (e) {
-      pnlScadMatrice = NaN;
-    } finally {
-      CAMPI_SWAP.forEach(id => {
-        const e = el(id);
-        if (e && e !== document.activeElement && precedenti[id] !== undefined) e.value = precedenti[id];
-      });
-      stato.cash = cashPrecedente;
-    }
-  }
-
-  const pmg = (giorni > 0 && isFinite(pnlScadMatrice)) ? pnlScadMatrice / giorni : NaN;
-  val.textContent = isFinite(pmg) ? formatEuro(pmg) + ' /gg' : '—';
-  val.className = 'rg-val ' + (!isFinite(pmg) ? 'muted' : (pmg >= 0 ? 'green' : 'red'));
-}
-
 // ============================================================
 // S BACK = spot Front ± Basis (sola lettura)
 // Basis positivo: sommato. Basis negativo: sottratto (già nel segno).
@@ -292,13 +223,3 @@ function aggiornaSBack() {
 
 // Valore iniziale al caricamento
 aggiornaSBack();
-
-// --- fix opzioneSuBack: priorità al lato FRONT/BACK (non allo strumento MES) ---
-// Ridefinisce la funzione di grafico.js per strikeInFront / premioCarico / avviso vol.
-function opzioneSuBack(opz) {
-  if (!opz) return false;
-  if (opz.lato === 'BACK') return true;
-  if (opz.lato === 'FRONT') return false;
-  // legacy senza campo lato
-  return (opz.strumento || 'MES') === 'MES';
-}
