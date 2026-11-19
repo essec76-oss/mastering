@@ -36,11 +36,6 @@
     return pnlOpzioneAt(spot, opz, mode || 'now', firstExp, basis);
   }
 
-  // Totale P&L opzioni: con filtro = solo dello strumento indicato,
-  // senza filtro = tutti gli strumenti (riepilogo, TWS, payoff)
-  function calcolaPnlOpzioniTotale(filtro) {
-    return schedaAttiva().opzioni.reduce((sum, o) => {
-      if (filtro && (o.strumento || 'MES') !== filtro) return sum;
-      return sum + calcolaPnlOpzione(o);
-    }, 0);
-  }
+  // [RIMOSSA: calcolaPnlOpzioniTotale — codice morto, mai chiamata.
+  //  La logica equivalente è inline in pnlCombinatoAt (grafico.js) e in
+  //  aggiornaPnlOpzioni (render-opzioni.js).]
