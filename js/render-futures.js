@@ -140,7 +140,7 @@
 
     // 3. CALCOLO P&L REALIZZATO (Somma colonna RLZD)
     let pnlRealizzatoTot = 0;
-    if (res.righe && Array.isArray(res.righe)) {
+    if (!scheda.soloAperte && res.righe && Array.isArray(res.righe)) {
       res.righe.forEach(info => {
         if (info && info.pnlRealizzato) {
           pnlRealizzatoTot += info.pnlRealizzato;
