@@ -1729,3 +1729,11 @@ body.modalita-locked #btnReset {
   border-color: var(--red) !important;
   box-shadow: 0 0 0 1px var(--red);
 }
+.btn-riapri {
+  margin-left: 4px;
+  color: var(--accent, #4f8cff);
+  border-color: var(--accent, #4f8cff);
+}
+.btn-riapri:hover {
+  background: rgba(79, 140, 255, 0.15);
+}

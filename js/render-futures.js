@@ -245,7 +245,7 @@
       });
       tdDel.appendChild(btnDel); tr.appendChild(tdDel);
 
-      // NASCONDI
+      // NASCONDI + RIAPRI
       const tdAtt = document.createElement('td');
       tdAtt.dataset.label = 'Nascondi';
       const btnNascondi = document.createElement('button');
@@ -257,7 +257,26 @@
         scheda[col][idx].attivo = scheda[col][idx].attivo === false;
         renderMovimenti(col); calcolaTutto();
       });
-      tdAtt.appendChild(btnNascondi); tr.appendChild(tdAtt);
+      tdAtt.appendChild(btnNascondi);
+
+      // RIAPRI (solo se la riga è chiusa o parzialmente chiusa)
+      if (qCh > 0) {
+        const btnRiapri = document.createElement('button');
+        btnRiapri.className = 'btn-stato btn-riapri';
+        btnRiapri.innerHTML = '↺';
+        btnRiapri.title = 'Riapri posizione: annulla la chiusura e ripristina la riga aperta';
+        btnRiapri.setAttribute('aria-label', 'Riapri posizione');
+        btnRiapri.addEventListener('click', () => {
+          if (!confirm('Riaprire questa posizione? Il P&L realizzato verrà annullato.')) return;
+          scheda[col][idx].quantitaChiusa = 0;
+          scheda[col][idx].prezzoClose = 0;
+          delete scheda[col][idx].prezzoMedioChiusura;
+          renderMovimenti(col);
+          calcolaTutto();
+        });
+        tdAtt.appendChild(btnRiapri);
+      }
+      tr.appendChild(tdAtt);
 
       // TIPO (BUY / SELL)
       const tdTipo = document.createElement('td');
@@ -335,17 +354,34 @@
       tdFeeOp.appendChild(inFeeOp);
       tr.appendChild(tdFeeOp);
 
-      // QTA CLOSE (sola lettura: la valorizza solo lo scarico)
+      // QTA CLOSE (editabile se la riga è chiusa; 0 = riapre completamente)
       const tdQtaC = document.createElement('td');
       tdQtaC.dataset.label = 'Q.tà Close';
       const inQtaC = document.createElement('input');
       inQtaC.type = 'number';
+      inQtaC.step = '1';
+      inQtaC.min = '0';
+      inQtaC.max = String(qAp);
       inQtaC.value = qCh || '';
       inQtaC.placeholder = '0';
-      inQtaC.disabled = true;
+      inQtaC.disabled = backLocked;
+      inQtaC.title = 'Quantità chiusa. Metti 0 per riaprire completamente.';
+      // 'change' invece di 'input': il rendering ricostruisce la tabella
+      // e farebbe perdere il focus mentre l'utente digita.
+      inQtaC.addEventListener('change', e => {
+        let q = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
+        q = Math.max(0, Math.min(q, qAp));   // non superare la quantità aperta
+        scheda[col][idx].quantitaChiusa = q;
+        if (q === 0) {
+          scheda[col][idx].prezzoClose = 0;
+          delete scheda[col][idx].prezzoMedioChiusura;
+        }
+        renderMovimenti(col);
+        calcolaTutto();
+      });
       tdQtaC.appendChild(inQtaC); tr.appendChild(tdQtaC);
 
-      // PREZZO CLOSE (sola lettura: spot al momento dello scarico)
+      // PREZZO CLOSE (editabile solo se la riga ha già una chiusura)
       const tdPrezzoC = document.createElement('td');
       tdPrezzoC.dataset.label = 'Prezzo Close';
       const inPrezzoC = document.createElement('input');
@@ -354,8 +390,15 @@
       inPrezzoC.className = 'prezzo-nominale';
       inPrezzoC.value = mov.prezzoClose ? conv(mov.prezzoClose) : '';
       inPrezzoC.placeholder = '—';
-      inPrezzoC.disabled = true;
-      inPrezzoC.title = 'Valorizzato dallo scarico con lo spot al momento della chiusura.';
+      inPrezzoC.disabled = backLocked || qCh === 0;
+      inPrezzoC.title = qCh > 0
+        ? 'Prezzo di chiusura. Modificabile.'
+        : 'Valorizzato dallo scarico. Diventa editabile dopo la chiusura.';
+      inPrezzoC.addEventListener('input', e => {
+        scheda[col][idx].prezzoClose = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0);
+        aggiornaCalcolati(col);
+        calcolaTutto();
+      });
       tdPrezzoC.appendChild(inPrezzoC); tr.appendChild(tdPrezzoC);
 
       // FEE CL.
