@@ -31,7 +31,9 @@ function raccogliDati() {
     attiva: stato.attiva,
     schede: stato.schede,
     // v28 — modalità globale: necessaria per riallineare il menu padre al load
-    modalitaGlobale: (el('modalitaGlobale') ? el('modalitaGlobale').value : (stato.modalita || MODALITA_DEFAULT))
+    modalitaGlobale: (el('modalitaGlobale') ? el('modalitaGlobale').value : (stato.modalita || MODALITA_DEFAULT)),
+    // Nome strategia (persiste al refresh)
+    nomeStrategia: el('nomeStrategia') ? (el('nomeStrategia').value || '') : ''
   };
   return dati;
 }
@@ -87,6 +89,11 @@ function applicaDati(dati) {
       el('dataAnalisiIniziale').value = dati.dataAnalisiIniziale;
     }
     if (typeof dati.dataAnalisi === 'string' && dati.dataAnalisi) el('dataAnalisi').value = dati.dataAnalisi;
+
+    // Nome strategia (persiste al refresh)
+    if (typeof dati.nomeStrategia === 'string' && el('nomeStrategia')) {
+      el('nomeStrategia').value = dati.nomeStrategia;
+    }
 
     // Schede: prima carica lo stato, poi applica la modalità (che sistema i select globali)
     if (Array.isArray(dati.schede) && dati.schede.length) {
