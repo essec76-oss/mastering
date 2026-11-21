@@ -293,7 +293,7 @@
       const tdQta = document.createElement('td');
       tdQta.dataset.label = 'Q.tà';
       const inQta = document.createElement('input');
-      inQta.type = 'number'; inQta.step = '1'; inQta.min = '0'; inQta.value = opz.qta || 1;
+      inQta.type = 'number'; inQta.step = '1'; inQta.min = '0'; inQta.value = (opz.qta === '' || opz.qta == null) ? '' : opz.qta;
       inQta.addEventListener('input', e => {
         const v = e.target.value;
         opzioniScheda[idx].qta = v === '' ? 0 : (parseFloat(v) || 0);
