@@ -307,7 +307,8 @@
       tdQta.dataset.label = 'Q.tà';
       const inQta = document.createElement('input');
       inQta.type = 'number'; inQta.step = '1'; inQta.min = '0';
-      inQta.value = mov.quantita;
+      inQta.value = (mov.quantita > 0) ? mov.quantita : '';
+      inQta.placeholder = '—';
       inQta.disabled = qCh > 0 || backLocked;
       inQta.addEventListener('input', e => {
         const q = (e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0));

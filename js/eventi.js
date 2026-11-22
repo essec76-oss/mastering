@@ -366,9 +366,9 @@ function creaOpzione(lato) {
   schedaAttiva().opzioni.push({
     attivo: true, strumento: strumentoOpzSelezionato(),
     lato: lato,
-    pos: 'SELL', tipo: 'PUT', qta: 1, assgn: false,
-    strike: 0, rlzd: '', premio: 0, vol: 15,
-    scadenza: scadenzaDefaultPerLato(lato),
+pos: 'SELL', tipo: 'PUT', qta: '', assgn: false,
+strike: '', rlzd: '', premio: '', vol: '',
+scadenza: '',
     stato: 'APERTA'
   });
   renderOpzioni(); calcolaTutto();

@@ -80,7 +80,7 @@ function aggiornaHeaderBack(scheda) {
 function applicaDati(dati) {
     if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
     if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
-    if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
+    if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm || '';
     if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
     if (typeof dati.cash === 'number') { el('cash').value = dati.cash; stato.cash = dati.cash; aggiornaStileCash(); }
     if (typeof dati.dataAnalisiIniziale === 'string' && dati.dataAnalisiIniziale && el('dataAnalisiIniziale')) {
@@ -222,7 +222,7 @@ function sparklineSvg(dati) {
     // Applica i dati della strategia salvata
     if (typeof dati.prezzoSpot === 'number') el('prezzoSpot').value = dati.prezzoSpot;
     if (typeof dati.riskFree === 'number') el('riskFree').value = dati.riskFree;
-    if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm;
+    if (typeof dati.volAtm === 'number') el('volAtm').value = dati.volAtm || '';
     if (typeof dati.divYield === 'number' && el('divYield')) el('divYield').value = dati.divYield;
     if (typeof dati.cash === 'number') el('cash').value = dati.cash;
     if (dati.dataAnalisi && el('dataAnalisi')) el('dataAnalisi').value = dati.dataAnalisi;
@@ -586,7 +586,7 @@ function reset(senzaConferma) {
   stato.attiva = 0;
   el('prezzoSpot').value = '';
   el('riskFree').value = 0;
-  el('volAtm').value = 0;
+  el('volAtm').value = '';
   if (el('divYield')) el('divYield').value = 0;
   el('cash').value = 0;
   stato.cash = 0;
